@@ -1,24 +1,20 @@
-from django.db import models
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.core.validators import RegexValidator
+from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+
+from django_countries.fields import CountryField
+
+from db.base_model import BaseModel
 
 # Create your models here.
 
 
 class AccountManager(BaseUserManager):
-    """[summary]
-
-    Args:
-        BaseUserManager ([type]): [description]
-    """
 
     def create_user(self, user_name, email, password, **other_fields):
-        """
-        docstring
-        """
         if not user_name:
             raise ValueError(_('A username address is required.'))
         if not email:
@@ -30,9 +26,6 @@ class AccountManager(BaseUserManager):
         return user
 
     def create_superuser(self, user_name, email, password, **other_fields):
-        """
-        docstring
-        """
         other_fields.setdefault('is_staff', True)
         other_fields.setdefault('is_active', True)
         other_fields.setdefault('is_superuser', True)
@@ -47,12 +40,7 @@ class AccountManager(BaseUserManager):
 
 
 class User(PermissionsMixin, AbstractBaseUser):
-    """[summary]
 
-    Args:
-        PermissionsMixin ([type]): [description]
-        AbstractBaseUser ([type]): [description]
-    """
     username_validator = UnicodeUsernameValidator()
 
     user_name = models.CharField(_("user name"), max_length=50, validators=[
@@ -75,3 +63,32 @@ class User(PermissionsMixin, AbstractBaseUser):
 
     def __str__(self):
         return self.user_name
+
+
+class AddressManager(models.Manager):
+    def get_default_address(self, user):
+        try:
+            address = self.get(user=user, is_default=True)
+        except self.model.DoesNotExist:
+            address = None
+        return address
+
+
+class Address(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    recipient = models.CharField(_("recipient"), max_length=50)
+    phone_no = models.CharField(_("phone number"), max_length=50)
+    addr = models.CharField(_("address"), max_length=250)
+    city = models.CharField(_("city"), max_length=50)
+    country = CountryField(_("country"), blank_label='(select country)')
+    zip_code = models.CharField(_("zip code"), max_length=20,
+                                validators=[RegexValidator(r'^[0-9]+')])
+    is_default = models.BooleanField(_("default address"), default=False)
+
+    objects = AddressManager()
+
+    def __str__(self):
+        return f'{self.user} (recipient: {self.recipient})'
+
+    class Meta:
+        verbose_name_plural = 'addresses'
