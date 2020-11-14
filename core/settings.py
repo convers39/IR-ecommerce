@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     # local apps
     'account.apps.AccountConfig',
     'cart.apps.CartConfig',
-    'product.apps.ProductConfig',
+    'shop.apps.ShopConfig',
     'order.apps.OrderConfig',
     # django apps
     'django.contrib.admin',
@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # 3rd party apps
+    'celery',
     'django_extensions',
 ]
 
@@ -59,6 +60,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.AllowAllUsersModelBackend']
 
 ROOT_URLCONF = 'core.urls'
 
@@ -79,6 +83,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'core.wsgi.application'
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'oda.ichii@gmail.com'
+EMAIL_FROM = 'IREC<oda.ichii@gmail.com>'
+EMAIL_HOST_PASSWORD = 'hxmkwnfyrgrkzxxz'
 
 
 # Database
@@ -157,6 +169,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static')
+]
+
 
 MEDIA_URL = '/media/'
 

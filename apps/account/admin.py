@@ -13,16 +13,16 @@ class AddressInline(admin.StackedInline):
 @admin.register(User)
 class UserAdmin(UserAdmin):
     ordering = ('-date_joined', '-last_login')
-    list_display = ('user_name', 'email', 'is_active',
+    list_display = ('username', 'email', 'is_active',
                     'is_staff', 'date_joined', 'last_login')
-    search_fields = ('user_name', 'phone_no', 'email')
-    list_filter = ('date_joined', 'user_name',
+    search_fields = ('username', 'phone_no', 'email')
+    list_filter = ('date_joined', 'username',
                    'is_active', 'is_staff', 'is_superuser')
 
     fieldsets = (
         ('Information', {
             "fields": (
-                'user_name',
+                'username',
                 'first_name',
                 'last_name',
                 'email',
@@ -42,7 +42,7 @@ class UserAdmin(UserAdmin):
         (None, {
             'classes': ('wide',),
             'fields': (
-                'user_name',
+                'username',
                 'first_name',
                 'last_name',
                 'email',

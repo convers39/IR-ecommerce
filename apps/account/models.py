@@ -14,18 +14,18 @@ from db.base_model import BaseModel
 
 class AccountManager(BaseUserManager):
 
-    def create_user(self, user_name, email, password, **other_fields):
-        if not user_name:
+    def create_user(self, username, email, password, **other_fields):
+        if not username:
             raise ValueError(_('A username address is required.'))
         if not email:
             raise ValueError(_('An email address is required.'))
         email = self.normalize_email(email)
-        user = self.model(email=email, user_name=user_name, **other_fields)
+        user = self.model(email=email, username=username, **other_fields)
         user.set_password(password)
         user.save()
         return user
 
-    def create_superuser(self, user_name, email, password, **other_fields):
+    def create_superuser(self, username, email, password, **other_fields):
         other_fields.setdefault('is_staff', True)
         other_fields.setdefault('is_active', True)
         other_fields.setdefault('is_superuser', True)
@@ -36,14 +36,14 @@ class AccountManager(BaseUserManager):
         if not other_fields.get('is_superuser'):
             raise ValueError('Superuser must be assigned to a superuser.')
 
-        return self.create_user(user_name, email, password, **other_fields)
+        return self.create_user(username, email, password, **other_fields)
 
 
 class User(PermissionsMixin, AbstractBaseUser):
 
     username_validator = UnicodeUsernameValidator()
 
-    user_name = models.CharField(_("user name"), max_length=50, validators=[
+    username = models.CharField(_("user name"), max_length=50, validators=[
         username_validator], help_text=_('Required. 50 characters or fewer. Letters, digits and @/./+/-/_ only.'))
     email = models.EmailField(_("email"), unique=True, max_length=254)
     first_name = models.CharField(_("first name"), max_length=50, blank=True)
@@ -59,10 +59,10 @@ class User(PermissionsMixin, AbstractBaseUser):
     objects = AccountManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['user_name']
+    REQUIRED_FIELDS = ['username']
 
     def __str__(self):
-        return self.user_name
+        return self.username
 
 
 class AddressManager(models.Manager):

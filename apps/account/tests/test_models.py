@@ -17,7 +17,7 @@ class UserAccountTests(TestCase):
             'superuser', 'superuser@test.com', '123456'
         )
         self.assertEqual(super_user.email, 'superuser@test.com')
-        self.assertEqual(super_user.user_name, 'superuser')
+        self.assertEqual(super_user.username, 'superuser')
         self.assertEqual(str(super_user), 'superuser')
         self.assertTrue(super_user.is_active)
         self.assertTrue(super_user.is_staff)
@@ -25,7 +25,7 @@ class UserAccountTests(TestCase):
 
         with self.assertRaises(ValueError):
             self.model.objects.create_superuser(
-                user_name='superuser',
+                username='superuser',
                 email='superuser@test.com',
                 password='password',
                 is_superuser=False
@@ -33,7 +33,7 @@ class UserAccountTests(TestCase):
 
         with self.assertRaises(ValueError):
             self.model.objects.create_superuser(
-                user_name='superuser',
+                username='superuser',
                 email='superuser@test.com',
                 password='password',
                 is_staff=False
@@ -41,7 +41,7 @@ class UserAccountTests(TestCase):
 
         with self.assertRaises(ValueError):
             self.model.objects.create_superuser(
-                user_name='superuser',
+                username='superuser',
                 email='',
                 password='password',
                 is_superuser=True
@@ -52,7 +52,7 @@ class UserAccountTests(TestCase):
             'username', 'user@test.com', 'password'
         )
         self.assertEqual(user.email, 'user@test.com')
-        self.assertEqual(user.user_name, 'username')
+        self.assertEqual(user.username, 'username')
         self.assertFalse(user.is_superuser)
         self.assertFalse(user.is_staff)
         self.assertFalse(user.is_active)
