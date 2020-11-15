@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django_countries import countries
 
-from ..models import Address
+from account.models import Address
 
 
 User = get_user_model()

@@ -1,13 +1,12 @@
-from django.contrib.messages.views import SuccessMessageMixin
-from django.contrib import messages
-from django.http import HttpResponseRedirect, HttpResponse
-from django.http import response
-from django.shortcuts import render, redirect
-from django.views.generic import View, CreateView
-from django.urls import reverse_lazy, reverse
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
+from django.contrib.messages.views import SuccessMessageMixin
+from django.http import HttpResponseRedirect
+from django.shortcuts import render, redirect
+from django.views.generic import View, CreateView
+from django.urls import reverse_lazy, reverse
 
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from itsdangerous import SignatureExpired
@@ -73,11 +72,13 @@ class LoginView(SuccessMessageMixin, View):
         return response
 
 
-class LogoutView(LoginRequiredMixin, View):
-
+class LogoutView(View):
     def get(self, request):
+        if not request.user.is_authenticated:
+            messages.error(request, 'You are not login')
+            return redirect(reverse('shop:index'))
         logout(request)
-        messages.info(request, 'You have been logged out')
+        messages.info(request, 'You have logged out')
         return redirect(reverse('shop:index'))
 
 
