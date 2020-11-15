@@ -53,21 +53,12 @@ class RegisterForm(forms.ModelForm):
         raise forms.ValidationError('This email address is already in use.')
 
 
-class UserLogInForm(forms.ModelForm):
-    email = forms.EmailField(widget=forms.EmailInput(
-        attrs={'class': 'form-control', 'placeholder': 'Enter email', 'id': 'email'}))
-    password = forms.CharField(widget=forms.PasswordInput(
-        attrs={'class': 'form-control', 'placeholder': 'Enter password', 'id': 'password'}))
+# class UserLogInForm(forms.ModelForm):
+#     email = forms.EmailField(widget=forms.EmailInput(
+#         attrs={'class': 'form-control', 'placeholder': 'Enter email', 'id': 'email'}))
+#     password = forms.CharField(widget=forms.PasswordInput(
+#         attrs={'class': 'form-control', 'placeholder': 'Enter password', 'id': 'password'}))
 
-    class Meta:
-        model = User
-        fields = ('email', 'password',)
-
-
-class UserAuthenticationForm(AuthenticationForm):
-    def confirm_login_allowed(self, user):
-        if not user.is_active:
-            raise ValidationError(
-                _("This account is inactive."),
-                code='inactive',
-            )
+#     class Meta:
+#         model = User
+#         fields = ('email', 'password',)

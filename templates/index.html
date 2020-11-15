@@ -2,16 +2,16 @@
 {% endblock %}
 
 <!-- Owl Carousel-->
-<!-- <link
-      rel="stylesheet"
-      href="vendor/owl.carousel2/assets/owl.carousel.min.css"
-    />
-    <link
-      rel="stylesheet"
-      href="vendor/owl.carousel2/assets/owl.theme.default.css"
-    /> -->
+<link
+  rel="stylesheet"
+  href="{% static 'vendor/owl.carousel2/assets/owl.carousel.min.css %'}"
+/>
+<link
+  rel="stylesheet"
+  href="{% static 'vendor/owl.carousel2/assets/owl.theme.default.css %'}"
+/>
 
-{% block body %}
+{% block content %}
 <!--  Modal -->
 <div
   class="modal fade"
@@ -573,7 +573,7 @@
     </div>
   </section>
 </div>
-{% endblock body %}
+{% endblock content %}
 
 <!-- JavaScript files-->
 {% block bottom %}

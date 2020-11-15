@@ -159,7 +159,7 @@
                 </li>
                 {% if user.is_authenticated %}
                 <li class="nav-item">
-                  <a class="nav-link" href="#">
+                  <a class="nav-link" href="{% url 'account:account_center' %}">
                     <i class="fas fa-user-alt mr-1 text-gray"></i>
                     <strong>{{user.username }}</strong></a
                   >
@@ -186,20 +186,63 @@
           </nav>
         </div>
       </header>
-      <div>
-        {% if messages %} {% for message in messages %}
-        <p></p>
-        {% if message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
-        <div class="alert alert-primary" role="alert">{{ message }}</div>
-        {% endif %} {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
-        <div class="alert alert-success" role="alert">{{ message }}</div>
-        {% endif %} {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
-        <div class="alert alert-danger" role="alert">{{ message }}</div>
-        {% endif %} {% if message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
-        <div class="alert alert-warning" role="alert">{{ message }}</div>
-        {% endif %} {% endfor %} {% endif %}
-      </div>
-      {% block body %}{% endblock body %}
+      <!-- messages -->
+      <section>
+        <div class="container">
+          {% if messages %} {% for message in messages %}
+          <p></p>
+          {% if message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
+          <div class="alert alert-primary alert-dismissable" role="alert">
+            <button
+              type="button"
+              class="close"
+              data-dismiss="alert"
+              aria-hidden="true"
+            >
+              &times;
+            </button>
+            {{ message }}
+          </div>
+          {% endif %} {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
+          <div class="alert alert-success alert-dismissable" role="alert">
+            <button
+              type="button"
+              class="close"
+              data-dismiss="alert"
+              aria-hidden="true"
+            >
+              &times;
+            </button>
+            {{ message }}
+          </div>
+          {% endif %} {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
+          <div class="alert alert-danger alert-dismissable" role="alert">
+            <button
+              type="button"
+              class="close"
+              data-dismiss="alert"
+              aria-hidden="true"
+            >
+              &times;
+            </button>
+            {{ message }}
+          </div>
+          {% endif %} {% if message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
+          <div class="alert alert-warning alert-dismissable" role="alert">
+            <button
+              type="button"
+              class="close"
+              data-dismiss="alert"
+              aria-hidden="true"
+            >
+              &times;
+            </button>
+            {{ message }}
+          </div>
+          {% endif %} {% endfor %} {% endif %}
+        </div>
+      </section>
+      {% block content %}{% endblock content %}
 
       <footer class="bg-dark text-white">
         <div class="container py-4">
@@ -268,6 +311,17 @@
       <script src="{% static 'vendor/owl.carousel2/owl.carousel.min.js' %}"></script>
       <script src="{% static 'vendor/owl.carousel2.thumbs/owl.carousel2.thumbs.min.js' %}"></script>
       <script src="{% static 'js/front.js' %}"></script>
+      <script>
+        $(function () {
+          window.setTimeout(function () {
+            $(".alert")
+              .fadeTo(500, 0)
+              .slideUp(500, function () {
+                $(this).remove();
+              });
+          }, 3500);
+        });
+      </script>
       {% block bottom %}{% endblock bottom%}
       <!-- FontAwesome CSS - loading as last, so it doesn't block rendering-->
       <link

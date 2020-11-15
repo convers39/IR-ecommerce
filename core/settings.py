@@ -177,3 +177,5 @@ STATICFILES_DIRS = [
 MEDIA_URL = '/media/'
 
 AUTH_USER_MODEL = 'account.user'
+LOGIN_URL = '/account/login/'
+LOGIN_REDIRECT_URL = '/account/'
