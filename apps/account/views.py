@@ -9,7 +9,7 @@ from django.views.generic import View, CreateView
 from django.urls import reverse_lazy, reverse
 
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from itsdangerous import SignatureExpired
+from itsdangerous import SignatureExpired, BadData
 
 from .forms import RegisterForm
 from .models import User, Address
@@ -31,12 +31,11 @@ class AccountCenterView(LoginRequiredMixin, View):
 
 
 class LoginView(SuccessMessageMixin, View):
-
     template_name = 'login.html'
     success_url = reverse_lazy('shop:index')
 
     def get(self, request, *args, **kwargs):
-        print('cookies', request.COOKIES)
+        # TODO: check cookie setting logic
         if 'email' in request.COOKIES:
             email = request.COOKIES.get('email')
             remember = 'checked'
@@ -51,11 +50,11 @@ class LoginView(SuccessMessageMixin, View):
         user = authenticate(email=email, password=password)
 
         if not user:
-            messages.error(request, 'Invalid credentials')
+            messages.error(request, 'Invalid credentials.')
             return redirect(reverse('account:login'))
 
         if not user.is_active:
-            messages.error(request, 'Account is not activated')
+            messages.error(request, 'Account is not activated.')
             return redirect(reverse('account:login'))
 
         login(request, user)
@@ -124,4 +123,8 @@ class ActivateView(View):
             messages.error(
                 request, 'Token expired, please register again!')
             # TODO: set cron job to close account after activation expired
+            return redirect(reverse('shop:index'))
+
+        except BadData:
+            messages.error(request, 'Invalid request!')
             return redirect(reverse('shop:index'))
