@@ -21,3 +21,5 @@ itsdangerous==2.0.0a1
 isort>=5.6.4
 coverage==5.3
 stripe==2.55.0
+django-debug-toolbar>=3.1,<4.0
+django-jazzmin==2.4.0

@@ -14,6 +14,8 @@ from pathlib import Path
 import sys
 import os
 
+from django.conf.global_settings import MEDIA_ROOT, STATIC_ROOT
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
@@ -46,9 +48,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',
     # 3rd party apps
+    'taggit',
     'celery',
     'django_extensions',
+    'ckeditor',
 ]
 
 MIDDLEWARE = [
@@ -172,10 +177,15 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static')
 ]
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 
 MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 AUTH_USER_MODEL = 'account.user'
 LOGIN_URL = '/account/login/'
 LOGIN_REDIRECT_URL = '/account/'
+
+# product tag case insensitive
+TAGGIT_CASE_INSENSITIVE = True
