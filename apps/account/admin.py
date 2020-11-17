@@ -22,18 +22,12 @@ class UserAdmin(UserAdmin):
     fieldsets = (
         ('Information', {
             "fields": (
-                'username',
-                'first_name',
-                'last_name',
-                'email',
-                'phone_no'
+                'username', 'first_name', 'last_name', 'email', 'phone_no'
             ),
         }),
         ('Permissions', {
             'fields': (
-                'is_active',
-                'is_staff',
-                'is_superuser',
+                'is_active', 'is_staff', 'is_superuser',
             )
         })
     )
@@ -42,15 +36,10 @@ class UserAdmin(UserAdmin):
         (None, {
             'classes': ('wide',),
             'fields': (
-                'username',
-                'first_name',
-                'last_name',
-                'email',
-                'phone_no',
-                'password1',
-                'password2',
-                'is_active',
-                'is_staff')}
+                'username', 'first_name', 'last_name', 'email',
+                'phone_no', 'password1', 'password2',
+                'is_active', 'is_staff'
+            )}
          ),
     )
     inlines = [AddressInline]

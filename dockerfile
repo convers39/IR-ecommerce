@@ -19,3 +19,8 @@ RUN pip install --upgrade pip \
 USER user
 
 COPY . /usr/src/app
+
+# ENV TERM xterm
+# ENV ZSH_THEME agnoster
+# RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true
+# CMD [ "zsh" ]

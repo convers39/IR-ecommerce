@@ -7,21 +7,21 @@ from .models import User
 
 class RegisterForm(forms.ModelForm):
     username = forms.CharField(widget=forms.TextInput(
-        attrs={'class': 'form-control', 'placeholder': 'Enter username', 'id': 'username', 'name': 'username'}), min_length=5)
+        attrs={'class': 'form-control', 'placeholder': 'Enter username', 'id': 'username'}), min_length=5)
     email = forms.EmailField(widget=forms.EmailInput(
-        attrs={'class': 'form-control', 'placeholder': 'Enter email', 'id': 'email', 'name': 'email'}))
+        attrs={'class': 'form-control', 'placeholder': 'Enter email', 'id': 'email'}))
     password = forms.CharField(widget=forms.PasswordInput(
-        attrs={'class': 'form-control', 'placeholder': 'Enter password', 'id': 'password', 'name': 'password', 'pattern': '(?=.*\d)(?=.*[a-z]).{6,}', 'title': 'Must contain at least one number and one lowercase letter, and at least 6 or more characters'}))
+        attrs={'class': 'form-control', 'placeholder': 'Enter password', 'id': 'password', 'pattern': '(?=.*\d)(?=.*[a-z]).{6,}', 'title': 'Must contain at least one number and one lowercase letter, and 6 or more characters'}))
     password_confirm = forms.CharField(widget=forms.PasswordInput(
-        attrs={'class': 'form-control', 'placeholder': 'Confirm your password', 'id': 'password_confirm', 'name': 'password_confirm', 'pattern': '(?=.*\d)(?=.*[a-z]).{6,}', 'title': 'Passwords must be the same'}))
+        attrs={'class': 'form-control', 'placeholder': 'Confirm your password', 'id': 'password_confirm', 'pattern': '(?=.*\d)(?=.*[a-z]).{6,}', 'title': 'Passwords must be the same'}))
     agreement = forms.BooleanField(widget=forms.CheckboxInput(
         attrs={'class': 'custom-control-input', 'id': 'agreement', 'checked': False}), required=True)
-    # errors = forms.CharField(widgets=forms.)
 
     class Meta:
         model = User
         fields = ('username', 'email', 'password')
 
+    # TODO: consider to move password validation to the frontend.
     def clean(self):
         super(RegisterForm, self).clean()
         password = self.cleaned_data.get('password')
