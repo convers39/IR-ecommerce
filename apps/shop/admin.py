@@ -24,7 +24,7 @@ class SKUAdmin(admin.ModelAdmin):
         }),
         ('Description', {
             'fields': (
-                'category', 'desc', 'detail', 'brand', 'origin', 'tags'
+                'category', 'desc', 'cover_img', 'detail', 'brand', 'origin', 'tags'
             )
         }),
         ('Sales Data', {

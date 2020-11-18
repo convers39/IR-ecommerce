@@ -1,5 +1,6 @@
 
 from django.db import models
+from django.urls import reverse
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
@@ -8,7 +9,7 @@ from taggit.managers import TaggableManager
 from ckeditor.fields import RichTextField
 
 from db.base_model import BaseModel
-
+from .managers import SKUManager
 # TODO: check all image field setting, blank and null,
 # set up S3 bucket for upload
 # add help text to some fields
@@ -33,6 +34,9 @@ class Category(BaseModel):
         if not self.slug:
             self.slug = slugify(self.name, allow_unicode=True)
         super(Category, self).save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse("shop:category_list", kwargs={"slug": self.slug})
 
 
 class Origin(BaseModel):
@@ -90,6 +94,8 @@ class ProductSKU(BaseModel):
     # future update for promotion discount
     # promotion = models.ForeignKey("app.Model", verbose_name=_(""), on_delete=models.CASCADE)
 
+    objects = SKUManager()
+
     class Meta:
         ordering = ('name',)
         verbose_name = 'SKU'
@@ -106,6 +112,9 @@ class ProductSKU(BaseModel):
         if not self.slug:
             self.slug = slugify(self.name, allow_unicode=True)
         super(ProductSKU, self).save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse("shop:product_detail", kwargs={"pk": self.pk, 'slug': self.slug})
 
     @property
     def tax_in_price(self):
@@ -138,7 +147,7 @@ class ProductSKU(BaseModel):
 
 class Image(BaseModel):
     sku = models.ForeignKey(ProductSKU, verbose_name=_(
-        "SKU"), on_delete=models.CASCADE)
+        "SKU"), on_delete=models.CASCADE, related_name='images')
     name = models.CharField(_("name"), max_length=50)
     image = models.ImageField(_("image"), upload_to='media/sku_image/')
 
