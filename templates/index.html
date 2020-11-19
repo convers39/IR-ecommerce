@@ -549,12 +549,13 @@
           </p>
         </div>
         <div class="col-lg-6">
-          <form action="#">
+          <form action="{% url 'shop:product-search' %}">
             <div class="input-group flex-column flex-sm-row mb-3">
               <input
                 class="form-control form-control-lg py-3"
-                type="email"
-                placeholder="Enter your email address"
+                type="search"
+                name="q"
+                placeholder="Enter the item for searching"
                 aria-describedby="button-addon2"
               />
               <div class="input-group-append">
@@ -563,7 +564,7 @@
                   id="button-addon2"
                   type="submit"
                 >
-                  Subscribe
+                  Search
                 </button>
               </div>
             </div>

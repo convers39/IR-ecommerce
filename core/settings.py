@@ -187,11 +187,9 @@ LOGIN_REDIRECT_URL = '/account/'
 TAGGIT_CASE_INSENSITIVE = True
 
 # for debug tool:
-INTERNAL_IPS = [
-    # ...
-    '127.0.0.1',
-    # ...
-]
+DEBUG_TOOLBAR_CONFIG = {
+    'SHOW_TOOLBAR_CALLBACK': lambda _request: DEBUG
+}
 
 # AWS setting
 AWS_ACCESS_KEY_ID = 'AKIAX5AS5QG7C7S3AHXT'

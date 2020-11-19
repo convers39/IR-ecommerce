@@ -13,7 +13,7 @@ class SKUAdmin(admin.ModelAdmin):
     ordering = ('name', 'category',)
     list_display = ('name', 'spu', 'category',
                     'origin', 'stock', 'price', 'sales')
-    search_fields = ('name', 'desc', 'detail',)
+    search_fields = ('name', 'summary', 'detail',)
     list_filter = ('status', 'spu', 'category', 'origin',)
 
     fieldsets = (
@@ -24,7 +24,7 @@ class SKUAdmin(admin.ModelAdmin):
         }),
         ('Description', {
             'fields': (
-                'category', 'desc', 'cover_img', 'detail', 'brand', 'origin', 'tags'
+                'category', 'summary', 'cover_img', 'detail', 'brand', 'origin', 'tags'
             )
         }),
         ('Sales Data', {

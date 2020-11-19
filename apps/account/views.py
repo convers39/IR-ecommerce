@@ -19,7 +19,7 @@ from .tasks import send_activation_email
 
 
 class AccountCenterView(LoginRequiredMixin, View):
-    template_name = 'account.html'
+    template_name = 'account/account.html'
 
     def get(self, request, *args, **kwargs):
         user = request.user
@@ -31,7 +31,7 @@ class AccountCenterView(LoginRequiredMixin, View):
 
 
 class LoginView(SuccessMessageMixin, View):
-    template_name = 'login.html'
+    template_name = 'account/login.html'
     success_url = reverse_lazy('shop:index')
 
     def get(self, request, *args, **kwargs):
@@ -42,7 +42,7 @@ class LoginView(SuccessMessageMixin, View):
         else:
             email = ''
             remember = ''
-        return render(request, 'login.html', {'email': email, 'remember': remember})
+        return render(request, self.template_name, {'email': email, 'remember': remember})
 
     def post(self, request, *args, **kwargs):
         email = request.POST.get('email')
@@ -83,7 +83,7 @@ class LogoutView(View):
 
 class RegisterView(SuccessMessageMixin, CreateView):
     form_class = RegisterForm
-    template_name = 'register.html'
+    template_name = 'account/register.html'
     success_url = reverse_lazy('shop:index')
     success_message = 'Your account has been created! Check your email for activation.'
 

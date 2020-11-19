@@ -1,0 +1,13 @@
+{% extends 'shop/list-base.html' %}
+<!-- TITLE -->
+{% block title %}SHOP{% endblock title %}
+<!-- EXTRA HEAD -->
+{% block extra_head %} {% endblock extra_head %}
+<!-- HERO SECTION-->
+{% block hero %}
+<li class="breadcrumb-item">
+  <a href="{% url 'shop:product-list' %}">Shop</a>
+</li>
+<li class="breadcrumb-item active" aria-current="page">{{category}}</li>
+{% endblock hero %}
+<!-- BOTTOM -->

@@ -2,6 +2,7 @@
 from django.db import models
 from django.urls import reverse
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.contrib.postgres.search import SearchVectorField
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
@@ -10,6 +11,7 @@ from ckeditor.fields import RichTextField
 
 from db.base_model import BaseModel
 from .managers import SKUManager
+from .tasks import update_search_vector
 # TODO: check all image field setting, blank and null,
 # set up S3 bucket for upload
 # add help text to some fields
@@ -71,7 +73,7 @@ class ProductSKU(BaseModel):
     name = models.CharField(_("name"), max_length=50)
     slug = models.SlugField(_("slug"), max_length=50,
                             unique=True, null=True, blank=True)
-    desc = models.CharField(_("brief"), max_length=250)
+    summary = models.CharField(_("brief"), max_length=250)
     detail = RichTextField(blank=True, null=True)
     unit = models.CharField(_("unit"), max_length=50)
     price = models.DecimalField(_("price"), max_digits=9, decimal_places=2)
@@ -91,6 +93,7 @@ class ProductSKU(BaseModel):
         "category"), on_delete=models.CASCADE, related_name='sku')
     spu = models.ForeignKey(ProductSPU, verbose_name=_(
         "SPU"), on_delete=models.CASCADE, related_name='sku')
+    search_vector = SearchVectorField(null=True)
     # future update for promotion discount
     # promotion = models.ForeignKey("app.Model", verbose_name=_(""), on_delete=models.CASCADE)
 
@@ -102,7 +105,7 @@ class ProductSKU(BaseModel):
         verbose_name_plural = verbose_name
         indexes = [
             models.Index(fields=['name', ]),
-            models.Index(fields=['desc', 'detail', ]),
+            models.Index(fields=['summary', 'detail', ]),
         ]
 
     def __str__(self):
@@ -111,6 +114,7 @@ class ProductSKU(BaseModel):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name, allow_unicode=True)
+        update_search_vector.delay(self)
         super(ProductSKU, self).save(*args, **kwargs)
 
     def get_absolute_url(self):
@@ -118,6 +122,9 @@ class ProductSKU(BaseModel):
 
     @property
     def tax_in_price(self):
+        """
+        Use this property to set extra tax on product price
+        """
         tax_rate = 0.1
         tax_in_price = self.price * (1+tax_rate)
         return '{0:.2f}'.format(tax_in_price)
