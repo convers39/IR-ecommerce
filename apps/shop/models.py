@@ -11,10 +11,7 @@ from ckeditor.fields import RichTextField
 
 from db.base_model import BaseModel
 from .managers import SKUManager
-from .tasks import update_search_vector
-# TODO: check all image field setting, blank and null,
-# set up S3 bucket for upload
-# add help text to some fields
+# from .tasks import update_search_vector
 
 
 class Category(BaseModel):
@@ -114,7 +111,7 @@ class ProductSKU(BaseModel):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name, allow_unicode=True)
-        update_search_vector.delay(self)
+        # update_search_vector.delay(self.id)
         super(ProductSKU, self).save(*args, **kwargs)
 
     def get_absolute_url(self):

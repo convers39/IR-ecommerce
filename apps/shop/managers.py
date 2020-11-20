@@ -24,7 +24,7 @@ class SKUManager(models.Manager):
 
     def search(self, search_text):
         """
-        FTS for products
+        FTS for products, search in name, summary and detail.
         """
         search_vectors = (
             SearchVector(
@@ -35,11 +35,11 @@ class SKUManager(models.Manager):
                 weight='B',
                 config='english',
             )
-            # + SearchVector(
-            #     StringAgg('summary', delimiter=' '),
-            #     weight='C',
-            #     config='english',
-            # )
+            + SearchVector(
+                StringAgg('summary', delimiter=' '),
+                weight='C',
+                config='english',
+            )
         )
         search_query = SearchQuery(
             search_text, config='english'
@@ -48,10 +48,16 @@ class SKUManager(models.Manager):
         trigram_similarity = TrigramSimilarity(
             'name', search_text
         )
-        qs = (
-            self.get_queryset()
-            .filter(search_vector=search_query)
-            .annotate(rank=search_rank + trigram_similarity)
-            .order_by('-rank')
-        )
-        return qs
+        queryset = self.get_queryset()\
+            .annotate(search=search_vectors)\
+            .filter(search=search_query)\
+            .annotate(rank=search_rank+trigram_similarity).order_by('-rank')
+        return queryset
+        # not working when fiter search_vector with search_query,
+        # better to make use of vector field instead of on the fly
+        # qs = (
+        #     self.get_queryset()
+        #     .filter(search_vector=search_query)
+        #     .annotate(rank=search_rank + trigram_similarity)
+        #     .order_by('-rank')
+        # )

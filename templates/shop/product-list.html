@@ -1,6 +1,524 @@
-{% extends 'shop/list-base.html' %}
-<!-- HERO SECTION-->
-{% block hero %}
-<li class="breadcrumb-item active" aria-current="page">Shop</li>
-{% endblock hero %}
+{% extends 'base.html' %}
+<!-- TITLE -->
+{% block title %}SHOP{% endblock title %}
+<!-- EXTRA HEAD -->
+{% block extra_head %} {% endblock extra_head %}
+<!-- CONTENT -->
+{% block content %}{% load humanize %} {% load qs_url_tag %}
+<!--  Modal -->
+{% for product in products %}
+<div
+  class="modal fade"
+  id="productView-{{forloop.counter}}"
+  tabindex="-1"
+  role="dialog"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-body p-0">
+        <div class="row align-items-stretch">
+          <div class="col-lg-6 p-lg-0">
+            <a
+              class="product-view d-block h-100 bg-cover bg-center"
+              style="background: url('{{ product.cover_img.url }}')"
+              href="{{ product.cover_img.url }}"
+              data-lightbox="productview"
+              title="{{ product.name }}"
+            ></a>
+            {% for image in product.images.all %}
+            <a
+              class="d-none"
+              href="{{ image.url }}"
+              title="{{ product.name }}"
+              data-lightbox="productview"
+            ></a>
+            {% endfor %}
+          </div>
+          <div class="col-lg-6">
+            <button
+              class="close p-4"
+              type="button"
+              data-dismiss="modal"
+              aria-label="Close"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+            <div class="p-5 my-md-4">
+              <ul class="list-inline mb-2">
+                <li class="list-inline-item m-0">
+                  <i class="fas fa-star small text-warning"></i>
+                </li>
+                <li class="list-inline-item m-0">
+                  <i class="fas fa-star small text-warning"></i>
+                </li>
+                <li class="list-inline-item m-0">
+                  <i class="fas fa-star small text-warning"></i>
+                </li>
+                <li class="list-inline-item m-0">
+                  <i class="fas fa-star small text-warning"></i>
+                </li>
+                <li class="list-inline-item m-0">
+                  <i class="fas fa-star small text-warning"></i>
+                </li>
+              </ul>
+              <h2 class="h4">{{ product.name }}</h2>
+              <p class="text-muted">
+                <i class="fa fa-jpy" aria-hidden="true"></i>{{ product.price }}
+              </p>
+              <p class="text-small mb-4">{{ product.summary }}</p>
+              <div class="row align-items-stretch mb-4">
+                <div class="col-sm-7 pr-sm-0">
+                  <div
+                    class="border d-flex align-items-center justify-content-between py-1 px-3"
+                  >
+                    <span class="small text-uppercase text-gray mr-4 no-select"
+                      >Quantity</span
+                    >
+                    <div class="quantity">
+                      <button class="dec-btn p-0">
+                        <i class="fas fa-caret-left"></i>
+                      </button>
+                      <input
+                        class="form-control border-0 shadow-0 p-0"
+                        type="text"
+                        value="1"
+                      />
+                      <button class="inc-btn p-0">
+                        <i class="fas fa-caret-right"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-sm-5 pl-sm-0">
+                  <a
+                    class="btn btn-dark btn-sm btn-block h-100 d-flex align-items-center justify-content-center px-0"
+                    href="cart.html"
+                    >Add to cart</a
+                  >
+                </div>
+              </div>
+              <a class="btn btn-link text-dark p-0" href="#"
+                ><i class="far fa-heart mr-2"></i>Add to wish list</a
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+<div class="container">
+  <!-- HERO SECTION-->
+  <section class="py-5 bg-light">
+    <div class="container">
+      <div class="row px-4 px-lg-5 py-lg-4 align-items-center">
+        <div class="col-lg-6">
+          <h1 class="h2 text-uppercase mb-0">Shop</h1>
+        </div>
+        <div class="col-lg-6 text-lg-right">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb justify-content-lg-end mb-0 px-0">
+              <li class="breadcrumb-item">
+                <a href="{% url 'shop:index' %}">Home</a>
+              </li>
+              {% if category %}
+              <li class="breadcrumb-item">
+                <a href="{% url 'shop:product-list' %}">Shop</a>
+              </li>
+              <li class="breadcrumb-item active" aria-current="page">
+                {{category}}
+              </li>
+              {% else %}
+              <li class="breadcrumb-item active" aria-current="page">Shop</li>
+              {% endif %}
+            </ol>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="py-5">
+    <div class="container p-0">
+      <div class="row">
+        <!-- SHOP SIDEBAR-->
+        <div class="col-lg-3 order-2 order-lg-1">
+          <h5 class="text-uppercase mb-4">Categories</h5>
+          <div class="py-2 px-4 bg-dark text-white mb-3">
+            <strong class="small text-uppercase font-weight-bold"
+              >Kichenware &amp; Cutlery</strong
+            >
+          </div>
+          <ul class="list-unstyled small text-muted pl-lg-4 font-weight-normal">
+            <li class="mb-2">
+              <a
+                class="reset-anchor"
+                href="{% url 'shop:category-list' 'japanese-kichenware' %}"
+                >Kichenware</a
+              >
+            </li>
+            <li class="mb-2">
+              <a
+                class="reset-anchor"
+                href="{% url 'shop:category-list' 'japanese-cutlery' %}"
+                >Cutlery</a
+              >
+            </li>
+          </ul>
+          <div class="py-2 px-4 bg-light mb-3">
+            <strong class="small text-uppercase font-weight-bold"
+              >Food &amp; Beverage
+            </strong>
+          </div>
+          <ul class="list-unstyled small text-muted pl-lg-4 font-weight-normal">
+            <li class="mb-2">
+              <a
+                class="reset-anchor"
+                href="{% url 'shop:category-list' 'japanese-food-item' %}"
+                >Food Items</a
+              >
+            </li>
+            <li class="mb-2">
+              <a
+                class="reset-anchor"
+                href="{% url 'shop:category-list' 'japanese-alcohol' %}"
+                >Alcohol</a
+              >
+            </li>
+          </ul>
+          <div class="py-2 px-4 bg-light mb-3">
+            <strong class="small text-uppercase font-weight-bold"
+              >Craft &amp; Art</strong
+            >
+          </div>
+          <ul
+            class="list-unstyled small text-muted pl-lg-4 font-weight-normal mb-5"
+          >
+            <li class="mb-2">
+              <a
+                class="reset-anchor"
+                href="{% url 'shop:category-list' 'japanese-handcraft' %}"
+                >Handcrafts</a
+              >
+            </li>
+            <li class="mb-2">
+              <a
+                class="reset-anchor"
+                href="{% url 'shop:category-list' 'japanese-sundry' %}"
+                >Sundries</a
+              >
+            </li>
+          </ul>
+          <h6 class="text-uppercase mb-4">Seach Item</h6>
+          <div class="seach-box">
+            <form action="" method="get">
+              <div class="input-group flex-column flex-sm-row mb-3">
+                <input
+                  class="form-control form-control-lg py-3 flex-fill"
+                  type="search"
+                  name="q"
+                  placeholder="Item Keyword"
+                  aria-describedby="button-addon2"
+                />
+                <div class="input-group-append flex-fill">
+                  <button
+                    class="btn btn-dark btn-block"
+                    id="button-addon2"
+                    type="submit"
+                  >
+                    <i class="fa fa-search" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+          <h6 class="text-uppercase mb-4">Price range</h6>
+          <div class="price-range pt-4 mb-5">
+            <div id="range"></div>
+            <div class="row pt-2">
+              <div class="col-6">
+                <strong class="small font-weight-bold text-uppercase"
+                  >From</strong
+                >
+              </div>
+              <div class="col-6 text-right">
+                <strong class="small font-weight-bold text-uppercase"
+                  >To</strong
+                >
+              </div>
+            </div>
+          </div>
+          <h6 class="text-uppercase mb-3">Show only</h6>
+          <div class="custom-control custom-checkbox mb-1">
+            <input
+              class="custom-control-input"
+              id="customCheck3"
+              type="checkbox"
+            />
+            <label class="custom-control-label text-small" for="customCheck3"
+              >Completed Items</label
+            >
+          </div>
+          <div class="custom-control custom-checkbox mb-1">
+            <input
+              class="custom-control-input"
+              id="customCheck4"
+              type="checkbox"
+            />
+            <label class="custom-control-label text-small" for="customCheck4"
+              >Sold Items</label
+            >
+          </div>
+        </div>
+        <!-- SHOP LISTING-->
+        <div class="col-lg-9 order-1 order-lg-2 mb-5 mb-lg-0">
+          <div class="row mb-3 align-items-center">
+            <div class="col-lg-6 mb-2 mb-lg-0">
+              <p class="text-small text-muted mb-0">
+                {% if count == 0 %} No results found. {% elif count >= 12 %}
+                Showing 1–12 of {{ count }} results
+                <strong></strong>
+                {% else %} Showing 1–{{count}} of {{count}} results {% endif %}
+              </p>
+            </div>
+            <div class="col-lg-6">
+              <ul
+                class="list-inline d-flex align-items-center justify-content-lg-end mb-0"
+              >
+                <li class="list-inline-item text-muted mr-3">
+                  <a class="reset-anchor p-0" href="#"
+                    ><i class="fas fa-th-large"></i
+                  ></a>
+                </li>
+                <li class="list-inline-item text-muted mr-3">
+                  <a class="reset-anchor p-0" href="#"
+                    ><i class="fas fa-th"></i
+                  ></a>
+                </li>
+
+                <li class="list-inline-item">
+                  <div class="dropdown">
+                    <button
+                      class="btn btn-secondary dropdown-toggle"
+                      id="dropdownMenuButton"
+                      type="button"
+                      data-toggle="dropdown"
+                      aria-haspopup="true"
+                      aria-expanded="false"
+                    >
+                      Sort By
+                    </button>
+
+                    <div
+                      class="dropdown-menu"
+                      aria-labelledby="dropdownMenuButton"
+                    >
+                      <a
+                        class="dropdown-item"
+                        href="{% qs_url 'sorting' '-created_at' request.GET.urlencode %}"
+                        >Default (Latest)</a
+                      ><a
+                        class="dropdown-item"
+                        href="{% qs_url 'sorting' 'sales' request.GET.urlencode %}"
+                        >Popularity</a
+                      ><a
+                        class="dropdown-item"
+                        href="{% qs_url 'sorting' 'price' request.GET.urlencode %}"
+                        >Price Low to High</a
+                      >
+                      <a
+                        class="dropdown-item"
+                        href="{% qs_url 'sorting' '-price' request.GET.urlencode %}"
+                        >Price High to Low</a
+                      >
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="row">
+            {% for product in products %}
+            <!-- PRODUCT-->
+            <div class="col-lg-4 col-sm-6">
+              <div class="product text-center">
+                <div class="mb-3 position-relative">
+                  <div class="badge text-white badge-primary">New</div>
+                  <a
+                    class="d-block"
+                    href="{% url 'shop:product-detail' product.id product.slug %}"
+                    ><img
+                      class="img-fluid w-100"
+                      src="{{ product.cover_img.url }}"
+                      alt="{{ product.name }}"
+                  /></a>
+                  <div class="product-overlay">
+                    <ul class="mb-0 list-inline">
+                      <li class="list-inline-item m-0 p-0">
+                        <a class="btn btn-sm btn-outline-dark" href="#"
+                          ><i class="far fa-heart"></i
+                        ></a>
+                      </li>
+                      <li class="list-inline-item m-0 p-0">
+                        <a class="btn btn-sm btn-dark" href="cart.html"
+                          >Add to cart</a
+                        >
+                      </li>
+                      <li class="list-inline-item mr-0">
+                        <a
+                          class="btn btn-sm btn-outline-dark"
+                          href="#productView-{{forloop.counter}}"
+                          data-toggle="modal"
+                          ><i class="fas fa-expand"></i
+                        ></a>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                <h6>
+                  <a
+                    class="reset-anchor"
+                    href="{% url 'shop:product-detail' product.id product.slug %}"
+                    >{{ product.name }}</a
+                  >
+                </h6>
+                <p class="small text-muted">
+                  <i class="fa fa-jpy" aria-hidden="true"></i
+                  >{{product.price|intcomma}}
+                </p>
+              </div>
+            </div>
+            {% empty %}
+            <div class="col-lg-4 col-sm-6">
+              <a class="reset-anchor" href="{% url 'shop:product-list' %}">
+                Return to shop top</a
+              >
+            </div>
+            {% endfor %}
+          </div>
+          <!-- PAGINATION-->
+          {% if is_paginated %}
+          <nav aria-label="Page navigation">
+            <ul
+              class="pagination justify-content-center justify-content-lg-end"
+            >
+              {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a
+                  class="page-link"
+                  href="{% qs_url 'page' 1 request.GET.urlencode %}"
+                  aria-label="Fist"
+                  ><span aria-hidden="true">«</span></a
+                >
+              </li>
+              <li class="page-item">
+                <a
+                  class="page-link"
+                  href="{% qs_url 'page' page_obj.previous_page_number request.GET.urlencode %}"
+                  aria-label="Previous"
+                  ><span aria-hidden="true"
+                    ><i class="fas fa-angle-left fa-xs"></i></span
+                ></a>
+              </li>
+              {% endif %} {% for num in page_obj.paginator.page_range %}
+
+              <li
+                class="page-item {% if page_obj.number == num %} active {% endif %}"
+              >
+                <a
+                  class="page-link"
+                  href="{% qs_url 'page' num request.GET.urlencode %}"
+                  >{{ num }}</a
+                >
+              </li>
+              {% endfor %} {% if page_obj.has_next %}
+              <li class="page-item">
+                <a
+                  class="page-link"
+                  href="{% qs_url 'page' page_obj.next_page_number request.GET.urlencode %}"
+                  aria-label="Next"
+                  ><span aria-hidden="true"
+                    ><i class="fas fa-angle-right fa-xs"></i></span
+                ></a>
+              </li>
+              <li class="page-item">
+                <a
+                  class="page-link"
+                  href="{% qs_url 'page' page_obj.paginator.num_pages request.GET.urlencode %}"
+                  aria-label="Next"
+                  ><span aria-hidden="true">»</span></a
+                >
+              </li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock content %}
 <!-- BOTTOM -->
+
+{% block bottom %}
+<!-- Nouislider Config-->
+<script>
+  var range = document.getElementById("range");
+  noUiSlider.create(range, {
+    range: {
+      min: 0,
+      max: 2000,
+    },
+    step: 5,
+    start: [100, 1000],
+    margin: 300,
+    connect: true,
+    direction: "ltr",
+    orientation: "horizontal",
+    behaviour: "tap-drag",
+    tooltips: true,
+    format: {
+      to: function (value) {
+        return "$" + value;
+      },
+      from: function (value) {
+        return value.replace("", "");
+      },
+    },
+  });
+</script>
+<script>
+  // ------------------------------------------------------- //
+  //   Inject SVG Sprite -
+  //   see more here
+  //   https://css-tricks.com/ajaxing-svg-sprite/
+  // ------------------------------------------------------ //
+  function injectSvgSprite(path) {
+    var ajax = new XMLHttpRequest();
+    ajax.open("GET", path, true);
+    ajax.send();
+    ajax.onload = function (e) {
+      var div = document.createElement("div");
+      div.className = "d-none";
+      div.innerHTML = ajax.responseText;
+      document.body.insertBefore(div, document.body.childNodes[0]);
+    };
+  }
+  // this is set to BootstrapTemple website as you cannot
+  // inject local SVG sprite (using only 'icons/orion-svg-sprite.svg' path)
+  // while using file:// protocol
+  // pls don't forget to change to your domain :)
+  injectSvgSprite(
+    "https://bootstraptemple.com/files/icons/orion-svg-sprite.svg"
+  );
+</script>
+<!-- FontAwesome CSS - loading as last, so it doesn't block rendering-->
+<link
+  rel="stylesheet"
+  href="https://use.fontawesome.com/releases/v5.7.1/css/all.css"
+  integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr"
+  crossorigin="anonymous"
+/>
+{% endblock bottom%}

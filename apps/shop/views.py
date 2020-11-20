@@ -1,8 +1,7 @@
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
 from django.urls import reverse
 from django.views.generic import ListView, View, DetailView
-from django.views.generic.detail import SingleObjectMixin
 from .models import ProductSKU, ProductSPU, Category, Origin, Image
 
 # Create your views here.
@@ -13,61 +12,42 @@ class IndexView(View):
         return render(request, 'index.html')
 
 
-class ProductSearchView(ListView):
-    model = ProductSKU
-    template_name = 'shop/product-search.html'
-    paginate_by = 2
-
-    def get(self, request, *args, **kwargs):
-        search_term = request.GET.get('q', None)
-        if not search_term:
-            messages.warning(
-                request, 'Empty search content, please enter again.')
-            return redirect(reverse('shop:product-list'))
-
-        products = ProductSKU.objects.filter(name__icontains=search_term)
-        count = products.count()
-
-        return render(request, self.template_name, {'products': products, 'count': count})
-
-
 class ProductListView(ListView):
     model = ProductSKU
     context_object_name = 'products'
     template_name = 'shop/product-list.html'
-    queryset = ProductSKU.objects.all()
     paginate_by = 2
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["categories"] = Category.objects.values('id', 'name', 'slug')
-        # context["origin"] = Origin
-        context["count"] = self.queryset.count()
-        return context
 
     def get_queryset(self):
-        return super().get_queryset()
-
-
-class CategoryListView(SingleObjectMixin, ListView):
-    model = ProductSKU
-    paginate_by = 2
-    template_name = 'shop/product-category.html'
-    slug_url_kwarg = 'category_slug'
-
-    def get(self, request, *args, **kwargs):
-        self.object = self.get_object(queryset=Category.objects.all())
-        return super().get(request, *args, **kwargs)
+        queryset = ProductSKU.objects.all()
+        # check if search text is in the request
+        search_term = self.request.GET.get('q')
+        if search_term:
+            queryset = ProductSKU.objects.search(search_term)
+        # check if click a category
+        category_slug = self.kwargs.get('category_slug')
+        if category_slug:
+            category = get_object_or_404(Category, slug=category_slug)
+            queryset = queryset.filter(category=category)
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['category'] = self.object
+        category_slug = self.kwargs.get('category_slug')
+        if category_slug:
+            category = Category.objects.get(slug=category_slug)
+            context['category'] = category
         context['count'] = self.get_queryset().count()
-        context['products'] = self.object_list
+        context["categories"] = Category.objects.values('id', 'name', 'slug')
         return context
 
-    def get_queryset(self):
-        return self.object.sku.all()
+    def get_ordering(self):
+        ordering = self.request.GET.get('sorting', '-created_at')
+        # validate ordering
+        if ordering not in ['-created_at', 'sales', 'price', '-price']:
+            ordering = '-created_at'
+            messages.info(self.request, 'Sorting by default (latest).')
+        return ordering
 
 
 class ProductDetailView(DetailView):
