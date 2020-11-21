@@ -1,8 +1,10 @@
 {% extends 'base.html' %}
-<p></p>
-{% block title %}Detail{% endblock title %} {% block extra_head %}
-<style></style>
-{% endblock extra_head %} {% block content %}{% load humanize %}
+<!-- TITLE -->
+{% block title %}Product Detail{% endblock title %}
+<!-- EXTRA_HEAD -->
+{% block extra_head %} {% endblock extra_head %}
+<!-- CONTENT -->
+{% block content %}{% load humanize %} {% load qs_url_tag %}
 <!--  Modal -->
 {% for item in related_products %}
 <div
@@ -207,17 +209,25 @@
         ><br />
         <ul class="list-unstyled small d-inline-block">
           <li class="px-3 py-2 mb-1 bg-white">
-            <strong class="text-uppercase">SKU:</strong
-            ><span class="ml-2 text-muted">039</span>
+            <strong class="text-uppercase">Stock:</strong
+            ><span class="ml-2 text-muted">{{ product.stock }}</span>
           </li>
           <li class="px-3 py-2 mb-1 bg-white text-muted">
             <strong class="text-uppercase text-dark">Category:</strong
-            ><a class="reset-anchor ml-2" href="#">{{ product.category }}</a>
+            ><a
+              class="reset-anchor ml-2"
+              href="{{ product.category.get_absolute_url }}"
+              >{{ product.category }}</a
+            >
           </li>
           <li class="px-3 py-2 mb-1 bg-white text-muted">
             <strong class="text-uppercase text-dark">Tags:</strong>
             {% for tag in product.tags.all %}
-            <a class="reset-anchor ml-2" href="#">#{{ tag|title }}</a>
+            <a
+              class="reset-anchor ml-2"
+              href="{% url 'shop:product-list' %}{% qs_url 'tag' tag request.GET.urlencode %}"
+              >#{{ tag|title }}</a
+            >
             {% endfor %}
           </li>
         </ul>
@@ -356,9 +366,7 @@
       <div class="col-lg-3 col-sm-6">
         <div class="product text-center skel-loader">
           <div class="d-block mb-3 position-relative">
-            <a
-              class="d-block"
-              href="{% url 'shop:product-detail' item.id item.slug %}"
+            <a class="d-block" href="{{ item.get_absolute_url }}"
               ><img
                 class="img-fluid w-100"
                 src="{{ item.cover_img.url }}"

@@ -26,7 +26,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
-    'jazzmin',  # theme for admin page
+    'simpleui',  # theme for admin page
     # django apps
     'django.contrib.admin',
     'django.contrib.auth',
@@ -45,9 +45,10 @@ INSTALLED_APPS = [
     'taggit',
     'celery',
     'django_extensions',
-    'debug_toolbar',
     'ckeditor',
     'storages',
+    'widget_tweaks',
+    'rangefilter',
 ]
 
 MIDDLEWARE = [
@@ -57,7 +58,6 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -92,16 +92,6 @@ EMAIL_HOST_USER = 'oda.ichii@gmail.com'
 EMAIL_FROM = 'IREC<oda.ichii@gmail.com>'
 EMAIL_HOST_PASSWORD = 'hxmkwnfyrgrkzxxz'
 
-
-# Database
-# https://docs.djangoproject.com/en/3.1/ref/settings/#databases
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
 
 DATABASES = {
     'default': {
@@ -173,7 +163,7 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static')
 ]
 if not DEBUG:
-    STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+    STATIC_ROOT = os.path.join(BASE_DIR, '/static/')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -187,9 +177,14 @@ LOGIN_REDIRECT_URL = '/account/'
 TAGGIT_CASE_INSENSITIVE = True
 
 # for debug tool:
-DEBUG_TOOLBAR_CONFIG = {
-    'SHOW_TOOLBAR_CALLBACK': lambda _request: DEBUG
-}
+DEBUG_TOOLBAR = DEBUG
+DEBUG_TOOLBAR_PATCH_SETTINGS = False
+if DEBUG_TOOLBAR:
+    INSTALLED_APPS += ['debug_toolbar']
+    MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware', ]
+    DEBUG_TOOLBAR_CONFIG = {
+        'SHOW_TOOLBAR_CALLBACK': lambda _request: DEBUG
+    }
 
 # AWS setting
 AWS_ACCESS_KEY_ID = 'AKIAX5AS5QG7C7S3AHXT'
@@ -200,3 +195,18 @@ AWS_S3_FILE_OVERWRITE = True
 
 AWS_S3_REGION_NAME = 'ap-northeast-1'  # change to your region
 AWS_S3_SIGNATURE_VERSION = 's3v4'
+
+# CKEDITOR
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': [["Format", "Bold", "Italic", "Underline", "Strike", "SpellChecker"],
+                    ['NumberedList', 'BulletedList', "Indent", "Outdent", 'JustifyLeft', 'JustifyCenter',
+                     'JustifyRight', 'JustifyBlock'],
+                    ["Image", "Table", "Link", "Unlink", "Anchor", "SectionLink",
+                        "Subscript", "Superscript"], ['Undo', 'Redo'], ["Source"],
+                    ["Maximize"]],
+        'height': '100%',
+        'width': '100%',
+        'toolbarCanCollapse': True,
+    },
+}

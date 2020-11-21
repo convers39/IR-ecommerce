@@ -35,7 +35,7 @@ class Category(BaseModel):
         super(Category, self).save(*args, **kwargs)
 
     def get_absolute_url(self):
-        return reverse("shop:category_list", kwargs={"slug": self.slug})
+        return reverse("shop:category-list", kwargs={"category_slug": self.slug})
 
 
 class Origin(BaseModel):
@@ -70,7 +70,7 @@ class ProductSKU(BaseModel):
     name = models.CharField(_("name"), max_length=50)
     slug = models.SlugField(_("slug"), max_length=50,
                             unique=True, null=True, blank=True)
-    summary = models.CharField(_("brief"), max_length=250)
+    summary = models.CharField(_("summary"), max_length=250)
     detail = RichTextField(blank=True, null=True)
     unit = models.CharField(_("unit"), max_length=50)
     price = models.DecimalField(_("price"), max_digits=9, decimal_places=2)
@@ -78,7 +78,7 @@ class ProductSKU(BaseModel):
         _("stock"), default=1, validators=[MaxValueValidator(999)])
     sales = models.PositiveIntegerField(_("sales"),  default=0)
     brand = models.CharField(
-        _("brand/maker"), max_length=50, blank=True, null=True)
+        _("brand"), max_length=50, blank=True, null=True)
     cover_img = models.ImageField(
         _("cover image"), upload_to='media/sku_cover/', blank=True, null=True)
     tags = TaggableManager(_("tags"))
@@ -111,11 +111,10 @@ class ProductSKU(BaseModel):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name, allow_unicode=True)
-        # update_search_vector.delay(self.id)
         super(ProductSKU, self).save(*args, **kwargs)
 
     def get_absolute_url(self):
-        return reverse("shop:product_detail", kwargs={"pk": self.pk, 'slug': self.slug})
+        return reverse("shop:product-detail", kwargs={"pk": self.pk, 'slug': self.slug})
 
     @property
     def tax_in_price(self):
@@ -124,29 +123,29 @@ class ProductSKU(BaseModel):
         """
         tax_rate = 0.1
         tax_in_price = self.price * (1+tax_rate)
-        return '{0:.2f}'.format(tax_in_price)
+        return float('{0:.2f}'.format(tax_in_price))
 
-    @property
-    def sku_number(self):
-        """
-        Generate a sku number for each product
-        """
-        sku_no = 'self.category-self.origin-self.spu-self.id'
-        # Food-Kyoto-manjiya rice cracker-002 -> FD-KY-RC-002
-        # Drink-yamaguchi-dassai sake-003 -> DR-YM-DS
-        return sku_no
+    # @property
+    # def sku_number(self):
+    #     """
+    #     Generate a sku number for each product
+    #     """
+    #     sku_no = 'self.category-self.origin-self.spu-self.id'
+    #     # Food-Kyoto-manjiya rice cracker-002 -> FD-KY-RC-002
+    #     # Drink-yamaguchi-dassai sake-003 -> DR-YM-DS
+    #     return sku_no
 
-    def get_discounted_price(self):
-        """
-        calculate the discounted price with price and discount rate
-        """
-        pass
+    # def get_discounted_price(self):
+    #     """
+    #     calculate the discounted price with price and discount rate
+    #     """
+    #     pass
 
-    def get_product_label(self):
-        """
-        Return a label from SALE, SOLD, NEW, HOT, or empty
-        """
-        pass
+    # def get_product_label(self):
+    #     """
+    #     Return a label from SALE, SOLD, NEW, HOT, or empty
+    #     """
+    #     pass
 
 
 class Image(BaseModel):
@@ -163,7 +162,7 @@ class HomeBanner(BaseModel):
     sku = models.ForeignKey(ProductSKU, verbose_name=_(
         "SKU"), on_delete=models.CASCADE)
     index = models.IntegerField(_("index no."), validators=[
-                                MaxValueValidator(10), MinValueValidator(1)])
+        MaxValueValidator(10), MinValueValidator(1)])
     image = models.ImageField(_("image"), upload_to='media/banner/')
 
     def __str__(self):

@@ -18,17 +18,30 @@ class ProductListView(ListView):
     template_name = 'shop/product-list.html'
     paginate_by = 2
 
+    def get_ordering(self):
+        ordering = self.request.GET.get('sorting', '-created_at')
+        print('sort: ', ordering)
+        # validate ordering
+        if ordering not in ['-created_at', 'sales', 'price', '-price']:
+            ordering = '-created_at'
+        return ordering
+
     def get_queryset(self):
-        queryset = ProductSKU.objects.all()
-        # check if search text is in the request
+        queryset = ProductSKU.objects.get_queryset()
+        # check if user input a search text
         search_term = self.request.GET.get('q')
         if search_term:
             queryset = ProductSKU.objects.search(search_term)
-        # check if click a category
+        # check if search by category
         category_slug = self.kwargs.get('category_slug')
         if category_slug:
             category = get_object_or_404(Category, slug=category_slug)
             queryset = queryset.filter(category=category)
+        # check if search by tag
+        tag = self.request.GET.get('tag')
+        if tag:
+            queryset = queryset.filter(tags__name__in=[tag])
+        queryset = queryset.order_by(self.get_ordering())
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -40,14 +53,6 @@ class ProductListView(ListView):
         context['count'] = self.get_queryset().count()
         context["categories"] = Category.objects.values('id', 'name', 'slug')
         return context
-
-    def get_ordering(self):
-        ordering = self.request.GET.get('sorting', '-created_at')
-        # validate ordering
-        if ordering not in ['-created_at', 'sales', 'price', '-price']:
-            ordering = '-created_at'
-            messages.info(self.request, 'Sorting by default (latest).')
-        return ordering
 
 
 class ProductDetailView(DetailView):

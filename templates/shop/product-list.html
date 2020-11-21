@@ -22,7 +22,7 @@
             <a
               class="product-view d-block h-100 bg-cover bg-center"
               style="background: url('{{ product.cover_img.url }}')"
-              href="{{ product.cover_img.url }}"
+              href="{% if product.cover_img %}{{ product.cover_img.url }}{% endif %}"
               data-lightbox="productview"
               title="{{ product.name }}"
             ></a>
@@ -345,12 +345,10 @@
               <div class="product text-center">
                 <div class="mb-3 position-relative">
                   <div class="badge text-white badge-primary">New</div>
-                  <a
-                    class="d-block"
-                    href="{% url 'shop:product-detail' product.id product.slug %}"
+                  <a class="d-block" href="{{ product.get_absolute_url }}"
                     ><img
                       class="img-fluid w-100"
-                      src="{{ product.cover_img.url }}"
+                      src="{% if product.cover_img %}{{ product.cover_img.url }}{% endif %}"
                       alt="{{ product.name }}"
                   /></a>
                   <div class="product-overlay">
@@ -377,9 +375,7 @@
                   </div>
                 </div>
                 <h6>
-                  <a
-                    class="reset-anchor"
-                    href="{% url 'shop:product-detail' product.id product.slug %}"
+                  <a class="reset-anchor" href="{{ product.get_absolute_url }}"
                     >{{ product.name }}</a
                   >
                 </h6>
@@ -417,9 +413,8 @@
                   class="page-link"
                   href="{% qs_url 'page' page_obj.previous_page_number request.GET.urlencode %}"
                   aria-label="Previous"
-                  ><span aria-hidden="true"
-                    ><i class="fas fa-angle-left fa-xs"></i></span
-                ></a>
+                  ><span aria-hidden="true">‹</span></a
+                >
               </li>
               {% endif %} {% for num in page_obj.paginator.page_range %}
 
@@ -438,9 +433,8 @@
                   class="page-link"
                   href="{% qs_url 'page' page_obj.next_page_number request.GET.urlencode %}"
                   aria-label="Next"
-                  ><span aria-hidden="true"
-                    ><i class="fas fa-angle-right fa-xs"></i></span
-                ></a>
+                  ><span aria-hidden="true">›</span></a
+                >
               </li>
               <li class="page-item">
                 <a
