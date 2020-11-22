@@ -1,7 +1,7 @@
 import factory
 from factory.django import DjangoModelFactory
-
-# TODO: find method to mock image data
+from taggit.managers import TaggableManager
+from taggit.models import TaggedItem
 
 from shop.models import ProductSPU, ProductSKU, Origin, Category, Image
 
@@ -30,6 +30,11 @@ class SpuFacotry(DjangoModelFactory):
     desc = factory.Faker('sentence')
 
 
+class TagsFactory(DjangoModelFactory):
+    class Meta:
+        model = TaggedItem
+
+
 class SkuFactory(DjangoModelFactory):
     class Meta:
         model = ProductSKU
@@ -39,10 +44,22 @@ class SkuFactory(DjangoModelFactory):
     unit = 1
     price = 500
     brand = factory.Faker('company')
-
+    # tags = ProductSKU.tags.add('bug')
+    # tags = ['buff']
     category = factory.SubFactory(CategoryFacotry)
     origin = factory.SubFactory(OriginFacotry)
     spu = factory.SubFactory(SpuFacotry)
+
+    # @factory.post_generation
+    # def tags(self, create, extracted, **kwargs):
+    #     if not create:
+    #         # Simple build, do nothing.
+    #         return
+
+    #     if extracted:
+    #         # A list of groups were passed in, use them
+    #         for tags in extracted:
+    #             self.tags.add(tags)
 
 
 class ImageFacotry(DjangoModelFactory):

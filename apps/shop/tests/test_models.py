@@ -41,8 +41,8 @@ class TestSkuModel(TestCase):
     #     self.assertEqual(mocked_update_search_vector.call_count, 2)
 
     def test_text_in_price(self):
-        price = round(self.sku.price * (1+0.1))
-        self.assertEqual(self.sku.tax_in_price, price)
+        price = self.sku.price * (1+0.1)
+        self.assertAlmostEqual(self.sku.tax_in_price, price)
         self.assertIsInstance(self.sku.tax_in_price, float)
 
 

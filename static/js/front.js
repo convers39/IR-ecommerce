@@ -22,18 +22,27 @@ $(function () {
   /* ===============================================================
          PRODUCT QUNATITY
       =============================================================== */
-  $(".dec-btn").click(function () {
-    var siblings = $(this).siblings("input");
-    if (parseInt(siblings.val(), 10) >= 1) {
-      siblings.val(parseInt(siblings.val(), 10) - 1);
+  $(".dec-btn").click(function (event) {
+    event.stopPropagation();
+    var count = $(this).siblings("input").val();
+    count = parseInt(count) - 1;
+    if (count <= 0) {
+      count = 1;
     }
+    $(this).siblings("input").val(count);
   });
 
-  $(".inc-btn").click(function () {
-    var siblings = $(this).siblings("input");
-    siblings.val(parseInt(siblings.val(), 10) + 1);
+  $(".inc-btn").click(function (event) {
+    event.stopPropagation();
+    var stock = $(this).siblings("input").attr("stock");
+    var count = $(this).siblings("input").val();
+    if (parseInt(count) < parseInt(stock)) {
+      count = parseInt(count) + 1;
+    } else {
+      count = parseInt(stock);
+    }
+    $(this).siblings("input").val(count);
   });
-
   /* ===============================================================
            BOOTSTRAP SELECT
         =============================================================== */

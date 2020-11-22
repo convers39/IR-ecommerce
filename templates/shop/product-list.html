@@ -4,7 +4,9 @@
 <!-- EXTRA HEAD -->
 {% block extra_head %} {% endblock extra_head %}
 <!-- CONTENT -->
-{% block content %}{% load humanize %} {% load qs_url_tag %}
+{% block content %}
+<!-- TAGS -->
+{% load humanize %} {% load qs_url_tag %}{% load mathfilters %}
 <!--  Modal -->
 {% for product in products %}
 <div
@@ -21,7 +23,7 @@
           <div class="col-lg-6 p-lg-0">
             <a
               class="product-view d-block h-100 bg-cover bg-center"
-              style="background: url('{{ product.cover_img.url }}')"
+              style="background: url('{% if product.cover_img %}{{ product.cover_img.url }}{% endif %}')"
               href="{% if product.cover_img %}{{ product.cover_img.url }}{% endif %}"
               data-lightbox="productview"
               title="{{ product.name }}"
@@ -68,7 +70,7 @@
               </p>
               <p class="text-small mb-4">{{ product.summary }}</p>
               <div class="row align-items-stretch mb-4">
-                <div class="col-sm-7 pr-sm-0">
+                <div class="col-sm-8 pr-sm-0">
                   <div
                     class="border d-flex align-items-center justify-content-between py-1 px-3"
                   >
@@ -83,6 +85,7 @@
                         class="form-control border-0 shadow-0 p-0"
                         type="text"
                         value="1"
+                        stock="{{product.stock}}"
                       />
                       <button class="inc-btn p-0">
                         <i class="fas fa-caret-right"></i>
@@ -90,7 +93,7 @@
                     </div>
                   </div>
                 </div>
-                <div class="col-sm-5 pl-sm-0">
+                <div class="col-sm-4 pl-sm-0">
                   <a
                     class="btn btn-dark btn-sm btn-block h-100 d-flex align-items-center justify-content-center px-0"
                     href="cart.html"
@@ -98,9 +101,19 @@
                   >
                 </div>
               </div>
-              <a class="btn btn-link text-dark p-0" href="#"
-                ><i class="far fa-heart mr-2"></i>Add to wish list</a
-              >
+              <div class="row">
+                <div class="col-sm-7 pr-sm-2">
+                  <a class="btn btn-link text-dark p-0" href="#"
+                    ><i class="far fa-heart mr-2"></i>Add to wish list
+                  </a>
+                </div>
+                <div class="col-sm-5 pl-sm-2">
+                  <span>
+                    <i class="fas fa-warehouse fa-xs"></i>
+                    {{ product.stock }} at stock</span
+                  >
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -217,7 +230,7 @@
                 <input
                   class="form-control form-control-lg py-3 flex-fill"
                   type="search"
-                  name="q"
+                  name="search"
                   placeholder="Item Keyword"
                   aria-describedby="button-addon2"
                 />
@@ -276,10 +289,11 @@
           <div class="row mb-3 align-items-center">
             <div class="col-lg-6 mb-2 mb-lg-0">
               <p class="text-small text-muted mb-0">
-                {% if count == 0 %} No results found. {% elif count >= 12 %}
-                Showing 1–12 of {{ count }} results
-                <strong></strong>
-                {% else %} Showing 1–{{count}} of {{count}} results {% endif %}
+                {% if count == 0 %} No results found.
+                <!--  -->
+                {% elif count == 1 %} Showing 1 result. {% else %} Showing
+                {{page_obj.start_index}}–{{page_obj.end_index}} of {{count}}
+                results {% endif %}
               </p>
             </div>
             <div class="col-lg-6">
@@ -387,7 +401,10 @@
             </div>
             {% empty %}
             <div class="col-lg-4 col-sm-6">
-              <a class="reset-anchor" href="{% url 'shop:product-list' %}">
+              <a
+                class="reset-anchor text-primary"
+                href="{% url 'shop:product-list' %}"
+              >
                 Return to shop top</a
               >
             </div>
@@ -400,6 +417,8 @@
               class="pagination justify-content-center justify-content-lg-end"
             >
               {% if page_obj.has_previous %}
+              <!--  -->
+              {% if page_obj.number|sub:1 > 1%}
               <li class="page-item">
                 <a
                   class="page-link"
@@ -408,6 +427,7 @@
                   ><span aria-hidden="true">«</span></a
                 >
               </li>
+              {% endif %}
               <li class="page-item">
                 <a
                   class="page-link"
@@ -416,8 +436,9 @@
                   ><span aria-hidden="true">‹</span></a
                 >
               </li>
-              {% endif %} {% for num in page_obj.paginator.page_range %}
-
+              {% endif %}
+              <!--  -->
+              {% for num in paginator.page_range %}
               <li
                 class="page-item {% if page_obj.number == num %} active {% endif %}"
               >
@@ -427,7 +448,9 @@
                   >{{ num }}</a
                 >
               </li>
-              {% endfor %} {% if page_obj.has_next %}
+              {% endfor %}
+              <!--  -->
+              {% if page_obj.has_next %}
               <li class="page-item">
                 <a
                   class="page-link"
@@ -436,15 +459,16 @@
                   ><span aria-hidden="true">›</span></a
                 >
               </li>
+              {% if paginator.num_pages|sub:page_obj.number > 1 %}
               <li class="page-item">
                 <a
                   class="page-link"
-                  href="{% qs_url 'page' page_obj.paginator.num_pages request.GET.urlencode %}"
+                  href="{% qs_url 'page' paginator.num_pages request.GET.urlencode %}"
                   aria-label="Next"
                   ><span aria-hidden="true">»</span></a
                 >
               </li>
-              {% endif %}
+              {% endif %} {% endif %}
             </ul>
           </nav>
           {% endif %}

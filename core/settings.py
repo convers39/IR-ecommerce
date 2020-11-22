@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'storages',
     'widget_tweaks',
     'rangefilter',
+    'mathfilters',
 ]
 
 MIDDLEWARE = [
@@ -177,9 +178,8 @@ LOGIN_REDIRECT_URL = '/account/'
 TAGGIT_CASE_INSENSITIVE = True
 
 # for debug tool:
-DEBUG_TOOLBAR = DEBUG
 DEBUG_TOOLBAR_PATCH_SETTINGS = False
-if DEBUG_TOOLBAR:
+if DEBUG:
     INSTALLED_APPS += ['debug_toolbar']
     MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware', ]
     DEBUG_TOOLBAR_CONFIG = {
