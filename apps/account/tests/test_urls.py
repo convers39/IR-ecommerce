@@ -27,6 +27,6 @@ class TestAccountUrls(SimpleTestCase):
                          ActivateView.as_view().__name__)
 
     def test_account_center_url(self):
-        url = reverse('account:account_center')
+        url = reverse('account:account-center')
         self.assertEqual(resolve(url).func.__name__,
                          AccountCenterView.as_view().__name__)

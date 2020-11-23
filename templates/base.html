@@ -151,9 +151,13 @@
               </ul>
               <ul class="navbar-nav ml-auto">
                 <li class="nav-item">
-                  <a class="nav-link" href="cart.html">
+                  <a class="nav-link" href="{% url 'cart:info' %}">
                     <i class="fas fa-dolly-flatbed mr-1 text-gray"></i
-                    >Cart<small class="text-gray">(2)</small></a
+                    >Cart<small class="text-gray" id="cart-count"
+                      >{% if cart_count %}({{ cart_count }})
+                      <!--  -->
+                      {% else %}(0){% endif %}</small
+                    ></a
                   >
                 </li>
                 <li class="nav-item">
@@ -164,7 +168,7 @@
                 </li>
                 {% if user.is_authenticated %}
                 <li class="nav-item">
-                  <a class="nav-link" href="{% url 'account:account_center' %}">
+                  <a class="nav-link" href="{% url 'account:account-center' %}">
                     <i class="fas fa-user-alt mr-1 text-gray"></i>
                     <strong>{{user.username }}</strong></a
                   >
@@ -326,6 +330,31 @@
               });
           }, 3500);
         });
+      </script>
+      <script>
+        // ------------------------------------------------------- //
+        //   Inject SVG Sprite -
+        //   see more here
+        //   https://css-tricks.com/ajaxing-svg-sprite/
+        // ------------------------------------------------------ //
+        function injectSvgSprite(path) {
+          var ajax = new XMLHttpRequest();
+          ajax.open("GET", path, true);
+          ajax.send();
+          ajax.onload = function (e) {
+            var div = document.createElement("div");
+            div.className = "d-none";
+            div.innerHTML = ajax.responseText;
+            document.body.insertBefore(div, document.body.childNodes[0]);
+          };
+        }
+        // this is set to BootstrapTemple website as you cannot
+        // inject local SVG sprite (using only 'icons/orion-svg-sprite.svg' path)
+        // while using file:// protocol
+        // pls don't forget to change to your domain :)
+        injectSvgSprite(
+          "https://bootstraptemple.com/files/icons/orion-svg-sprite.svg"
+        );
       </script>
       {% block bottom %}{% endblock bottom%}
       <!-- FontAwesome CSS - loading as last, so it doesn't block rendering-->

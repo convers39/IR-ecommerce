@@ -33,7 +33,7 @@ class TestAccountViews(TestCase):
         self.register_url = reverse('account:register')
         self.activate_url = reverse(
             'account:activate', kwargs={'token': token})
-        self.account_center_url = reverse('account:account_center')
+        self.account_center_url = reverse('account:account-center')
 
     def test_login_GET(self):
         res = self.client.get(self.login_url)

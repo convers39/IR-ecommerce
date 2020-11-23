@@ -83,6 +83,7 @@
                         class="form-control border-0 shadow-0 p-0"
                         type="text"
                         value="1"
+                        id="qty-{{item.id}}"
                         stock="{{item.stock}}"
                       />
                       <button class="inc-btn p-0">
@@ -94,8 +95,9 @@
 
                 <div class="col-sm-4 pl-sm-0">
                   <a
-                    class="btn btn-dark btn-sm btn-block h-100 d-flex align-items-center justify-content-center px-0"
-                    href="cart.html"
+                    class="btn btn-dark btn-sm btn-block add-cart h-100 d-flex align-items-center justify-content-center px-0"
+                    href="#"
+                    sku-id="{{ item.id }}"
                   >
                     <!-- <i class="fa fa-shopping-cart" aria-hidden="true"></i> -->
                     Add to Cart
@@ -202,6 +204,7 @@
                   class="form-control border-0 shadow-0 p-0"
                   type="text"
                   value="1"
+                  id="qty-{{product.id}}"
                   stock="{{product.stock}}"
                 />
                 <button class="inc-btn p-0">
@@ -212,8 +215,9 @@
           </div>
           <div class="col-sm-3 pl-sm-0">
             <a
-              class="btn btn-dark btn-sm btn-block h-100 d-flex align-items-center justify-content-center px-0"
-              href="cart.html"
+              class="btn btn-dark btn-sm btn-block add-cart h-100 d-flex align-items-center justify-content-center px-0"
+              href="#"
+              sku-id="{{ product.id }}"
               >Add to cart</a
             >
           </div>
@@ -396,7 +400,12 @@
                   ></a>
                 </li>
                 <li class="list-inline-item m-0 p-0">
-                  <a class="btn btn-sm btn-dark" href="#">Add to cart</a>
+                  <a
+                    class="btn btn-sm btn-dark add-cart"
+                    href="#"
+                    sku-id="{{ item.id }}"
+                    >Add to cart</a
+                  >
                 </li>
                 <li class="list-inline-item mr-0">
                   <a
@@ -426,31 +435,29 @@
   </div>
 </section>
 {% endblock content %}
-<!-- JavaScript files-->
+<!-- BOTTOM -->
 {% block bottom %}
 <script>
-  // ------------------------------------------------------- //
-  //   Inject SVG Sprite -
-  //   see more here
-  //   https://css-tricks.com/ajaxing-svg-sprite/
-  // ------------------------------------------------------ //
-  function injectSvgSprite(path) {
-    var ajax = new XMLHttpRequest();
-    ajax.open("GET", path, true);
-    ajax.send();
-    ajax.onload = function (e) {
-      var div = document.createElement("div");
-      div.className = "d-none";
-      div.innerHTML = ajax.responseText;
-      document.body.insertBefore(div, document.body.childNodes[0]);
-    };
-  }
-  // this is set to BootstrapTemple website as you cannot
-  // inject local SVG sprite (using only 'icons/orion-svg-sprite.svg' path)
-  // while using file:// protocol
-  // pls don't forget to change to your domain :)
-  injectSvgSprite(
-    "https://bootstraptemple.com/files/icons/orion-svg-sprite.svg"
-  );
+  const csrftoken = Cookies.get("csrftoken");
+  $.ajaxSetup({
+    beforeSend: function (xhr) {
+      xhr.setRequestHeader("X-CSRFToken", csrftoken);
+    },
+  });
+  $(".add-cart").click(function (event) {
+    event.preventDefault();
+    skuId = $(this).attr("sku-id");
+    qty = "qty" + skuId;
+    count = $("#qty");
+    params = { sku_id: skuId, count: count };
+    $.post("/cart/add/", params, function (data) {
+      if (data.res == "success") {
+        updateCount = `(${data.total_count})`;
+        $("#cart-count").text(updateCount);
+      } else {
+        alert(data.errmsg);
+      }
+    });
+  });
 </script>
 {% endblock bottom%}
