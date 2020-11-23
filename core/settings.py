@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'shop.apps.ShopConfig',
     'order.apps.OrderConfig',
     # 3rd party apps
+    'mptt',
     'taggit',
     'celery',
     'django_extensions',

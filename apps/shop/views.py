@@ -11,7 +11,10 @@ from .models import ProductSKU, ProductSPU, Category, Origin, Image
 
 class IndexView(View):
     def get(self, request):
-        return render(request, 'index.html')
+        context = {}
+        categories = Category.objects.all()
+        context['categories'] = categories
+        return render(request, 'index.html', context)
 
 
 class ProductListView(ListView):
@@ -62,7 +65,7 @@ class ProductListView(ListView):
         except AttributeError:
             context['count'] = context['object_list'].count()
 
-        context["categories"] = Category.objects.values('id', 'name', 'slug')
+        context["categories"] = Category.objects.all()
         return context
 
 

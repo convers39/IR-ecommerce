@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-  {% load static %}
+  {% load static %}{% load mptt_tags %}
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -115,32 +115,37 @@
                     class="dropdown-menu mt-3"
                     aria-labelledby="pagesDropdown"
                   >
-                    <a
-                      class="dropdown-item border-0 transition-link"
-                      href="{% url 'shop:category-list' 'japanese-kichenware' %}"
-                      >Kichenware</a
-                    ><a
-                      class="dropdown-item border-0 transition-link"
-                      href="{% url 'shop:category-list' 'japanese-cutlery' %}"
-                      >Cutlery</a
-                    ><a
-                      class="dropdown-item border-0 transition-link"
-                      href="{% url 'shop:category-list' 'japanese-food-item' %}"
-                      >Food Items</a
-                    ><a
-                      class="dropdown-item border-0 transition-link"
-                      href="{% url 'shop:category-list' 'japanese-alcohol' %}"
-                      >Alcohol</a
-                    ><a
-                      class="dropdown-item border-0 transition-link"
-                      href="{% url 'shop:category-list' 'japanese-handcraft' %}"
-                      >Handcrafts</a
-                    >
-                    <a
-                      class="dropdown-item border-0 transition-link"
-                      href="{% url 'shop:category-list' 'japanese-sundry' %}"
-                      >Sundries</a
-                    >
+                    <ul class="list-unstyled">
+                      {% recursetree categories %}
+                      <li class="mb-2">
+                        <div
+                          class="{% if not node.is_leaf_node %} py-2 px-4 bg-light mb-3 {% endif %}"
+                        >
+                          <!-- <div class="py-2 px-4 bg-dark text-white mb-3"> -->
+                          {% if not node.is_leaf_node %}
+                          <strong class="small text-uppercase font-weight-bold">
+                            {% endif %} {% if node.is_leaf_node %}
+                            <a
+                              class="reset-anchor"
+                              href="{% url 'shop:category-list' node.slug %}"
+                              >{% endif %}{{ node.name|title }}
+                              <!--  -->
+                              {% if node.is_leaf_node %}
+                            </a>
+                            {% endif %} {% if not node.is_leaf_node %}
+                          </strong>
+                          {% endif %}
+                        </div>
+                        {% if not node.is_leaf_node %}
+                        <ul
+                          class="list-unstyled small text-muted pl-lg-4 font-weight-normal"
+                        >
+                          {{ children }}
+                        </ul>
+                        {% endif %}
+                      </li>
+                      {% endrecursetree %}
+                    </ul>
                   </div>
                 </li>
               </ul>

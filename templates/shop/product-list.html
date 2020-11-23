@@ -6,7 +6,9 @@
 <!-- CONTENT -->
 {% block content %}
 <!-- TAGS -->
-{% load humanize %} {% load qs_url_tag %}{% load mathfilters %}
+{% load humanize %} {% load qs_url_tag %}
+<!--  -->
+{% load mathfilters %}{% load mptt_tags %}
 <!--  Modal -->
 {% for product in products %}
 <div
@@ -158,70 +160,35 @@
         <!-- SHOP SIDEBAR-->
         <div class="col-lg-3 order-2 order-lg-1">
           <h5 class="text-uppercase mb-4">Categories</h5>
-          <div class="py-2 px-4 bg-dark text-white mb-3">
-            <strong class="small text-uppercase font-weight-bold"
-              >Kichenware &amp; Cutlery</strong
-            >
-          </div>
-          <ul class="list-unstyled small text-muted pl-lg-4 font-weight-normal">
+          <!--  MPTT Recursive Category -->
+          <ul class="list-unstyled">
+            {% recursetree categories %}
             <li class="mb-2">
-              <a
-                class="reset-anchor"
-                href="{% url 'shop:category-list' 'japanese-kichenware' %}"
-                >Kichenware</a
+              <div
+                class="{% if not node.is_leaf_node %} py-2 px-4 bg-light mb-3 {% endif %}"
               >
-            </li>
-            <li class="mb-2">
-              <a
-                class="reset-anchor"
-                href="{% url 'shop:category-list' 'japanese-cutlery' %}"
-                >Cutlery</a
+                <!-- <div class="py-2 px-4 bg-dark text-white mb-3"> -->
+                {% if not node.is_leaf_node %}
+                <strong class="small text-uppercase font-weight-bold">
+                  {% endif %} {% if node.is_leaf_node %}
+                  <a
+                    class="reset-anchor"
+                    href="{% url 'shop:category-list' node.slug %}"
+                    >{% endif %}{{ node.name|title }} {% if node.is_leaf_node %}
+                  </a>
+                  {% endif %} {% if not node.is_leaf_node %}
+                </strong>
+                {% endif %}
+              </div>
+              {% if not node.is_leaf_node %}
+              <ul
+                class="list-unstyled small text-muted pl-lg-4 font-weight-normal"
               >
+                {{ children }}
+              </ul>
+              {% endif %}
             </li>
-          </ul>
-          <div class="py-2 px-4 bg-light mb-3">
-            <strong class="small text-uppercase font-weight-bold"
-              >Food &amp; Beverage
-            </strong>
-          </div>
-          <ul class="list-unstyled small text-muted pl-lg-4 font-weight-normal">
-            <li class="mb-2">
-              <a
-                class="reset-anchor"
-                href="{% url 'shop:category-list' 'japanese-food-item' %}"
-                >Food Items</a
-              >
-            </li>
-            <li class="mb-2">
-              <a
-                class="reset-anchor"
-                href="{% url 'shop:category-list' 'japanese-alcohol' %}"
-                >Alcohol</a
-              >
-            </li>
-          </ul>
-          <div class="py-2 px-4 bg-light mb-3">
-            <strong class="small text-uppercase font-weight-bold"
-              >Craft &amp; Art</strong
-            >
-          </div>
-          <ul
-            class="list-unstyled small text-muted pl-lg-4 font-weight-normal mb-5"
-          >
-            <li class="mb-2">
-              <a
-                class="reset-anchor"
-                href="{% url 'shop:category-list' 'japanese-handcraft' %}"
-                >Handcrafts</a
-              >
-            </li>
-            <li class="mb-2">
-              <a
-                class="reset-anchor"
-                href="{% url 'shop:category-list' 'japanese-sundry' %}"
-                >Sundries</a
-              >
-            </li>
+            {% endrecursetree %}
           </ul>
           <h6 class="text-uppercase mb-4">Seach Item</h6>
           <div class="seach-box">

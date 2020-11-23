@@ -8,26 +8,41 @@ from django.utils.translation import gettext_lazy as _
 
 from taggit.managers import TaggableManager
 from ckeditor.fields import RichTextField
+from mptt.models import MPTTModel, TreeForeignKey
 
 from db.base_model import BaseModel
 from .managers import SKUManager
 # from .tasks import update_search_vector
 
 
-class Category(BaseModel):
+class Category(MPTTModel):
+    parent = TreeForeignKey('self', verbose_name=_('parent'), on_delete=models.CASCADE,
+                            null=True, blank=True, related_name='children')
     name = models.CharField(_("name"), max_length=50, unique=True)
     slug = models.SlugField(_("slug"), max_length=50,
                             unique=True, null=True, blank=True)
-    desc = models.CharField(_("description"), max_length=250)
+    desc = RichTextField(_("description"), max_length=250)
     image = models.ImageField(
         _("image"), upload_to='media/category/', blank=True, null=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True, verbose_name='created')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='updated')
 
-    class Meta:
-        ordering = ('name',)
+    class MPTTMeta:
+        unique_together = ('slug', 'parent',)
+        order_insertion_by = ['name']
         verbose_name_plural = 'categories'
 
     def __str__(self):
         return self.name
+
+    def get_full_category_name(self):
+        full_name = [self.name]
+        parent = self.parent
+        while parent is not None:
+            full_name.append(parent.name)
+            parent = parent.parent
+        return '/'.join(full_name[::-1])
 
     def save(self, *args, **kwargs):
         if not self.slug:
