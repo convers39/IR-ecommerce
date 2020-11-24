@@ -65,6 +65,7 @@
       src="https://kit.fontawesome.com/d9f91064e3.js"
       crossorigin="anonymous"
     ></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@rc/dist/js.cookie.min.js"></script>
     {% block extra_head %}{% endblock extra_head %}
   </head>
   <body>
@@ -152,12 +153,12 @@
               <ul class="navbar-nav ml-auto">
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'cart:info' %}">
-                    <i class="fas fa-dolly-flatbed mr-1 text-gray"></i
-                    >Cart<small class="text-gray" id="cart-count"
-                      >{% if cart_count %}({{ cart_count }})
-                      <!--  -->
-                      {% else %}(0){% endif %}</small
-                    ></a
+                    <i class="fas fa-dolly-flatbed pr-sm-1"></i>Cart
+                    <small class="text-gray">
+                      (<small class="text-gray" id="cart-count"
+                        >{{ cart_count }}</small
+                      >)
+                    </small></a
                   >
                 </li>
                 <li class="nav-item">

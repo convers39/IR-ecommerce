@@ -438,26 +438,13 @@
 <!-- BOTTOM -->
 {% block bottom %}
 <script>
-  const csrftoken = Cookies.get("csrftoken");
-  $.ajaxSetup({
-    beforeSend: function (xhr) {
-      xhr.setRequestHeader("X-CSRFToken", csrftoken);
-    },
-  });
-  $(".add-cart").click(function (event) {
-    event.preventDefault();
-    skuId = $(this).attr("sku-id");
-    qty = "qty" + skuId;
-    count = $("#qty");
-    params = { sku_id: skuId, count: count };
+  /* params = { sku_id: skuId, count: count };
     $.post("/cart/add/", params, function (data) {
       if (data.res == "success") {
         updateCount = `(${data.total_count})`;
         $("#cart-count").text(updateCount);
       } else {
         alert(data.errmsg);
-      }
-    });
-  });
+      }*/
 </script>
 {% endblock bottom%}

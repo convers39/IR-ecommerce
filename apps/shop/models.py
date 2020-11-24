@@ -88,7 +88,7 @@ class ProductSKU(BaseModel):
     summary = models.CharField(_("summary"), max_length=250)
     detail = RichTextField(blank=True, null=True)
     unit = models.CharField(_("unit"), max_length=50)
-    price = models.DecimalField(_("price"), max_digits=9, decimal_places=2)
+    price = models.DecimalField(_("price"), max_digits=9, decimal_places=0)
     stock = models.PositiveIntegerField(
         _("stock"), default=1, validators=[MaxValueValidator(999)])
     sales = models.PositiveIntegerField(_("sales"),  default=0)

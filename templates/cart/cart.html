@@ -159,8 +159,8 @@
                 <th class="border-0" scope="col"></th>
               </tr>
             </thead>
-            {% for product in products %}
             <tbody>
+              {% for product in products %}
               <tr>
                 <th class="pl-0 border-0" scope="row">
                   <div class="media align-items-center">
@@ -168,7 +168,7 @@
                       class="reset-anchor d-block animsition-link"
                       href="{{ product.get_absolute_url }}"
                       ><img
-                        src="{{ product.cover_img }}"
+                        src="{{ product.cover_img.url }}"
                         alt="{{product.name}}"
                         width="70"
                     /></a>
@@ -177,7 +177,7 @@
                         ><a
                           class="reset-anchor animsition-link"
                           href="{{ product.get_absolute_url }}"
-                          >Red digital smartwatch</a
+                          >{{ product.name }}</a
                         ></strong
                       >
                     </div>
@@ -186,7 +186,7 @@
                 <td class="align-middle border-0">
                   <p class="mb-0 small">
                     <i class="fa fa-jpy" aria-hidden="true"></i
-                    >{{product.price}}
+                    ><span id="price-{{product.id}}">{{product.price}}</span>
                   </p>
                 </td>
                 <td class="align-middle border-0">
@@ -195,16 +195,17 @@
                   >
                     <span
                       class="small text-uppercase text-gray headings-font-family"
-                      >Quantity</span
-                    >
+                    ></span>
                     <div class="quantity">
                       <button class="dec-btn p-0">
                         <i class="fas fa-caret-left"></i>
                       </button>
                       <input
-                        class="form-control form-control-sm border-0 shadow-0 p-0"
+                        class="qty-cart form-control form-control-sm border-0 shadow-0 p-0"
                         type="text"
-                        value="1"
+                        id="qty-{{product.id}}"
+                        sku-id="{{ product.id }}"
+                        value="{{product.count|floatformat}}"
                         stock="{{product.stock}}"
                       />
                       <button class="inc-btn p-0">
@@ -216,11 +217,16 @@
                 <td class="align-middle border-0">
                   <p class="mb-0 small">
                     <i class="fa fa-jpy" aria-hidden="true"></i
-                    >{{product.price}}
+                    ><span id="product-total-{{product.id}}"
+                      >{{product.amount}}</span
+                    >
                   </p>
                 </td>
                 <td class="align-middle border-0">
-                  <a class="reset-anchor" href="#"
+                  <a
+                    class="reset-anchor cart-del"
+                    href="#"
+                    sku-id="{{product.id}}"
                     ><i class="fas fa-trash-alt small text-muted"></i
                   ></a>
                 </td>
@@ -255,19 +261,33 @@
         <div class="card border-0 rounded-0 p-lg-4 bg-light">
           <div class="card-body">
             <h5 class="text-uppercase mb-4">Cart total</h5>
+            <p class="text-uppercase small">
+              (<span class="total-count">{{total_count}}</span>
+              items)
+            </p>
             <ul class="list-unstyled mb-0">
               <li class="d-flex align-items-center justify-content-between">
                 <strong class="text-uppercase small font-weight-bold"
-                  >Subtotal</strong
-                ><span class="text-muted small">$250</span>
+                  >Subtotal
+                </strong>
+                <div class="text-muted small">
+                  <i class="fa fa-jpy pr-sm-1" aria-hidden="true"> </i
+                  ><span class="text-muted small subtotal"> {{subtotal}}</span>
+                </div>
               </li>
               <li class="border-bottom my-2"></li>
               <li
                 class="d-flex align-items-center justify-content-between mb-4"
               >
                 <strong class="text-uppercase small font-weight-bold"
-                  >Total</strong
-                ><span>$250</span>
+                  >Total
+                </strong>
+                <div>
+                  <i class="fa fa-jpy pr-sm-1" aria-hidden="true"> </i
+                  ><span class="total-price"
+                    >{% if not coupon %} {{subtotal}} {% endif %}</span
+                  >
+                </div>
               </li>
               <li>
                 <form action="#">
@@ -292,4 +312,8 @@
 </div>
 {% endblock content %}
 <!-- BOTTOM -->
-{% block bottom %}{% endblock bottom%}
+{% block bottom %}
+<script>
+  //$(function () {});
+</script>
+{% endblock bottom%}
