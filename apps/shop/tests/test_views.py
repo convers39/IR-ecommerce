@@ -3,12 +3,11 @@ from django.test import TestCase, Client, override_settings
 from django.urls import resolve, reverse
 from django.contrib.messages import get_messages
 
-
 from PIL import Image
-import tempfile
 
+import tempfile
 from shop.views import ProductListView
-from .factory import SkuFactory, CategoryFacotry, OriginFacotry, SpuFacotry
+from .factory import SkuFactory, CategoryFactory, get_temporary_image
 
 # TODO: finish view test
 
@@ -27,7 +26,7 @@ class TestShopListView(TestCase):
 
     @classmethod
     def setUpTestData(cls) -> None:
-        cls.category = CategoryFacotry()
+        cls.category = CategoryFactory()
         for _ in range(10):
             dummy = SkuFactory()
             temp_file = tempfile.NamedTemporaryFile()

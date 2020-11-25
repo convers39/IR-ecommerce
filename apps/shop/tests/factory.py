@@ -6,7 +6,7 @@ from taggit.models import TaggedItem
 from shop.models import ProductSPU, ProductSKU, Origin, Category, Image
 
 
-class CategoryFacotry(DjangoModelFactory):
+class CategoryFactory(DjangoModelFactory):
     class Meta:
         model = Category
 
@@ -14,7 +14,7 @@ class CategoryFacotry(DjangoModelFactory):
     desc = factory.Faker('sentence')
 
 
-class OriginFacotry(DjangoModelFactory):
+class OriginFactory(DjangoModelFactory):
     class Meta:
         model = Origin
 
@@ -22,7 +22,7 @@ class OriginFacotry(DjangoModelFactory):
     desc = factory.Faker('sentence')
 
 
-class SpuFacotry(DjangoModelFactory):
+class SpuFactory(DjangoModelFactory):
     class Meta:
         model = ProductSPU
 
@@ -46,9 +46,9 @@ class SkuFactory(DjangoModelFactory):
     brand = factory.Faker('company')
     # tags = ProductSKU.tags.add('bug')
     # tags = ['buff']
-    category = factory.SubFactory(CategoryFacotry)
-    origin = factory.SubFactory(OriginFacotry)
-    spu = factory.SubFactory(SpuFacotry)
+    category = factory.SubFactory(CategoryFactory)
+    origin = factory.SubFactory(OriginFactory)
+    spu = factory.SubFactory(SpuFactory)
 
     # @factory.post_generation
     # def tags(self, create, extracted, **kwargs):

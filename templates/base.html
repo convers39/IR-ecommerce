@@ -117,7 +117,7 @@
                     aria-labelledby="pagesDropdown"
                   >
                     <ul class="list-unstyled">
-                      {% recursetree categories %}
+                      {% if categories %} {% recursetree categories %}
                       <li class="mb-2">
                         <div
                           class="{% if not node.is_leaf_node %} py-2 px-4 bg-light mb-3 {% endif %}"
@@ -145,7 +145,7 @@
                         </ul>
                         {% endif %}
                       </li>
-                      {% endrecursetree %}
+                      {% endrecursetree %} {% endif %}
                     </ul>
                   </div>
                 </li>
@@ -198,9 +198,9 @@
       </header>
       <!-- messages -->
       <section>
-        <div class="container">
+        <div class="container message-area">
           {% if messages %} {% for message in messages %}
-          <p></p>
+          <!--  -->
           {% if message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
           <div class="alert alert-primary alert-dismissable" role="alert">
             <button
@@ -329,7 +329,7 @@
               .slideUp(500, function () {
                 $(this).remove();
               });
-          }, 3500);
+          }, 3000);
         });
       </script>
       <script>

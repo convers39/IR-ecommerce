@@ -7,7 +7,7 @@ import os
 from django.conf.global_settings import MEDIA_ROOT, STATIC_ROOT
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
+BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 
 
@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 SECRET_KEY = '0w@xsv9re+3w=9*%n(*g&oua9rnz090n51=_szwt@ktk0ao*dw'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+
 
 ALLOWED_HOSTS = ['*']
 
@@ -171,8 +171,7 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static')
 ]
-if not DEBUG:
-    STATIC_ROOT = os.path.join(BASE_DIR, '/static/')
+
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -184,15 +183,6 @@ LOGIN_REDIRECT_URL = '/account/'
 
 # product tag case insensitive
 TAGGIT_CASE_INSENSITIVE = True
-
-# for debug tool:
-DEBUG_TOOLBAR_PATCH_SETTINGS = False
-if DEBUG:
-    INSTALLED_APPS += ['debug_toolbar']
-    MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware', ]
-    DEBUG_TOOLBAR_CONFIG = {
-        'SHOW_TOOLBAR_CALLBACK': lambda _request: DEBUG
-    }
 
 # AWS setting
 AWS_ACCESS_KEY_ID = 'AKIAX5AS5QG7C7S3AHXT'

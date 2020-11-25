@@ -1,3 +1,4 @@
+from django.contrib.messages.api import error
 from django_redis import get_redis_connection
 from shop.models import ProductSKU
 
@@ -18,31 +19,38 @@ def cal_total_count_subtotal(user_id):
     return products list, total items count and subtotal amount.
     Add temporary attribute amount and count to product objects for page rendering.
     """
-    conn = get_redis_connection('cart')
-    cart_key = f'cart_{user_id}'
-    cart_dict = conn.hgetall(cart_key)
+    try:
+        conn = get_redis_connection('cart')
 
-    products = []
-    total_count = 0
-    subtotal = 0
-    for product_id, count in cart_dict.items():
-        product = ProductSKU.objects.get(id=product_id)
-        amount = product.price * int(count)
-        product.amount = amount
-        product.count = count
-        products.append(product)
+        cart_key = f'cart_{user_id}'
+        cart_dict = conn.hgetall(cart_key)
 
-        total_count += int(count)
-        subtotal += amount
+        products = []
+        total_count = 0
+        subtotal = 0
+        for product_id, count in cart_dict.items():
+            product = ProductSKU.objects.get(id=product_id)
+            amount = product.price * int(count)
+            product.amount = amount
+            product.count = count
+            products.append(product)
 
-    return products, total_count, subtotal
+            total_count += int(count)
+            subtotal += amount
+
+        return products, total_count, subtotal
+    except:
+        return [], 0, 0
 
 
 def delete_cart_item(user_id, sku_id):
     """
     Delete selected item from shopping cart, return total items count for update
     """
-    conn = get_redis_connection('cart')
-    cart_key = f'cart_{user_id}'
+    try:
+        conn = get_redis_connection('cart')
+        cart_key = f'cart_{user_id}'
 
-    conn.hdel(cart_key, sku_id)
+        conn.hdel(cart_key, sku_id)
+    except:
+        pass

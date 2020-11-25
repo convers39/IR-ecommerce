@@ -28,10 +28,12 @@ class Category(MPTTModel):
         auto_now_add=True, verbose_name='created')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='updated')
 
-    class MPTTMeta:
+    class Meta:
         unique_together = ('slug', 'parent',)
-        order_insertion_by = ['name']
         verbose_name_plural = 'categories'
+
+    class MPTTMeta:
+        order_insertion_by = ['name']
 
     def __str__(self):
         return self.name

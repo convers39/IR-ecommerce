@@ -7,7 +7,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django_redis import get_redis_connection
 
 from shop.models import ProductSKU, Category
-# import json
+import json
+from json import JSONDecodeError
 from .cart import cal_cart_count, cal_total_count_subtotal, delete_cart_item
 from .mixins import DataIntegrityCheckMixin
 
@@ -24,8 +25,10 @@ class CartAddView(DataIntegrityCheckMixin, View):
     def post(self, request):
 
         user = request.user
-        sku_id = request.POST.get('sku_id')
-        count = int(request.POST.get('count'))
+
+        data = json.loads(request.body.decode())
+        sku_id = data.get('sku_id')
+        count = int(data.get('count'))
 
         conn = get_redis_connection('cart')
         cart_key = f'cart_{user.id}'
@@ -51,9 +54,8 @@ class CartInfoView(LoginRequiredMixin, View):
 
     def get(self, request):
         user = request.user
-
         cart_count = cal_cart_count(user.id)
-        print('infoview', cart_count)
+
         products, total_count, subtotal = cal_total_count_subtotal(user.id)
 
         categories = Category.objects.all()
@@ -78,15 +80,14 @@ class CartUpdateView(DataIntegrityCheckMixin, View):
     def post(self, request):
 
         user = request.user
-        sku_id = request.POST.get('sku_id')
-        count = request.POST.get('count')
+
+        data = json.loads(request.body.decode())
+        sku_id = data.get('sku_id')
+        count = data.get('count')
 
         # connect redis, reset product count
         conn = get_redis_connection('cart')
         cart_key = f'cart_{user.id}'
-
-        if int(count) <= 0:
-            count = 1
 
         conn.hset(cart_key, sku_id, count)
 
@@ -97,7 +98,10 @@ class CartDeleteView(DataIntegrityCheckMixin, View):
     def post(self, request):
 
         user = request.user
-        sku_id = request.POST.get('sku_id')
+        # data = json.load(request)
+        data = json.loads(request.body.decode())
+        sku_id = data.get('sku_id')
+        # sku_id = request.POST.get('sku_id')
 
         delete_cart_item(user.id, sku_id)
 

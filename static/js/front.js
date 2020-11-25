@@ -22,61 +22,109 @@ $(function () {
   /* ===============================================================
          PRODUCT QUNATITY
       =============================================================== */
-  $(".dec-btn").click(function (event) {
+  $(".dec-btn").click(async function (event) {
     event.stopPropagation();
-    let count = $(this).siblings("input").val();
-    // check if dec in shopping cart page
-    let cartChecker = $(this).siblings("input").hasClass("qty-cart");
-    let skuId = $(this).siblings("input").attr("sku-id");
-    if (cartChecker) {
-      updateRemoteCart(skuId, count - 1);
-      console.log("dec", updateErr);
-    }
-    // updateErr == True, remote database update failed, do not change item qty
-    if (updateErr === true) {
-      return;
-    }
-    // else continue to reset qty
-    count = parseInt(count) - 1;
-    if (count <= 0) {
-      count = 1;
-    }
-    $(this).siblings("input").val(count);
-    console.log("dec", count);
-    if (cartChecker) {
-      updateCartPage();
+    try {
+      let count = $(this).siblings("input").val();
+      // check if dec in shopping cart page
+      let cartChecker = $(this).siblings("input").hasClass("qty-cart");
+      let skuId = $(this).siblings("input").attr("sku-id");
+      // console.log("inc", skuId, count);
+      if (parseInt(count) - 1 <= 0) {
+        showErrMsg("Cannot be less than 1 item");
+        return;
+      }
+      if (cartChecker) {
+        let data = await updateRemote(skuId, count - 1);
+        if (data.res == "1") {
+          updateErr = false;
+          count = parseInt(count) - 1;
+          $(this).siblings("input").val(count);
+          updateCartPage();
+        } else {
+          // updateErr == True, remote database update failed, do not change item qty
+          updateErr = true;
+          showErrMsg(data.errmsg);
+        }
+      } else {
+        // if not in cart page
+
+        count = parseInt(count) - 1;
+
+        $(this).siblings("input").val(count);
+      }
+    } catch (e) {
+      showErrMsg("Invalid item count");
     }
   });
 
-  $(".inc-btn").click(function (event) {
+  $(".inc-btn").click(async function (event) {
     event.stopPropagation();
-    // get stock as maximum input qty
-    let stock = parseInt($(this).siblings("input").attr("stock"));
-    let count = parseInt($(this).siblings("input").val());
-    if (count + 1 > stock) {
-      return;
-    }
-    let cartChecker = $(this).siblings("input").hasClass("qty-cart");
-    let skuId = $(this).siblings("input").attr("sku-id");
-    if (cartChecker) {
-      console.log("inc", updateErr);
-      updateRemoteCart(skuId, count + 1);
-    }
-    if (updateErr === true) {
-      return;
-    }
-    // qty should not be greater than stock
-    if (count < stock) {
-      count = count + 1;
-    } else {
-      count = stock;
-    }
-    $(this).siblings("input").val(count);
-    console.log("inc", count);
-    if (cartChecker) {
-      updateCartPage();
+    // try to parse qty and stock as maximum input qty
+    try {
+      let stock = parseInt($(this).siblings("input").attr("stock"));
+      let count = parseInt($(this).siblings("input").val());
+
+      // do not increase if count equals to stock
+      if (count + 1 > stock) {
+        showErrMsg("Out of inventory");
+        return;
+      }
+      // check if increase in the cart page
+      let cartChecker = $(this).siblings("input").hasClass("qty-cart");
+      let skuId = $(this).siblings("input").attr("sku-id");
+      if (cartChecker) {
+        let data = await updateRemote(skuId, count + 1);
+        if (data.res == "1") {
+          updateErr = false;
+          count = count + 1;
+          $(this).siblings("input").val(count);
+          // update cart page if increase successfully
+          updateCartPage();
+        } else {
+          updateErr = true;
+          // alert(data.errmsg);
+          showErrMsg(data.errmsg);
+        }
+      } else {
+        // if not in cart page
+        count = count + 1;
+        $(this).siblings("input").val(count);
+      }
+    } catch (e) {
+      showErrMsg("Invalid item count");
     }
   });
+
+  let updateErr = false;
+  const updateRemote = async (skuId, count) => {
+    const res = await fetch("/cart/update/", {
+      method: "POST",
+      headers: { "X-CSRFToken": csrftoken, "Content-Type": "application/json" },
+      body: JSON.stringify({ sku_id: skuId, count: count }),
+    });
+    return (data = await res.json());
+  };
+
+  // append message to message area, fade after timeout
+  function showErrMsg(errmsg) {
+    let msg = `
+    <div class="alert alert-warning alert-dismissable" role="alert">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true" >
+        &times;
+      </button>
+      ${errmsg}
+    </div>
+    `;
+    $(".message-area").append(msg).hide().slideDown(500, 0).fadeIn(1000, 0);
+    setTimeout(() => {
+      $(".alert")
+        .fadeTo(500, 0)
+        .slideUp(500, function () {
+          $(this).remove();
+        });
+    }, 3000);
+  }
   /* ===============================================================
            BOOTSTRAP SELECT
         =============================================================== */
@@ -101,67 +149,95 @@ $(function () {
   // $('a[href="#"]').on("click", function (e) {
   //   e.preventDefault();
   // });
-  const csrftoken = Cookies.get("csrftoken");
-  $.ajaxSetup({
-    beforeSend: function (xhr) {
-      xhr.setRequestHeader("X-CSRFToken", csrftoken);
-    },
-  });
 
-  $(".add-cart").click(function (event) {
+  // $.ajaxSetup({
+  //   beforeSend: function (xhr) {
+  //     xhr.setRequestHeader("X-CSRFToken", csrftoken);
+  //   },
+  // });
+
+  // retrieve csrftoken
+  const csrftoken = Cookies.get("csrftoken");
+
+  // change cart item qty by input number manually
+  let preCount = 0;
+  $(".qty-cart").focus(function () {
+    preCount = $(this).val();
+  });
+  $(".qty-cart").blur(async function () {
+    let count = $(this).val();
+    let skuId = $(this).attr("sku-id");
+    let stock = $(this).attr("stock");
+    if (
+      isNaN(count) ||
+      count.trim().length == 0 ||
+      parseInt(count) <= 0 ||
+      parseInt(count) > stock
+    ) {
+      $(this).val(preCount);
+      showErrMsg("Invalid item count");
+      return;
+    }
+    let data = await updateRemote(skuId, count);
+    if (data.res == "1") {
+      $(this).val(count);
+      updateCartPage();
+    } else {
+      showErrMsg(data.errmsg);
+      // location.reload();
+    }
+  });
+  // add cart item
+  $(".add-cart").click(async function (event) {
     event.preventDefault();
     let skuId = $(this).attr("sku-id");
     let qty = "qty-" + skuId;
     let count = $(`#${qty}`).val() || 1;
-    $.ajax({
-      url: "/cart/add/",
-      method: "post",
-      data: {
-        sku_id: skuId,
-        count: count,
+    console.log("add cart", skuId, count);
+    const res = await fetch("/cart/add/", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": csrftoken,
+        "Content-Type": "application/json",
       },
-      dataType: "json",
-      success: function (data) {
-        if (data.res == "1") {
-          $("#cart-count").text(data.cart_count);
-        } else {
-          alert(data.errmsg);
-          location.reload();
-        }
-      },
-      fail: function () {
-        alert("Request failed");
-      },
+      body: JSON.stringify({ sku_id: skuId, count: count }),
     });
+    data = await res.json();
+    if (data.res == "1") {
+      $("#cart-count").text(data.cart_count);
+    } else {
+      showErrMsg(data.errmsg);
+      // location.reload();
+    }
   });
 
-  let updateErr = false;
-  function updateRemoteCart(skuId, count) {
-    $.ajax({
-      url: "/cart/update/",
-      method: "post",
-      data: {
-        sku_id: skuId,
-        count: count,
+  // delete cart item
+  $(".cart-del").click(async function (event) {
+    event.preventDefault();
+    let skuParentEl = $(this).parents("tr");
+    let skuId = $(this).attr("sku-id");
+    let count = $(`#qty-${skuId}`).val();
+    console.log("add delete", skuId, count);
+    const res = await fetch("/cart/delete/", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": csrftoken,
+        "Content-Type": "application/json",
       },
-      dataType: "json",
-      success: function (data) {
-        if (data.res == "1") {
-          updateErr = false;
-          // totalCount = data.total_count;
-          // subtotal = data.subtotal;
-        } else {
-          updateErr = true;
-          alert(data.errmsg);
-          location.reload();
-        }
-      },
-      fail: function () {
-        alert("Request failed");
-      },
+      body: JSON.stringify({ sku_id: skuId, count: count }),
     });
-  }
+    data = await res.json();
+    if (data.res == "1") {
+      skuParentEl.remove();
+      updateCartPage();
+      $(".total-count").text(data.total_count);
+    } else {
+      alert(data.errmsg);
+      // location.reload();
+    }
+  });
 
+  // update shopping cart page when editing
   function updateCartPage() {
     let totalCount = 0;
     let subtotal = 0;
@@ -181,50 +257,6 @@ $(function () {
     $(".total-price").text(subtotal);
     $("#cart-count").text(cartCount);
   }
-  // async function updateRemote(skuId, count) {
-  //   data = { sku_id: skuId, count: count };
-  //   let response = await fetch("/cart/update/", {
-  //     method: "POST",
-  //     headers: { "X-CSRFToken": csrftoken },
-  //     body: JSON.stringify(data),
-  //   });
-  //   console.log(response);
-  //   if (response.res == "0") {
-  //     updateErr = true;
-  //     throw new Error(`Request error: ${response.errmsg}`);
-  //   } else {
-  //     updateErr = false;
-  //     return await response.json();
-  //   }
-  // }
-  $(".cart-del").click(function (event) {
-    event.preventDefault();
-    let skuParentEl = $(this).parents("tr");
-    let skuId = $(this).attr("sku-id");
-    let count = $(`#qty-${skuId}`).val();
-    $.ajax({
-      url: "/cart/delete/",
-      method: "post",
-      data: {
-        sku_id: skuId,
-        count: count, // no need but for integrity
-      },
-      dataType: "json",
-      success: function (data) {
-        if (data.res == "1") {
-          skuParentEl.remove();
-          updateCartPage();
-          $(".total-count").text(data.total_count);
-        } else {
-          alert(data.errmsg);
-          location.reload();
-        }
-      },
-      fail: function () {
-        alert("Request failed");
-      },
-    });
-  });
 });
 
 /* ===============================================================
