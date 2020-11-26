@@ -6,12 +6,6 @@ from .models import User
 
 
 class RegisterForm(forms.ModelForm):
-    username = forms.CharField(widget=forms.TextInput(
-        attrs={'class': 'form-control', 'placeholder': 'Enter username', 'id': 'username'}), min_length=5)
-    email = forms.EmailField(widget=forms.EmailInput(
-        attrs={'class': 'form-control', 'placeholder': 'Enter email', 'id': 'email'}))
-    password = forms.CharField(widget=forms.PasswordInput(
-        attrs={'class': 'form-control', 'placeholder': 'Enter password', 'id': 'password', 'pattern': '(?=.*\d)(?=.*[a-z]).{6,}', 'title': 'Must contain at least one number and one lowercase letter, and 6 or more characters'}))
     password_confirm = forms.CharField(widget=forms.PasswordInput(
         attrs={'class': 'form-control', 'placeholder': 'Confirm your password', 'id': 'password_confirm', 'pattern': '(?=.*\d)(?=.*[a-z]).{6,}', 'title': 'Passwords must be the same'}))
     agreement = forms.BooleanField(widget=forms.CheckboxInput(
@@ -20,6 +14,24 @@ class RegisterForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ('username', 'email', 'password')
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter username', 'id': 'username'}),
+            'email': forms.EmailInput(
+                attrs={'class': 'form-control', 'placeholder': 'Enter email', 'id': 'email'}),
+            'password': forms.PasswordInput(
+                attrs={'class': 'form-control', 'placeholder': 'Enter password', 'id': 'password', 'pattern': '(?=.*\d)(?=.*[a-z]).{6,}', 'title': 'Must contain at least one number and one lowercase letter, and 6 or more characters'}),
+        }
+        # labels = {
+        #     'name': _(''),
+        # }
+        help_texts = {
+            'username': _('Required. 50 characters or fewer. Letters, digits and @/./+/-/_ only.'),
+        }
+        error_messages = {
+            'username': {
+                'max_length': _("This writer's name is too long."),
+            },
+        }
 
     # TODO: consider to move password validation to the frontend.
     def clean(self):

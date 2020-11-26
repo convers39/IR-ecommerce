@@ -21,7 +21,7 @@ class Category(MPTTModel):
     name = models.CharField(_("name"), max_length=50, unique=True)
     slug = models.SlugField(_("slug"), max_length=50,
                             unique=True, null=True, blank=True)
-    desc = RichTextField(_("description"), max_length=250)
+    desc = RichTextField(_("description"), max_length=250, default='')
     image = models.ImageField(
         _("image"), upload_to='media/category/', blank=True, null=True)
     created_at = models.DateTimeField(
@@ -60,7 +60,7 @@ class Origin(BaseModel):
     use HASC code for prefectures in Japan
     """
     name = models.CharField(_("name"), max_length=50, unique=True)
-    desc = models.CharField(_("description"), max_length=250)
+    desc = models.CharField(_("description"), max_length=250, default='')
 
     def __str__(self):
         return self.name
@@ -68,7 +68,7 @@ class Origin(BaseModel):
 
 class ProductSPU(BaseModel):
     name = models.CharField(_("name"), max_length=50, unique=True)
-    desc = models.CharField(_("description"), max_length=250)
+    desc = models.CharField(_("description"), max_length=250, default='')
 
     class Meta:
         verbose_name = 'SPU'
@@ -87,15 +87,15 @@ class ProductSKU(BaseModel):
     name = models.CharField(_("name"), max_length=50)
     slug = models.SlugField(_("slug"), max_length=50,
                             unique=True, null=True, blank=True)
-    summary = models.CharField(_("summary"), max_length=250)
-    detail = RichTextField(blank=True, null=True)
+    summary = models.CharField(_("summary"), default='', max_length=250)
+    detail = RichTextField(default='')
     unit = models.CharField(_("unit"), max_length=50)
     price = models.DecimalField(_("price"), max_digits=9, decimal_places=0)
     stock = models.PositiveIntegerField(
         _("stock"), default=1, validators=[MaxValueValidator(999)])
     sales = models.PositiveIntegerField(_("sales"),  default=0)
     brand = models.CharField(
-        _("brand"), max_length=50, blank=True, null=True)
+        _("brand"), max_length=50, default='')
     cover_img = models.ImageField(
         _("cover image"), upload_to='media/sku_cover/', blank=True, null=True)
     tags = TaggableManager(_("tags"))
@@ -117,6 +117,7 @@ class ProductSKU(BaseModel):
         ordering = ('name',)
         verbose_name = 'SKU'
         verbose_name_plural = verbose_name
+        get_latest_by = ('created_at',)
         indexes = [
             models.Index(fields=['name', ]),
             models.Index(fields=['summary', 'detail', ]),

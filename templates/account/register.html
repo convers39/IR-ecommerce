@@ -57,7 +57,7 @@
       </form>
       <hr />
       <div class="control-group {% if form.errors %} alert {% endif %}">
-        {{form.errors}}
+        {{form.errors.username}} {{form.errors.email}} {{form.errors.password}}
       </div>
     </div>
   </div>

@@ -22,6 +22,12 @@ class SKUManager(models.Manager):
         return self.get_queryset().filter(category=category).\
             exclude(id=current).order_by('sales', '-created_at')
 
+    def get_products_with_review(self):
+        """
+        Return a queryset of products sku which has a customer review.
+        """
+        pass
+
     def search(self, search_text):
         """
         FTS for products, search in name, summary and detail.

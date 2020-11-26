@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'widget_tweaks',
     'rangefilter',
     'mathfilters',
+    'django_fsm',
 ]
 
 MIDDLEWARE = [
