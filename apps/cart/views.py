@@ -44,12 +44,16 @@ class CartAddView(DataIntegrityCheckMixin, View):
         cart_count = conn.hlen(cart_key)
         print('add', cart_count)
 
-        return JsonResponse({'res': 1, 'cart_count': cart_count, 'msg': 'Added to cart'})
+        return JsonResponse({
+            'res': 1,
+            'msg': 'Added to cart',
+            'cart_count': cart_count,
+        })
 
 
 class CartInfoView(LoginRequiredMixin, View):
     """
-    Retrieve data from redis and render current shopping cart
+    Retrieve data from redis and render current shopping cart page,
     """
 
     def get(self, request):
@@ -73,8 +77,9 @@ class CartInfoView(LoginRequiredMixin, View):
 
 class CartUpdateView(DataIntegrityCheckMixin, View):
     """
-    Correspond with inc and dec button click event in cart page,
-    either increase or decrease selected product count in the cart.
+    Correspond with inc and dec button click event,
+    and item count manual input blur event in cart page,
+    var count will be the updated count number instead of previous count.
     """
 
     def post(self, request):
@@ -91,7 +96,12 @@ class CartUpdateView(DataIntegrityCheckMixin, View):
 
         conn.hset(cart_key, sku_id, count)
 
-        return JsonResponse({'res': 1, 'msg': 'Cart updated'})
+        return JsonResponse({
+            'res': 1,
+            'msg': 'Cart updated',
+            'sku_id': sku_id,
+            'count': count
+        })
 
 
 class CartDeleteView(DataIntegrityCheckMixin, View):
@@ -104,5 +114,10 @@ class CartDeleteView(DataIntegrityCheckMixin, View):
         # sku_id = request.POST.get('sku_id')
 
         delete_cart_item(user.id, sku_id)
+        cart_count = cal_cart_count(user.id)
 
-        return JsonResponse({'res': 1, 'msg': 'Item deleted'})
+        return JsonResponse({
+            'res': 1,
+            'msg': 'Item deleted',
+            'cart_count': cart_count
+        })

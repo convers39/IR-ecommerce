@@ -193,7 +193,7 @@ $(function () {
     let skuId = $(this).attr("sku-id");
     let qty = "qty-" + skuId;
     let count = $(`#${qty}`).val() || 1;
-    console.log("add cart", skuId, count);
+    //console.log("add cart", skuId, count);
     const res = await fetch("/cart/add/", {
       method: "POST",
       headers: {
@@ -202,7 +202,7 @@ $(function () {
       },
       body: JSON.stringify({ sku_id: skuId, count: count }),
     });
-    data = await res.json();
+    let data = await res.json();
     if (data.res == "1") {
       $("#cart-count").text(data.cart_count);
     } else {
@@ -226,11 +226,11 @@ $(function () {
       },
       body: JSON.stringify({ sku_id: skuId, count: count }),
     });
-    data = await res.json();
+    let data = await res.json();
     if (data.res == "1") {
       skuParentEl.remove();
       updateCartPage();
-      $(".total-count").text(data.total_count);
+      // $(".total-count").text(data.total_count);
     } else {
       alert(data.errmsg);
       // location.reload();

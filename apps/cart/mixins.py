@@ -7,7 +7,7 @@ class DataIntegrityCheckMixin:
     def dispatch(self, request, *args, **kwargs):
         # validate data
         if not request.user.is_authenticated:
-            return JsonResponse({'res': 0, 'errmsg': 'Login required'})
+            return JsonResponse({'res': 0, 'errmsg': 'Please login'})
 
         try:
             data = json.loads(request.body.decode())
