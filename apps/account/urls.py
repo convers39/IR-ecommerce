@@ -3,7 +3,7 @@ from .views import LoginView, LogoutView, RegisterView, ActivateView, AccountCen
 
 app_name = 'account'
 urlpatterns = [
-    path('', AccountCenterView.as_view(), name='account-center'),
+    path('', AccountCenterView.as_view(), name='center'),
     path('register/', RegisterView.as_view(), name='register'),
     path('activate/<str:token>', ActivateView.as_view(), name='activate'),
     path('login/', LoginView.as_view(), name='login'),

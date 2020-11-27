@@ -209,3 +209,7 @@ CKEDITOR_CONFIGS = {
         'toolbarCanCollapse': True,
     },
 }
+
+# stripe key
+STRIPE_SECRET_KEY = 'sk_test_51HLl4uEz7XMShQN5T2wQAp2egqsIgx18ufPmslxpnUG153iuahSyKT8syxAcdBPX8sbJ5XbIhNgDvz1bEjlykjBY00sw2FHzpy'
+STRIPE_PUBLIC_KEY = 'pk_test_51HLl4uEz7XMShQN5JTytPqSCJPGhNhrs3z9ancAoo5U19wJ0EATsdBKL6aLStvVkGLCElkVLrQLqWhoLZ4oLGX3A00bYlbNoiC'
