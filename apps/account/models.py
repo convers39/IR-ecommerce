@@ -92,3 +92,7 @@ class Address(BaseModel):
 
     class Meta:
         verbose_name_plural = 'addresses'
+
+    def get_full_address(self):
+        return f'Recipient: {self.recipient}   Contact: {self.phone_no}\n\
+               Address: {self.addr}, {self.city}, {self.country} {self.zip_code}'

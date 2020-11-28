@@ -33,8 +33,8 @@
   <!-- BILLING ADDRESS-->
   <h2 class="h5 text-uppercase mb-4">Thank you! {{request.user.username}}</h2>
   <p class="text-primary">
-    Your payment has been confirmed, this page will redirect to your account
-    center in few seconds
+    Your payment <span>{{ payment_number }}</span> has been confirmed, this page
+    will redirect to your account center in few seconds
   </p>
   <p class="text-muted">
     Please click here to account center if page does not refresh

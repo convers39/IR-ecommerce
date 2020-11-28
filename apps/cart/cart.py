@@ -32,7 +32,7 @@ def cal_total_count_subtotal(user_id):
             product = ProductSKU.objects.get(id=product_id)
             amount = product.price * int(count)
             product.amount = amount
-            product.count = count
+            product.count = int(count)
             products.append(product)
 
             total_count += int(count)
@@ -54,3 +54,11 @@ def delete_cart_item(user_id, sku_id):
         conn.hdel(cart_key, sku_id)
     except:
         pass
+
+
+def cal_shipping_fee(subtotal, total_count):
+    if subtotal > 10000:
+        shipping_fee = 0
+    else:
+        shipping_fee = total_count * 500
+    return shipping_fee

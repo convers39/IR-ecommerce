@@ -39,7 +39,7 @@ class Payment(BaseModel):
         _("payment session id"), max_length=250, default='')
 
     user = models.ForeignKey("account.user", verbose_name=_(
-        "user"), on_delete=models.CASCADE)
+        "user"), on_delete=models.CASCADE, related_name='payments')
 
     class Meta:
         ordering = ('-created_at',)
@@ -64,7 +64,7 @@ class Payment(BaseModel):
 
     @transition(field=status, source='PD', target='EX')
     def expire_payment(self):
-        return (datetime.now() - self.created_at) <= timedelta(0)
+        return (datetime.now() - self.created_at) > timedelta(hours=24)
 
 # class Invoice(BaseModel):
 #     invoice_no = models.CharField(_("invoice number"), max_length=50)
@@ -134,12 +134,15 @@ class OrderProduct(BaseModel):
 
     unit_price = models.DecimalField(
         _("unit price"), max_digits=9, decimal_places=0)
-    count = models.IntegerField(_("count"))
+    count = models.PositiveIntegerField(_("count"))
 
     product = models.ForeignKey(
         ProductSKU, verbose_name=_("sku"), on_delete=models.CASCADE)
     order = models.ForeignKey(Order, verbose_name=_(
-        Order), on_delete=models.CASCADE, related_name='order_products')
+        'Order'), on_delete=models.SET_NULL, null=True, related_name='order_products')
+
+    class Meta:
+        ordering = ('-created_at',)
 
     def __str__(self):
         return f'Order of {self.product}'
@@ -149,7 +152,7 @@ class OrderProduct(BaseModel):
         return self.unit_price * self.count
 
 
-class Review(models.Model):
+class Review(BaseModel):
 
     class Star(models.IntegerChoices):
         VS = 5, _('Very satisfied')
@@ -164,3 +167,9 @@ class Review(models.Model):
 
     order_product = models.OneToOneField(
         OrderProduct, verbose_name=_("order product"), on_delete=models.CASCADE, related_name='review')
+
+    class Meta:
+        ordering = ('-created_at',)
+
+    def __str__(self):
+        return f'review for {self.order_product.product} by {self.order_product.user}'

@@ -7,41 +7,20 @@
 {% block content %}{% load humanize %} {% load qs_url_tag %}
 <!--  Modal -->
 {% for item in related_products %}
-<div
-  class="modal fade"
-  id="productView-{{forloop.counter}}"
-  tabindex="-1"
-  role="dialog"
-  aria-hidden="true"
->
+<div class="modal fade" id="productView-{{forloop.counter}}" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-body p-0">
         <div class="row align-items-stretch">
           <div class="col-lg-6 p-lg-0">
-            <a
-              class="product-view d-block h-100 bg-cover bg-center"
-              style="background: url('{{ item.cover_img.url }}')"
-              href="{{ item.cover_img.url }}"
-              data-lightbox="productview"
-              title="{{ item.name }}"
-            ></a>
+            <a class="product-view d-block h-100 bg-cover bg-center" style="background: url('{{ item.cover_img.url }}')"
+              href="{{ item.cover_img.url }}" data-lightbox="productview" title="{{ item.name }}"></a>
             {% for image in item.images.all %}
-            <a
-              class="d-none"
-              href="{{ image.url }}"
-              title="{{ item.name }}"
-              data-lightbox="productview"
-            ></a>
+            <a class="d-none" href="{{ image.url }}" title="{{ item.name }}" data-lightbox="productview"></a>
             {% endfor %}
           </div>
           <div class="col-lg-6">
-            <button
-              class="close p-4"
-              type="button"
-              data-dismiss="modal"
-              aria-label="Close"
-            >
+            <button class="close p-4" type="button" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">×</span>
             </button>
             <div class="p-5 my-md-4">
@@ -69,23 +48,14 @@
               <p class="text-small mb-4">{{ item.summary }}</p>
               <div class="row align-items-stretch mb-4">
                 <div class="col-sm-8 pr-sm-0">
-                  <div
-                    class="border d-flex align-items-center justify-content-between py-1 px-3"
-                  >
-                    <span class="small text-uppercase text-gray mr-4 no-select"
-                      >Quantity</span
-                    >
+                  <div class="border d-flex align-items-center justify-content-between py-1 px-3">
+                    <span class="small text-uppercase text-gray mr-4 no-select">Quantity</span>
                     <div class="quantity">
                       <button class="dec-btn p-0">
                         <i class="fas fa-caret-left"></i>
                       </button>
-                      <input
-                        class="form-control border-0 shadow-0 p-0"
-                        type="text"
-                        value="1"
-                        id="qty-{{item.id}}"
-                        stock="{{item.stock}}"
-                      />
+                      <input class="form-control border-0 shadow-0 p-0" type="text" value="1" id="qty-{{item.id}}"
+                        stock="{{item.stock}}" />
                       <button class="inc-btn p-0">
                         <i class="fas fa-caret-right"></i>
                       </button>
@@ -94,11 +64,8 @@
                 </div>
 
                 <div class="col-sm-4 pl-sm-0">
-                  <a
-                    class="btn btn-dark btn-sm btn-block add-cart h-100 d-flex align-items-center justify-content-center px-0"
-                    href="#"
-                    sku-id="{{ item.id }}"
-                  >
+                  <a class="btn btn-dark btn-sm btn-block add-cart h-100 d-flex align-items-center justify-content-center px-0"
+                    href="#" sku-id="{{ item.id }}">
                     <!-- <i class="fa fa-shopping-cart" aria-hidden="true"></i> -->
                     Add to Cart
                   </a>
@@ -106,8 +73,7 @@
               </div>
               <div class="row">
                 <div class="col-sm-7 pr-sm-2">
-                  <a class="btn btn-link text-dark p-0" href="#"
-                    ><i class="far fa-heart mr-2 pl-1"></i>Add to wish list
+                  <a class="btn btn-link text-dark p-0" href="#"><i class="far fa-heart mr-2 pl-1"></i>Add to wish list
                   </a>
                 </div>
                 <div class="col-sm-5 pl-sm-2">
@@ -130,17 +96,10 @@
         <!-- PRODUCT SLIDER-->
         <div class="row m-sm-0">
           <div class="col-sm-2 p-sm-0 order-2 order-sm-1 mt-2 mt-sm-0">
-            <div
-              class="owl-thumbs d-flex flex-row flex-sm-column"
-              data-slider-id="1"
-            >
+            <div class="owl-thumbs d-flex flex-row flex-sm-column" data-slider-id="1">
               {% for image in images %}
               <div class="owl-thumb-item flex-fill mb-2 mr-2 mr-sm-0">
-                <img
-                  class="w-100"
-                  src="{{ image.image.url }}"
-                  alt="{{ image.name }}"
-                />
+                <img class="w-100" src="{{ image.image.url }}" alt="{{ image.name }}" />
               </div>
               {% endfor %}
             </div>
@@ -148,16 +107,8 @@
           <div class="col-sm-10 order-1 order-sm-2">
             <div class="owl-carousel product-slider" data-slider-id="1">
               {% for image in images %}
-              <a
-                class="d-block"
-                href="{{ image.image.url }}"
-                data-lightbox="product"
-                title="{{ image.name }}"
-                ><img
-                  class="img-fluid"
-                  src="{{ image.image.url }}"
-                  alt="{{ image.name }}"
-              /></a>
+              <a class="d-block" href="{{ image.image.url }}" data-lightbox="product" title="{{ image.name }}"><img
+                  class="img-fluid" src="{{ image.image.url }}" alt="{{ image.name }}" /></a>
               {% endfor %}
             </div>
           </div>
@@ -190,23 +141,14 @@
         <p class="text-small mb-4">{{ product.summary }}</p>
         <div class="row align-items-stretch mb-4">
           <div class="col-sm-7 pr-sm-0">
-            <div
-              class="border d-flex align-items-center justify-content-between py-1 px-3 bg-white border-white"
-            >
-              <span class="small text-uppercase text-gray mr-4 no-select"
-                >Quantity</span
-              >
+            <div class="border d-flex align-items-center justify-content-between py-1 px-3 bg-white border-white">
+              <span class="small text-uppercase text-gray mr-4 no-select">Quantity</span>
               <div class="quantity">
                 <button class="dec-btn p-0">
                   <i class="fas fa-caret-left"></i>
                 </button>
-                <input
-                  class="form-control border-0 shadow-0 p-0"
-                  type="text"
-                  value="1"
-                  id="qty-{{product.id}}"
-                  stock="{{product.stock}}"
-                />
+                <input class="form-control border-0 shadow-0 p-0" type="text" value="1" id="qty-{{product.id}}"
+                  stock="{{product.stock}}" />
                 <button class="inc-btn p-0">
                   <i class="fas fa-caret-right"></i>
                 </button>
@@ -214,40 +156,26 @@
             </div>
           </div>
           <div class="col-sm-3 pl-sm-0">
-            <a
-              class="btn btn-dark btn-sm btn-block add-cart h-100 d-flex align-items-center justify-content-center px-0"
-              href="#"
-              sku-id="{{ product.id }}"
-              >Add to cart</a
-            >
+            <a class="btn btn-dark btn-sm btn-block add-cart h-100 d-flex align-items-center justify-content-center px-0"
+              href="#" sku-id="{{ product.id }}">Add to cart</a>
           </div>
         </div>
-        <a class="btn btn-link text-dark p-0 mb-4" href="#"
-          ><i class="far fa-heart mr-2"></i>Add to wish list</a
-        ><br />
+        <a class="btn btn-link text-dark p-0 mb-4" href="#"><i class="far fa-heart mr-2"></i>Add to wish list</a><br />
         <ul class="list-unstyled small d-inline-block">
           <li class="px-3 py-2 mb-1 bg-white">
-            <strong class="text-uppercase">Stock:</strong
-            ><span class="ml-2 text-muted">{{ product.stock }}</span>
+            <strong class="text-uppercase">Stock:</strong><span class="ml-2 text-muted">{{ product.stock }}</span>
           </li>
           <li class="px-3 py-2 mb-1 bg-white text-muted">
-            <strong class="text-uppercase text-dark">Category:</strong
-            ><a
-              class="reset-anchor ml-2"
-              href="{{ product.category.get_absolute_url }}"
-              >{{ product.category }}</a
-            >
+            <strong class="text-uppercase text-dark">Category:</strong><a class="reset-anchor ml-2"
+              href="{{ product.category.get_absolute_url }}">{{ product.category|title }}</a>
           </li>
           <li class="px-3 py-2 mb-1 bg-white text-muted">
             <strong class="text-uppercase text-dark">Tags:</strong>
             {% for tag in product.tags.all %}
-            <a
-              class="reset-anchor ml-2"
-              href="{% url 'shop:product-list' %}{% qs_url 'tag' tag request.GET.urlencode %}"
-            >
+            <a class="reset-anchor ml-2"
+              href="{% url 'shop:product-list' %}{% qs_url 'tag' tag request.GET.urlencode %}">
               <!-- <svg width="14" height="14" class="theme-line-2"> <use xlink:href="#label-tag-1"></use></svg > -->
-              #{{ tag|title }}</a
-            >
+              #{{ tag|title }}</a>
             {% endfor %}
           </li>
         </ul>
@@ -256,58 +184,27 @@
     <!-- DETAILS TABS-->
     <ul class="nav nav-tabs border-0" id="myTab" role="tablist">
       <li class="nav-item">
-        <a
-          class="nav-link active"
-          id="description-tab"
-          data-toggle="tab"
-          href="#description"
-          role="tab"
-          aria-controls="description"
-          aria-selected="true"
-          >Description</a
-        >
+        <a class="nav-link active" id="description-tab" data-toggle="tab" href="#description" role="tab"
+          aria-controls="description" aria-selected="true">Description</a>
       </li>
       <li class="nav-item">
-        <a
-          class="nav-link"
-          id="reviews-tab"
-          data-toggle="tab"
-          href="#reviews"
-          role="tab"
-          aria-controls="reviews"
-          aria-selected="false"
-          >Reviews</a
-        >
+        <a class="nav-link" id="reviews-tab" data-toggle="tab" href="#reviews" role="tab" aria-controls="reviews"
+          aria-selected="false">Reviews</a>
       </li>
     </ul>
     <div class="tab-content mb-5" id="myTabContent">
-      <div
-        class="tab-pane fade show active"
-        id="description"
-        role="tabpanel"
-        aria-labelledby="description-tab"
-      >
+      <div class="tab-pane fade show active" id="description" role="tabpanel" aria-labelledby="description-tab">
         <div class="p-4 p-lg-5 bg-white">
           <h6 class="text-uppercase">Product description</h6>
           <p class="text-muted text-small mb-0">{{ product.detail|safe }}</p>
         </div>
       </div>
-      <div
-        class="tab-pane fade"
-        id="reviews"
-        role="tabpanel"
-        aria-labelledby="reviews-tab"
-      >
+      <div class="tab-pane fade" id="reviews" role="tabpanel" aria-labelledby="reviews-tab">
         <div class="p-4 p-lg-5 bg-white">
           <div class="row">
             <div class="col-lg-8">
               <div class="media mb-3">
-                <img
-                  class="rounded-circle"
-                  src="img/customer-1.png"
-                  alt=""
-                  width="50"
-                />
+                <img class="rounded-circle" src="img/customer-1.png" alt="" width="50" />
                 <div class="media-body ml-3">
                   <h6 class="mb-0 text-uppercase">Jason Doe</h6>
                   <p class="small text-muted mb-0 text-uppercase">
@@ -338,12 +235,7 @@
                 </div>
               </div>
               <div class="media">
-                <img
-                  class="rounded-circle"
-                  src="img/customer-2.png"
-                  alt=""
-                  width="50"
-                />
+                <img class="rounded-circle" src="img/customer-2.png" alt="" width="50" />
                 <div class="media-body ml-3">
                   <h6 class="mb-0 text-uppercase">Jason Doe</h6>
                   <p class="small text-muted mb-0 text-uppercase">
@@ -386,44 +278,25 @@
       <div class="col-lg-3 col-sm-6">
         <div class="product text-center skel-loader">
           <div class="d-block mb-3 position-relative">
-            <a class="d-block" href="{{ item.get_absolute_url }}"
-              ><img
-                class="img-fluid w-100"
-                src="{{ item.cover_img.url }}"
-                alt="{{ item.name }}"
-            /></a>
+            <a class="d-block" href="{{ item.get_absolute_url }}"><img class="img-fluid w-100"
+                src="{{ item.cover_img.url }}" alt="{{ item.name }}" /></a>
             <div class="product-overlay">
               <ul class="mb-0 list-inline">
                 <li class="list-inline-item m-0 p-0">
-                  <a class="btn btn-sm btn-outline-dark" href="#"
-                    ><i class="far fa-heart"></i
-                  ></a>
+                  <a class="btn btn-sm btn-outline-dark" href="#"><i class="far fa-heart"></i></a>
                 </li>
                 <li class="list-inline-item m-0 p-0">
-                  <a
-                    class="btn btn-sm btn-dark add-cart"
-                    href="#"
-                    sku-id="{{ item.id }}"
-                    >Add to cart</a
-                  >
+                  <a class="btn btn-sm btn-dark add-cart" href="#" sku-id="{{ item.id }}">Add to cart</a>
                 </li>
                 <li class="list-inline-item mr-0">
-                  <a
-                    class="btn btn-sm btn-outline-dark"
-                    href="#productView-{{forloop.counter}}"
-                    data-toggle="modal"
-                    ><i class="fas fa-expand"></i
-                  ></a>
+                  <a class="btn btn-sm btn-outline-dark" href="#productView-{{forloop.counter}}" data-toggle="modal"><i
+                      class="fas fa-expand"></i></a>
                 </li>
               </ul>
             </div>
           </div>
           <h6>
-            <a
-              class="reset-anchor"
-              href="{% url 'shop:product-detail' item.id item.slug %}"
-              >{{ item.name }}</a
-            >
+            <a class="reset-anchor" href="{% url 'shop:product-detail' item.id item.slug %}">{{ item.name }}</a>
           </h6>
           <p class="small text-muted">
             <i class="fa fa-jpy" aria-hidden="true"></i>{{item.price|intcomma}}
@@ -446,5 +319,6 @@
       } else {
         alert(data.errmsg);
       }*/
+
 </script>
 {% endblock bottom%}
