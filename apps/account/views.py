@@ -7,18 +7,21 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render, redirect
 from django.views.generic import View, CreateView
 from django.urls import reverse_lazy, reverse
+from django.views.generic.detail import DetailView
+from django.views.generic.edit import FormView, UpdateView
+from django.views.generic.list import ListView, MultipleObjectMixin
 
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from itsdangerous import SignatureExpired, BadData
+
+from order.models import Order
 
 from .forms import RegisterForm
 from .models import User, Address
 from .tasks import send_activation_email
 
-# Create your views here.
 
-
-class AccountCenterView(LoginRequiredMixin, View):
+class AccountCenterView(LoginRequiredMixin, UpdateView):
     template_name = 'account/account.html'
 
     def get(self, request, *args, **kwargs):
@@ -28,6 +31,37 @@ class AccountCenterView(LoginRequiredMixin, View):
             'address': address
         }
         return render(request, self.template_name)
+
+
+class AccountOrderListView(LoginRequiredMixin, ListView):
+    model = Order
+    context_object_name = 'orders'
+    template_name = 'account/order-list.html'
+    paginate_by = 5
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["count"] = Order.objects.filter(user=self.request.user).count()
+        context['stripe_key'] = settings.STRIPE_PUBLIC_KEY
+        return context
+
+    def get_queryset(self):
+        return super().get_queryset()
+
+
+class AccountOrderDetailView(LoginRequiredMixin, DetailView):
+    model = Order
+    context_object_name = 'order'
+    template_name = 'account/order-detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["order_products"] = self.object.order_products
+        return context
+
+
+class AccountAddressView(LoginRequiredMixin, MultipleObjectMixin, UpdateView):
+    pass
 
 
 class LoginView(SuccessMessageMixin, View):

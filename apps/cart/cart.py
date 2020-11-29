@@ -57,6 +57,7 @@ def delete_cart_item(user_id, sku_id):
 
 
 def cal_shipping_fee(subtotal, total_count):
+    """ Shipping fee calculation simplified as much as possible """
     if subtotal > 10000:
         shipping_fee = 0
     else:

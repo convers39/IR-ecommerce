@@ -22,7 +22,10 @@
             <li class="breadcrumb-item">
               <a href="{url 'cart:info' }">Cart</a>
             </li>
-            <li class="breadcrumb-item active" aria-current="page">Checkout</li>
+            <li class="breadcrumb-item">
+              <a href="{url 'order:checkout' }">Checkout</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Success</li>
           </ol>
         </nav>
       </div>
@@ -31,22 +34,25 @@
 </section>
 <section class="py-5">
   <!-- BILLING ADDRESS-->
-  <h2 class="h5 text-uppercase mb-4">Thank you! {{request.user.username}}</h2>
-  <p class="text-primary">
-    Your payment <span>{{ payment_number }}</span> has been confirmed, this page
-    will redirect to your account center in few seconds
-  </p>
-  <p class="text-muted">
-    Please click here to account center if page does not refresh
-  </p>
-  <a href="{url: 'account:center'}"></a>
+  <div class="container">
+    <h2 class="h5 text-uppercase mb-4">Thank you! {{request.user.username}}</h2>
+    <p class="text-primary">
+      Your payment <span>{{ payment_number }}</span> has been confirmed, this page
+      will redirect to your account center in few seconds
+    </p>
+    <p class="text-muted">
+      Please click here to account center if page does not refresh
+    </p>
+    <a href="{url: 'account:order'}"></a>
+  </div>
 </section>
 {% endblock content %}
 <!-- BOTTOM -->
 {% block bottom %}
 <script>
   setTimeout(function () {
-    window.location.href = "{ url: 'account:center'}";
+    window.location.href = "{% url: 'account:order' %}";
   }, 5000);
+
 </script>
 {% endblock bottom%}

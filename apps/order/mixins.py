@@ -17,7 +17,7 @@ class OrderDataCheckMixin:
 
         # print(request.data)
         payment_method = data.get('payment_method')
-        addr_id = data.get('add').split('-')[-1]
+        addr_id = data.get('addr').split('-')[-1]
 
         if not all([addr_id, payment_method]):
             return JsonResponse({'res': 0, 'errmsg': 'Lack of data'})

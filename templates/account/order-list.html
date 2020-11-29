@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
 <!-- TITLE -->
 {% block title %}Account Center{% endblock title %}
-{% block extra_head %}
 <!-- EXTRA HEAD -->
+{% block extra_head %}
+<script src="https://js.stripe.com/v3/"></script>
 {% endblock extra_head %} {% block content %}
 <!-- TAGS -->
 {% load humanize %} {% load qs_url_tag %}
@@ -37,13 +38,14 @@
         <!-- SHOP SIDEBAR-->
         <div class="col-lg-3 order-2 order-lg-1">
           <h5 class="text-uppercase mb-4">Navigation</h5>
-          <div class="py-2 px-4 bg-dark text-white mb-3">
+          <div class="py-2 px-4 bg-light mb-3">
             <strong class="small text-uppercase font-weight-bold"><a href="{% url 'account:center' %}"> Account
                 Info</a></strong>
           </div>
 
           <div class="py-2 px-4 bg-light mb-3">
-            <strong class="small text-uppercase font-weight-bold"><a href="{% url 'account:order-list' %}">My Orders</a>
+            <strong class="small text-uppercase font-weight-bold" aria-current="page"><a
+                href="{% url 'account:order-list' %}">My Orders</a>
             </strong>
           </div>
 
@@ -68,7 +70,10 @@
           <div class="row mb-3 align-items-center">
             <div class="col-lg-6 mb-2 mb-lg-0">
               <p class="text-small text-muted mb-0">
-                Showing 1–12 of 53 results
+                {% if count == 0 %} No results found.
+                {% elif count == 1 %} Showing 1 result. {% else %} Showing
+                {{page_obj.start_index}}–{{page_obj.end_index}} of {{count}}
+                results {% endif %}
               </p>
             </div>
             <div class="col-lg-6">
@@ -92,36 +97,48 @@
             </div>
           </div>
           <div class="row">
-            <!-- PRODUCT-->
-            <div class="col-lg-4 col-sm-6">
-              <div class="product text-center">
-                <div class="mb-3 position-relative">
-                  <div class="badge text-white badge-"></div>
-                  <a class="d-block" href="detail.html"><img class="img-fluid w-100" src="img/product-1.jpg"
-                      alt="..." /></a>
-                  <div class="product-overlay">
-                    <ul class="mb-0 list-inline">
-                      <li class="list-inline-item m-0 p-0">
-                        <a class="btn btn-sm btn-outline-dark" href="#"><i class="far fa-heart"></i></a>
-                      </li>
-                      <li class="list-inline-item m-0 p-0">
-                        <a class="btn btn-sm btn-dark" href="cart.html">Add to cart</a>
-                      </li>
-                      <li class="list-inline-item mr-0">
-                        <a class="btn btn-sm btn-outline-dark" href="#productView" data-toggle="modal"><i
-                            class="fas fa-expand"></i></a>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-                <h6>
-                  <a class="reset-anchor" href="detail.html">Kui Ye Chen’s AirPods</a>
-                </h6>
-                <p class="small text-muted">$250</p>
+            <!-- ORDER -->
+            <div class="col-12">
+              <div class="table-responsive mb-4">
+                <table class="table">
+                  <thead class="bg-light">
+                    <tr>
+                      <th class="border-0" scope="col"> <strong class="text-small text-uppercase">Order#</strong></th>
+                      <th class="border-0" scope="col"> <strong class="text-small text-uppercase">Created At</strong>
+                      </th>
+                      <th class="border-0" scope="col"> <strong class="text-small text-uppercase">Total</strong></th>
+                      <th class="border-0" scope="col"> <strong class="text-small text-uppercase">Status </strong></th>
+                      <th class="border-0" scope="col"> </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for order in orders %}
+                    <tr>
+                      <th class="pl-0 border-0" scope="row">
+                        <p class="mb-0 small"><a class="reset-anchor animsition-link" href="#">{{order.number}}</a></p>
+                      </th>
+                      <td class="align-middle border-0">
+                        <p class="mb-0 small">{{order.created_at|date:"DATETIME_FORMAT"}}</p>
+                      </td>
+                      <td class="align-middle border-0">
+                        <p class="mb-0 small"><i class="fa fa-jpy"
+                            aria-hidden="true"></i>{{order.total_amount|intcomma}}
+                        </p>
+                      </td>
+                      <td class="align-middle border-0">
+                        <p class="mb-0 small">{% if order.status == 'NW' %}<a class="payment" href="#"
+                            session='{{order.payment.session_id}}'>Pay Now<span
+                              id="countdown"></span></a>{% else %}{{order.status}}{% endif %}
+                        </p>
+                      </td>
+                      <td class="align-middle border-0"><a class="reset-anchor" href="#"><i
+                            class="fas fa-trash-alt small text-muted"></i></a></td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
               </div>
             </div>
-
-
           </div>
           <!-- PAGINATION-->
           {% if is_paginated %}
@@ -171,32 +188,48 @@
 <!-- BOTTOM -->
 {% block bottom %}
 <script>
-  document.getElementById("countdown").innerHTML = remaining;
+  $(function () {
+    let remaining = $('#countdown').text();
 
-  function countdownTimer() {
-    //const difference = +new Date("2020-01-01") - +new Date();
-    const difference = 1000 * 60 * 60 * 24 - 10;
-    let remaining = "Expired";
+    function countdownTimer() {
+      //const difference = +new Date("2020-01-01") - +new Date();
+      const difference = 1000 * 60 * 60 * 24 - 10;
+      let remaining = "Expired";
 
-    if (difference > 0) {
-      const parts = {
-        //days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((difference / 1000 / 60) % 60),
-        //seconds: Math.floor((difference / 1000) % 60),
-      };
-      remaining = Object.keys(parts)
-        .map((part) => {
-          return `${parts[part]} ${part}`;
-        })
-        .join(" ");
+      if (difference > 0) {
+        const parts = {
+          //days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          minutes: Math.floor((difference / 1000 / 60) % 60),
+          //seconds: Math.floor((difference / 1000) % 60),
+        };
+        remaining = Object.keys(parts)
+          .map((part) => {
+            return `${parts[part]} ${part}`;
+          })
+          .join(" ");
+      }
+
+      document.getElementById("countdown").innerHTML = remaining;
     }
 
-    document.getElementById("countdown").innerHTML = remaining;
-  }
+    //countDownTimer();
+    //setInterval(countdownTimer, 1000);
 
-  countDownTimer();
-  setInterval(countdownTimer, 1000);
+    // redirect to checkout
+    var stripe = Stripe("{{ stripe_key }}");
+    $('.payment').click(async function (event) {
+      event.preventDefault();
+      let sessionId = $(this).attr('session');
+      console.log(sessionId)
+      const paymentSession = await stripe.redirectToCheckout({
+        sessionId: sessionId
+      });
+      if (paymentSession.error) {
+        showErrMsg(paymentSession.error.message);
+      }
+    })
+  })
 
 </script>
 {% endblock bottom%}

@@ -1,4 +1,5 @@
 from django.db import models
+from django.shortcuts import reverse
 from db.base_model import BaseModel
 from django.utils.translation import ugettext_lazy as _
 
@@ -19,10 +20,11 @@ class Payment(BaseModel):
     to retrieve payment session from user account center
     """
     class Status(models.TextChoices):
-        PD = 'PD', _('Pending')  # payment session created, pending payment
-        SC = 'SC', _('Succeeded')  # payment accepted
-        EX = 'EX', _('Expired')  # payment session expire after 24hrs
-        RF = 'RF', _('Refunded')
+        # payment session created, pending payment
+        PENDING = 'PD', _('Pending')
+        SUCCEEDED = 'SC', _('Succeeded')  # payment accepted
+        EXPIRED = 'EX', _('Expired')  # payment session expire after 24hrs
+        REFUNDED = 'RF', _('Refunded')
 
     class Method(models.TextChoices):
         CARD = 'CARD', _('Credit Card')
@@ -30,11 +32,10 @@ class Payment(BaseModel):
     # payment_intent id, create refund
     number = models.CharField(_("payment number"), max_length=100, default='')
     status = FSMField(
-        _("payment status"), choices=Status.choices, default=Status.PD, protected=True)
+        _("payment status"), choices=Status.choices, default=Status.PENDING, protected=True)
     amount = models.DecimalField(_("amount"), max_digits=9, decimal_places=0)
     method = models.CharField(
         _("payment method"), choices=Method.choices, default=Method.CARD, max_length=10)
-    # expired = models.BooleanField(_("is expired"), default=False)
     session_id = models.CharField(
         _("payment session id"), max_length=250, default='')
 
@@ -46,6 +47,9 @@ class Payment(BaseModel):
 
     def __str__(self):
         return f'Payment {self.number} for {self.user}'
+
+    def is_expired(self):
+        return (datetime.now() - self.created_at) > timedelta(hours=24)
 
     @transition(field=status, source='PD', target='SC')
     def pay(self):
@@ -62,9 +66,9 @@ class Payment(BaseModel):
 
         return True
 
-    @transition(field=status, source='PD', target='EX')
+    @transition(field=status, source='PD', target='EX', conditions=[is_expired])
     def expire_payment(self):
-        return (datetime.now() - self.created_at) > timedelta(hours=24)
+        return True
 
 # class Invoice(BaseModel):
 #     invoice_no = models.CharField(_("invoice number"), max_length=50)
@@ -77,16 +81,18 @@ class Payment(BaseModel):
 class Order(BaseModel):
 
     class Status(models.TextChoices):
-        NW = 'NW', _('New')  # created new order
-        CF = 'CF', _('Confirmed')  # payment succeeded -> order confirmed
-        CX = 'CX', _('Canceled')  # order canceled -> payment intent clear
-        SP = 'SP', _('Shipped')
-        RT = 'RT', _('Returned')
+        NEW = 'NW', _('New')  # created new order
+        # payment succeeded -> order confirmed
+        CONFIRMED = 'CF', _('Confirmed')
+        # order canceled -> payment intent clear
+        CANCELED = 'CX', _('Canceled')
+        SHIPPED = 'SP', _('Shipped')
+        RETURNED = 'RT', _('Returned')
 
     number = models.CharField(
         _("order number"), max_length=100, default='', unique=True)
     status = FSMField(_("order status"),
-                      choices=Status.choices, default=Status.NW, protected=True)
+                      choices=Status.choices, default=Status.NEW, protected=True)
     subtotal = models.DecimalField(
         _("subtotal"), max_digits=9, decimal_places=0)
     shipping_fee = models.DecimalField(
@@ -107,17 +113,23 @@ class Order(BaseModel):
 
     def save(self, *args, **kwargs):
         if not self.number:
-            timestamp = self.created_at.strftime('%Y%m%d%H%M')
-            self.number = timestamp + generate_order_number(self)
+            self.number = generate_order_number()
         return super(Order, self).save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse("account:order-detail", kwargs={"number": self.number})
 
     @property
     def total_amount(self):
         return self.subtotal + self.shipping_fee
 
-    @transition(field=status, source='NW', target='CF')
-    def confirm_payment(self):
+    def is_confirmed(self):
         return self.payment.status == 'SC'
+
+    @transition(field=status, source='NW', target='CF', conditions=[is_confirmed])
+    def confirm_payment(self):
+        # send email
+        return True
 
     @transition(field=status, source='CF', target='SP')
     def deliver(self):

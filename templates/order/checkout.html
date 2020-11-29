@@ -1,5 +1,5 @@
 {% extends 'base.html' %}{% load humanize %}
-<!-- TITLE -->
+<!-- TITL -->
 {% block title %}Checkout{% endblock title %}
 <!-- EXTRA_HEAD -->
 {% block extra_head %}
@@ -150,8 +150,8 @@
                     </li>
                     <li class="d-flex align-items-center justify-content-between">
                       <strong class="text-uppercase small font-weight-light">Shipping</strong><strong
-                        class="text-uppercase small font-weight-light"><span><i class="fa fa-jpy"
-                            aria-hidden="true"></i>
+                        class="text-uppercase small font-weight-light"><span>{% if shipping_fee != 'Free'%}<i
+                            class="fa fa-jpy" aria-hidden="true"></i>{% endif %}
                           {{shipping_fee|intcomma}}</span></strong>
                     </li>
                     <li class="border-bottom my-2"></li>
@@ -217,7 +217,6 @@
   // Create an instance of the Stripe object with your publishable API key
   $(function () {
 
-
     var stripe = Stripe("{{ stripe_api_key }}");
 
     $('#place-order').click(async function (event) {
@@ -231,22 +230,37 @@
           "X-CSRFToken": csrftoken,
           "Content-Type": "application/json",
         },
-        data: JSON.stringify({
+        body: JSON.stringify({
           payment_method: paymentMethod,
           addr: addr
         })
       })
 
       let data = await res.json();
-      console.log(data.res, data.errmsg, data.msg)
+      console.log(data)
+
+      /*if (data.session.payment_status === 'paid') {
+        await fetch('/order/complete/', {
+          method: 'POST',
+          headers: {
+            "X-CSRFToken": csrftoken,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            payment_intent: data.session.payment_intent,
+          })
+        })
+      }*/
 
       const paymentSession = await stripe.redirectToCheckout({
-        sessionId: session.id
+        sessionId: data.session.id
       });
 
       if (paymentSession.error) {
         showErrMsg(paymentSession.error.message);
       }
+
+
       //.catch(function (error) {
       //  console.error("Error:", error);
       //});

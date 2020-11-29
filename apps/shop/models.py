@@ -1,4 +1,5 @@
 
+from datetime import datetime, timedelta, timezone
 from django.db import models
 from django.urls import reverse
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -159,11 +160,26 @@ class ProductSKU(BaseModel):
     #     """
     #     pass
 
-    # def get_product_label(self):
-    #     """
-    #     Return a label from SALE, SOLD, NEW, HOT, or empty
-    #     """
-    #     pass
+    def get_product_label(self):
+        """
+        Return a label from SALE, SOLD, NEW, HOT, or empty
+        """
+        label = ''
+        if datetime.now(timezone.utc) - self.created_at < timedelta(days=14):
+            label = 'new'
+        if self.stock == 0:
+            label = 'sold'
+
+        return label
+
+    def get_label_badge(self):
+        label = self.get_product_label()
+        badge = ''
+        if label == 'new':
+            badge = 'primary'
+        if label == 'sold':
+            badge = 'danger'
+        return badge
 
 
 class Image(BaseModel):

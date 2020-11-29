@@ -1,10 +1,12 @@
-from django.core.checks import messages
+from apps.cart.cart import cal_cart_count
+from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.urls.base import reverse, reverse_lazy
 from django.views.generic import View, TemplateView
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpResponse
 from django.db import transaction
 from django.conf import settings
 
@@ -20,7 +22,8 @@ from .models import Order, Payment, OrderProduct
 from .mixins import OrderDataCheckMixin
 from .utils import generate_order_number
 
-# Create your views here.
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 class CheckoutView(LoginRequiredMixin, View):
@@ -31,32 +34,30 @@ class CheckoutView(LoginRequiredMixin, View):
     def get(self, request):
         user = request.user
 
-        conn = get_redis_connection('cart')
-        cart_key = f'cart_{user.id}'
-
-        cart_count = conn.hlen(cart_key)
+        cart_count = cal_cart_count(user.id)
         if cart_count == 0:
-            messages.warning(request, 'Cart is empty')
+            messages.error(request, 'Cart is empty')
             return redirect(reverse('cart:info'))
 
         products, total_count, subtotal = cal_total_count_subtotal(user.id)
 
         # shipping should be an independant module in a more complex project
         shipping_fee = cal_shipping_fee(subtotal, total_count)
-
         total_price = subtotal + shipping_fee
+
+        if shipping_fee == 0:
+            shipping_fee = 'Free'
 
         addrs = Address.objects.filter(user=user)
 
         stripe_api_key = settings.STRIPE_PUBLIC_KEY
 
         context = {'products': products,
-                   'total_count': total_count,
-                   'cart_count': cart_count,
-                   'subtotal': subtotal,
-                   'shipping_fee': shipping_fee,
-                   'total_price': total_price,
                    'addrs': addrs,
+                   'shipping_fee': shipping_fee,
+                   'subtotal': subtotal,
+                   'total_count': total_count,
+                   'total_price': total_price,
                    'stripe_api_key': stripe_api_key,
                    }
 
@@ -82,9 +83,6 @@ class OrderProcessView(OrderDataCheckMixin, View):
         products, total_count, subtotal = cal_total_count_subtotal(user.id)
         shipping_fee = cal_shipping_fee(subtotal, total_count)
 
-        sku_ids = ','.join(str(product.id) for product in products)
-        sku_ids = sku_ids.split(',')
-
         # make transaction savepoint before changing any data in database
         save_id = transaction.savepoint()
         try:
@@ -96,63 +94,47 @@ class OrderProcessView(OrderDataCheckMixin, View):
                 user=user,
                 address=address
             )
+            print('order created')
 
-            # create OrderProduct instance for earch sku
+            # create OrderProduct instance for earch product
             conn = get_redis_connection('cart')
-            for sku_id in sku_ids:
-                sku = ProductSKU.objects.get(sku_id)
-                count = conn.hget(f'cart_{user.id}', sku_id)
-                if int(count) > sku.stock:
+            for product in products:
+                count = conn.hget(f'cart_{user.id}', product.id)
+                if int(count) > product.stock:
                     transaction.savepoint_rollback(save_id)
-                    return JsonResponse({'res': 0, 'errmsg': f'Item {sku.name} understocked'})
+                    return JsonResponse({'res': 0, 'errmsg': f'Item {product.name} understocked'})
 
                 OrderProduct.objects.create(
                     order=order,
-                    sku=sku,
-                    count=count,
-                    unit_price=sku.price
+                    product=product,
+                    count=int(count),
+                    unit_price=product.price
                 )
-                sku.stock -= int(count)
-                sku.sales += int(count)
-                sku.save()
+                product.stock -= int(count)
+                product.sales += int(count)
+                product.save()
+            print('orderproduct created')
 
-            # create stripe checkout session
-            price = order.total_amount
-            products = order.products
-            name = f'{products.first()} and other {products.count()} items' \
-                if len(sku_ids) > 1 else products.first()
-            session = stripe.checkout.Session.create(
-                payment_method_types=[f'{payment_method}'],
-                customer_email=user.email,
-                line_items=[{
-                    'price_data': {
-                        'currency': 'jpy',
-                        'product_data': {
-                            'name': name,
-                        },
-                        'unit_amount': price,
-                    },
-                    'quantity': 1,
-                }],
-                mode='payment',
-                success_url=reverse_lazy('order:success'),
-                cancel_url=reverse_lazy('account:center'),
-            )
+            # create stripe checkout session, keep 1 item only
+            amount = order.total_amount
+            item_name = f'{products[0].name} and other {len(products)} items' \
+                if len(products) > 1 else f'{products[0].name}'
+            session = create_checkout_session(
+                user, payment_method, item_name, amount)
+            print('checkout session created')
 
             # create Payment instance
-            payment_intent = session.payment_intent
             payment = Payment.objects.create(
-                number=payment_intent,
-                amount=price,
+                number=session.payment_intent,
+                amount=amount,
                 method=payment_method,
                 user=user,
                 session_id=session.id
             )
             order.payment = payment
             order.save()
+            print('payment created')
 
-            # change payment status to succeeded
-            payment.pay()
         except:
             transaction.savepoint_rollback(save_id)
             return JsonResponse({'res': 0, 'errmsg': 'Failed to create order'})
@@ -161,9 +143,33 @@ class OrderProcessView(OrderDataCheckMixin, View):
         transaction.savepoint_commit(save_id)
 
         # clear shopping cart in the end
-        conn.hdel(f'cart_{user.id}', *sku_ids)
+        conn.hdel(f'cart_{user.id}', *[product.id for product in products])
+        print('shopping cart cleared')
 
         return JsonResponse({'res': 1, 'msg': 'Order created', 'session': session})
+
+
+def create_checkout_session(user, payment_method, item_name, amount):
+    session = stripe.checkout.Session.create(
+        payment_method_types=[payment_method],
+        customer_email=user.email,
+        line_items=[{
+            'price_data': {
+                'currency': 'jpy',
+                'product_data': {
+                    'name': item_name,
+                },
+                'unit_amount': int(amount),
+            },
+            'quantity': 1,
+        }],
+        mode='payment',
+        success_url='http://127.0.0.1:8080/order/success/',
+        cancel_url='http://127.0.0.1:8080/account/order/',
+        # success_url=reverse('order:success'),
+        # cancel_url=reverse('account:center'),
+    )
+    return session
 
 
 class PaymentSuccessView(TemplateView):
@@ -178,3 +184,39 @@ class PaymentSuccessView(TemplateView):
             return redirect(reverse('shop:index'))
 
         return render(request, self.template_name, {'payment_number': payment.number})
+
+
+@csrf_exempt
+def checkout_webhook(request):
+    endpoint_secret = settings.WEBHOOK_SECRET
+    payload = request.body
+    sig_header = request.META['HTTP_STRIPE_SIGNATURE']
+    event = None
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
+    except ValueError as e:
+        # Invalid payload
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        return HttpResponse(status=400)
+
+    # Handle the checkout.session.completed event
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        fulfill_order(session)
+    # Passed signature verification
+    return HttpResponse(status=200)
+
+
+def fulfill_order(session):
+    # change payment status to succeeded, order status to confirmed
+    payment = Payment.objects.get(number=session.payment_intent)
+    payment.pay()
+    payment.save()
+    for order in payment.orders.all():
+        order.confirm_payment()
+        order.save()
