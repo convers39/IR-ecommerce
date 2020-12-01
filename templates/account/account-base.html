@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+<!-- TITLE -->
+{% block title %}Account Center{% endblock title %}
+{% block extra_head %}
+<!-- EXTRA HEAD -->
+{% endblock extra_head %} {% block content %}
+<!-- TAGS -->
+{% load humanize %} {% load qs_url_tag %}
+{% load mathfilters %}{% load mptt_tags %}
+
+<div class="container">
+  <!-- HERO SECTION-->
+  <section class="py-5 bg-light">
+    <div class="container">
+      <div class="row px-4 px-lg-5 py-lg-4 align-items-center">
+        <div class="col-lg-6">
+          <h1 class="h2 text-uppercase mb-0">ACCOUNT CENTER</h1>
+        </div>
+        <div class="col-lg-6 text-lg-right">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb justify-content-lg-end mb-0 px-0">
+              <li class="breadcrumb-item">
+                <a href="{% url 'shop:index' %}">Home</a>
+              </li>
+              {% block hero %}
+              {% endblock hero %}
+            </ol>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="py-5">
+    <div class="container p-0">
+      <div class="row">
+        <!--SIDEBAR-->
+        <div class="col-lg-3 order-2 order-lg-1">
+          <h5 class="text-uppercase mb-4">Navigation</h5>
+          <!-- <div class="py-2 px-4 bg-dark text-white mb-3"> -->
+          <div class="py-2 px-4 bg-light mb-0">
+            <strong class="small text-uppercase font-weight-bold"><a href="{% url 'account:center' %}"> Account
+                Info</a></strong>
+          </div>
+
+          <div class="py-2 px-4 bg-light mb-0">
+            <strong class="small text-uppercase font-weight-bold"><a href="{% url 'account:order-list' %}">Orders</a>
+            </strong>
+          </div>
+
+          <div class="py-2 px-4 bg-light mb-0">
+            <strong class="small text-uppercase font-weight-bold"><a href="{% url 'account:address' %}">Addresses</a>
+            </strong>
+          </div>
+          <div class="py-2 px-4 bg-light mb-0">
+            <strong class="small text-uppercase font-weight-bold"><a href="#">Wishlist</a> </strong>
+          </div>
+
+          <h6 class="text-uppercase mb-3 mt-3">Show only</h6>
+          <div class="custom-control custom-checkbox mb-1">
+            <input class="custom-control-input" id="customCheck1" type="checkbox" />
+            <label class="custom-control-label text-small" for="customCheck1">Returns Accepted</label>
+          </div>
+          <div class="custom-control custom-checkbox mb-1">
+            <input class="custom-control-input" id="customCheck5" type="checkbox" />
+            <label class="custom-control-label text-small" for="customCheck5">Deals &amp; Savings</label>
+          </div>
+
+
+        </div>
+        <!-- ORDER LISTING-->
+        {% block detail %}
+        <div class="col-lg-9 order-1 order-lg-2 mb-5 mb-lg-0">
+
+          <div class="row">
+            <!-- PRODUCT-->
+            <div class="col-lg-4 col-sm-6">
+              <div class="product text-center">
+                <div class="mb-3 position-relative">
+                  <div class="badge text-white badge-"></div>
+                  <a class="d-block" href="detail.html"><img class="img-fluid w-100" src="img/product-1.jpg"
+                      alt="..." /></a>
+                  <div class="product-overlay">
+                    <ul class="mb-0 list-inline">
+                      <li class="list-inline-item m-0 p-0">
+                        <a class="btn btn-sm btn-outline-dark" href="#"><i class="far fa-heart"></i></a>
+                      </li>
+                      <li class="list-inline-item m-0 p-0">
+                        <a class="btn btn-sm btn-dark" href="cart.html">Add to cart</a>
+                      </li>
+                      <li class="list-inline-item mr-0">
+                        <a class="btn btn-sm btn-outline-dark" href="#productView" data-toggle="modal"><i
+                            class="fas fa-expand"></i></a>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                <h6>
+                  <a class="reset-anchor" href="detail.html">Kui Ye Chen’s AirPods</a>
+                </h6>
+                <p class="small text-muted">$250</p>
+              </div>
+            </div>
+
+
+          </div>
+          <!-- PAGINATION-->
+          {% if is_paginated %}
+          <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center justify-content-lg-end">
+              {% if page_obj.has_previous %}
+              <!--  -->
+              {% if page_obj.number|sub:1 > 1%}
+              <li class="page-item">
+                <a class="page-link" href="{% qs_url 'page' 1 request.GET.urlencode %}" aria-label="Fist"><span
+                    aria-hidden="true">«</span></a>
+              </li>
+              {% endif %}
+              <li class="page-item">
+                <a class="page-link" href="{% qs_url 'page' page_obj.previous_page_number request.GET.urlencode %}"
+                  aria-label="Previous"><span aria-hidden="true">‹</span></a>
+              </li>
+              {% endif %}
+              <!--  -->
+              {% for num in paginator.page_range %}
+              <li class="page-item {% if page_obj.number == num %} active {% endif %}">
+                <a class="page-link" href="{% qs_url 'page' num request.GET.urlencode %}">{{ num }}</a>
+              </li>
+              {% endfor %}
+              <!--  -->
+              {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="{% qs_url 'page' page_obj.next_page_number request.GET.urlencode %}"
+                  aria-label="Next"><span aria-hidden="true">›</span></a>
+              </li>
+              {% if paginator.num_pages|sub:page_obj.number > 1 %}
+              <li class="page-item">
+                <a class="page-link" href="{% qs_url 'page' paginator.num_pages request.GET.urlencode %}"
+                  aria-label="Next"><span aria-hidden="true">»</span></a>
+              </li>
+              {% endif %} {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+
+        </div>
+        {% endblock detail %}
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock content %}
+<!-- BOTTOM -->
+{% block bottom %}
+<script>
+  document.getElementById("countdown").innerHTML = remaining;
+
+  function countdownTimer() {
+    //const difference = +new Date("2020-01-01") - +new Date();
+    const difference = 1000 * 60 * 60 * 24 - 10;
+    let remaining = "Expired";
+
+    if (difference > 0) {
+      const parts = {
+        //days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((difference / 1000 / 60) % 60),
+        //seconds: Math.floor((difference / 1000) % 60),
+      };
+      remaining = Object.keys(parts)
+        .map((part) => {
+          return `${parts[part]} ${part}`;
+        })
+        .join(" ");
+    }
+
+    document.getElementById("countdown").innerHTML = remaining;
+  }
+
+  countDownTimer();
+  setInterval(countdownTimer, 1000);
+
+</script>
+{% endblock bottom%}

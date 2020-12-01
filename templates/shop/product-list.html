@@ -74,7 +74,9 @@
               </div>
               <div class="row">
                 <div class="col-sm-7 pr-sm-2">
-                  <a class="btn btn-link text-dark p-0" href="#"><i class="far fa-heart mr-2"></i>Add to wish list
+                  <a class="wishlist btn btn-link text-dark p-0" href="#">
+                    {% if product.wishlist %}<i class="fa fa-heartbeat" aria-hidden="true"></i>Remove wishlist {% else %}<i class="far fa-heart"></i>Add to wish list{% endif %}
+                  
                   </a>
                 </div>
                 <div class="col-sm-5 pl-sm-2">
@@ -181,11 +183,11 @@
           <h6 class="text-uppercase mb-3">Show only</h6>
           <div class="custom-control custom-checkbox mb-1">
             <input class="custom-control-input" id="customCheck3" type="checkbox" />
-            <label class="custom-control-label text-small" for="customCheck3">Completed Items</label>
+            <label class="custom-control-label text-small" for="customCheck3">New Items</label>
           </div>
           <div class="custom-control custom-checkbox mb-1">
             <input class="custom-control-input" id="customCheck4" type="checkbox" />
-            <label class="custom-control-label text-small" for="customCheck4">Sold Items</label>
+            <label class="custom-control-label text-small" for="customCheck4">Hot Items</label>
           </div>
         </div>
         <!-- SHOP LISTING-->
@@ -243,7 +245,8 @@
                   <div class="product-overlay">
                     <ul class="mb-0 list-inline">
                       <li class="list-inline-item m-0 p-0">
-                        <a class="btn btn-sm btn-outline-dark" href="#"><i class="far fa-heart"></i></a>
+                        <a class="wishlist btn btn-sm btn-outline-dark" href="#" sku-id="{{ product.id }}">
+                          {% if product.wishlist %}<i class="fa fa-heartbeat" aria-hidden="true"> {% else %}<i class="far fa-heart">{% endif %}</i></a>
                       </li>
                       <li class="list-inline-item m-0 p-0">
                         <a class="add-cart btn btn-sm btn-dark" href="#" sku-id="{{ product.id }}">Add to cart</a>

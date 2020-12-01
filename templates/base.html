@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-{% load static %}{% load mptt_tags %}{% load cart_count_tag %}
+{% load static %}{% load mptt_tags %}
 
 <head>
   <meta charset="utf-8" />
@@ -99,12 +99,13 @@
                 <a class="nav-link" href="{% url 'cart:info' %}">
                   <i class="fas fa-dolly-flatbed pr-sm-1"></i>Cart
                   <small class="text-gray">
-                    (<small class="text-gray" id="cart-count">{% cart_count request %}</small>)
+                    (<small id="cart-count">{{cart_count}}</small>)
                   </small></a>
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="#">
-                  <i class="far fa-heart mr-1"></i><small class="text-gray"> (0)</small></a>
+                  <i class="far fa-heart mr-1"></i>
+                  <small class="text-gray">(<small id="wishlist-count">{{wishlist_count}}</small>)</small></a>
               </li>
               {% if user.is_authenticated %}
               <li class="nav-item">

@@ -58,7 +58,6 @@ class CartInfoView(LoginRequiredMixin, View):
 
     def get(self, request):
         user = request.user
-        cart_count = cal_cart_count(user.id)
 
         products, total_count, subtotal = cal_total_count_subtotal(user.id)
 
@@ -67,7 +66,6 @@ class CartInfoView(LoginRequiredMixin, View):
         context = {
             'total_count': total_count,
             'subtotal': subtotal,
-            'cart_count': cart_count,
             'products': products,
             'categories': categories,
         }
@@ -108,10 +106,9 @@ class CartDeleteView(DataIntegrityCheckMixin, View):
     def post(self, request):
 
         user = request.user
-        # data = json.load(request)
+
         data = json.loads(request.body.decode())
         sku_id = data.get('sku_id')
-        # sku_id = request.POST.get('sku_id')
 
         delete_cart_item(user.id, sku_id)
         cart_count = cal_cart_count(user.id)
@@ -121,3 +118,31 @@ class CartDeleteView(DataIntegrityCheckMixin, View):
             'msg': 'Item deleted',
             'cart_count': cart_count
         })
+
+
+class WishlistView(View):
+    """
+    Add or remove item to wishlist, saved in redis as SET and can be retrieve in account center
+    """
+
+    def post(self, request):
+
+        user = request.user
+        if not user.is_authenticated:
+            return JsonResponse({'res': 0, 'errmsg': 'Please log in'})
+        try:
+            data = json.loads(request.body.decode())
+            sku_id = data['sku_id']
+        except:
+            return JsonResponse({'res': 0, 'errmsg': 'Invalid data'})
+
+        conn = get_redis_connection('cart')
+        wish_key = f'wish_{user.id}'
+        # check if in wishlist already
+        if conn.sismember(wish_key, sku_id):
+            conn.srem(wish_key, sku_id)
+            return JsonResponse({'res': 1, 'msg': 'Item removed from wishlist'})
+        # if not add to list
+        conn.sadd(wish_key, sku_id)
+
+        return JsonResponse({'res': 1, 'msg': 'Item added to wishlist'})

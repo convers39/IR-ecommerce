@@ -1,5 +1,5 @@
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
@@ -9,34 +9,7 @@ from django_countries.fields import CountryField
 
 from db.base_model import BaseModel
 
-# Create your models here.
-
-
-class AccountManager(BaseUserManager):
-
-    def create_user(self, username, email, password, **other_fields):
-        if not username:
-            raise ValueError(_('A username address is required.'))
-        if not email:
-            raise ValueError(_('An email address is required.'))
-        email = self.normalize_email(email)
-        user = self.model(email=email, username=username, **other_fields)
-        user.set_password(password)
-        user.save()
-        return user
-
-    def create_superuser(self, username, email, password, **other_fields):
-        other_fields.setdefault('is_staff', True)
-        other_fields.setdefault('is_active', True)
-        other_fields.setdefault('is_superuser', True)
-
-        if not other_fields.get('is_staff'):
-            raise ValueError('Superuser must be assigned to a staff.')
-
-        if not other_fields.get('is_superuser'):
-            raise ValueError('Superuser must be assigned to a superuser.')
-
-        return self.create_user(username, email, password, **other_fields)
+from .managers import AccountManager, AddressManager
 
 
 class User(PermissionsMixin, AbstractBaseUser):
@@ -65,21 +38,14 @@ class User(PermissionsMixin, AbstractBaseUser):
         return self.username
 
 
-class AddressManager(models.Manager):
-    def get_default_address(self, user):
-        try:
-            address = self.get(user=user, is_default=True)
-        except self.model.DoesNotExist:
-            address = None
-        return address
-
-
 class Address(BaseModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='addresses')
     recipient = models.CharField(_("recipient"), max_length=50)
     phone_no = models.CharField(_("phone number"), max_length=50)
     addr = models.CharField(_("address"), max_length=250)
     city = models.CharField(_("city"), max_length=50)
+    province = models.CharField(_("state/province"), max_length=50)
     country = CountryField(_("country"), blank_label='(select country)')
     zip_code = models.CharField(_("zip code"), max_length=20,
                                 validators=[RegexValidator(r'^[0-9]+')])

@@ -1,70 +1,27 @@
-{% extends 'base.html' %}
-<!-- TITLE -->
-{% block title %}Account Center{% endblock title %}
+{% extends 'account/account-base.html' %}
+
 <!-- EXTRA HEAD -->
 {% block extra_head %}
 <script src="https://js.stripe.com/v3/"></script>
-{% endblock extra_head %} {% block content %}
+{% endblock extra_head %} 
 <!-- TAGS -->
 {% load humanize %} {% load qs_url_tag %}
 {% load mathfilters %}{% load mptt_tags %}
 
-<div class="container">
+
   <!-- HERO SECTION-->
-  <section class="py-5 bg-light">
-    <div class="container">
-      <div class="row px-4 px-lg-5 py-lg-4 align-items-center">
-        <div class="col-lg-6">
-          <h1 class="h2 text-uppercase mb-0">ACCOUNT CENTER</h1>
-        </div>
-        <div class="col-lg-6 text-lg-right">
-          <nav aria-label="breadcrumb">
-            <ol class="breadcrumb justify-content-lg-end mb-0 px-0">
-              <li class="breadcrumb-item">
-                <a href="{% url 'shop:index' %}">Home</a>
-              </li>
-              <li class="breadcrumb-item active" aria-current="page">
-                Account
-              </li>
-            </ol>
-          </nav>
-        </div>
-      </div>
-    </div>
-  </section>
+  {% block hero %}
+  <li class="breadcrumb-item">
+    <a href="{% url 'account:center' %}">Account</a>
+  </li>
+  <li class="breadcrumb-item active" aria-current="page">
+    Order
+  </li>
+  {% endblock hero %}
   <section class="py-5">
     <div class="container p-0">
       <div class="row">
-        <!-- SHOP SIDEBAR-->
-        <div class="col-lg-3 order-2 order-lg-1">
-          <h5 class="text-uppercase mb-4">Navigation</h5>
-          <div class="py-2 px-4 bg-light mb-3">
-            <strong class="small text-uppercase font-weight-bold"><a href="{% url 'account:center' %}"> Account
-                Info</a></strong>
-          </div>
-
-          <div class="py-2 px-4 bg-light mb-3">
-            <strong class="small text-uppercase font-weight-bold" aria-current="page"><a
-                href="{% url 'account:order-list' %}">My Orders</a>
-            </strong>
-          </div>
-
-          <div class="py-2 px-4 bg-light mb-3">
-            <strong class="small text-uppercase font-weight-bold"><a href="#">My Addresses</a> </strong>
-          </div>
-
-          <h6 class="text-uppercase mb-3">Show only</h6>
-          <div class="custom-control custom-checkbox mb-1">
-            <input class="custom-control-input" id="customCheck1" type="checkbox" />
-            <label class="custom-control-label text-small" for="customCheck1">Returns Accepted</label>
-          </div>
-          <div class="custom-control custom-checkbox mb-1">
-            <input class="custom-control-input" id="customCheck5" type="checkbox" />
-            <label class="custom-control-label text-small" for="customCheck5">Deals &amp; Savings</label>
-          </div>
-
-
-        </div>
+        {% block detail %}
         <!-- ORDER LISTING-->
         <div class="col-lg-9 order-1 order-lg-2 mb-5 mb-lg-0">
           <div class="row mb-3 align-items-center">
@@ -84,20 +41,12 @@
                 <li class="list-inline-item text-muted mr-3">
                   <a class="reset-anchor p-0" href="#"><i class="fas fa-th"></i></a>
                 </li>
-                <li class="list-inline-item">
-                  <select class="selectpicker ml-auto" name="sorting" data-width="200"
-                    data-style="bs-select-form-control" data-title="Default sorting">
-                    <option value="default">Default sorting</option>
-                    <option value="popularity">Popularity</option>
-                    <option value="low-high">Price: Low to High</option>
-                    <option value="high-low">Price: High to Low</option>
-                  </select>
-                </li>
+
               </ul>
             </div>
           </div>
-          <div class="row">
-            <!-- ORDER -->
+
+          <!-- {#<div class="row">
             <div class="col-12">
               <div class="table-responsive mb-4">
                 <table class="table">
@@ -134,10 +83,85 @@
                       <td class="align-middle border-0"><a class="reset-anchor" href="#"><i
                             class="fas fa-trash-alt small text-muted"></i></a></td>
                     </tr>
+
                     {% endfor %}
                   </tbody>
                 </table>
+
               </div>
+            </div>
+          </div>#} -->
+          <!-- ORDER -->
+          <div class="row mb-3 align-items-center">
+            <div class="col-12">
+              <table class="table" width="100%">
+                <thead class="bg-light">
+                  <tr class="text-center">
+                    <th class="border-0" width='50%'> <strong class="text-small text-uppercase">Order#</strong>
+                    </th>
+                    <th class="border-0" width='25%'> <strong class="text-small text-uppercase">Status</strong>
+                    </th>
+                    <th class="border-0" width='25%'> <strong class="text-small text-uppercase">Total</strong>
+                    </th>
+                  </tr>
+                </thead>
+              </table>
+            </div>
+            <div class="col-12">
+              {% for order in orders %}
+              <div class="card  mb-2">
+                <div class="card-header">
+                  <div class="row text-center">
+                    <div class="col col-6">
+                      <a data-toggle="collapse" href="#collapse-{{order.id}}" role="button" aria-expanded="false"
+                        aria-controls="collapse-{{order.id}}">Order#{{order.number}}</a> </div>
+                    <div class="col col-3"><span>{{order.status}}</span></div>
+                    <div class="col col-3"><span><i class="fas fa-calculator"></i>
+                        {{order.total_amount|intcomma}}</span></div>
+                  </div>
+                </div>
+                <div class="collapse" id="collapse-{{order.id}}">
+                  <div class="card-body ">
+                    {% for order_product in order.order_products.all %}
+                    <div class="row text-center">
+                      <div class='col col-6'>
+                        <p class="card-text"><small>{{forloop.counter}}- <a class="reset-anchor"
+                              href="{{order_product.product.get_absolute_url}}">{{order_product.product}}</a></small>
+                        </p>
+                      </div>
+                      <div class='col col-3'>
+                        <p class="card-text"><small><i class="fas fa-times"></i> {{order_product.count}}</small>
+                        </p>
+                      </div>
+                      <div class='col col-3'>
+                        <p class="card-text"><small>
+                            <i class="fa fa-jpy" aria-hidden="true"></i> {{order_product.unit_price|intcomma}}</small>
+                        </p>
+                      </div>
+                    </div>
+
+                    {% endfor %}
+                    <hr>
+                    <div class="row text-right m-1">
+                      <p class="m-0 text-muted"><small> Created at: {{order.created_at|date:"DATETIME_FORMAT"}}</small>
+                      </p>
+                      <p class="m-0 text-muted"><small> Ship to: {{order.address.get_full_address}}</small></p>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-footer text-muted text-right">
+
+                  <a class="reset-anchor pr-2" href="#"><i class="fas fa-trash-alt small text-muted pr-1"></i>Delete
+                    Order</a>
+                  <a class="reset-anchor pr-2" href="#"><i class="fas fa-shipping-fast fa-sm pr-1"></i> Check
+                    Shipment</a>
+                  {% if order.status == 'NW' %}<a class="reset-anchor pr-2 payment" href="#"
+                    session='{{order.payment.session_id}}'><i class="fas fa-credit-card pr-1"></i>Pay
+                    Now<span id="countdown"></span></a>{% else %}<i class="fas fa-check-square pr-1"></i>Paid{% endif %}
+
+                </div>
+              </div>
+              {% endfor %}
             </div>
           </div>
           <!-- PAGINATION-->
@@ -180,11 +204,11 @@
           {% endif %}
 
         </div>
+        {% endblock detail %}
       </div>
     </div>
   </section>
-</div>
-{% endblock content %}
+
 <!-- BOTTOM -->
 {% block bottom %}
 <script>

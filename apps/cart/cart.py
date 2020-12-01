@@ -1,4 +1,3 @@
-from django.contrib.messages.api import error
 from django_redis import get_redis_connection
 from shop.models import ProductSKU
 
@@ -50,10 +49,9 @@ def delete_cart_item(user_id, sku_id):
     try:
         conn = get_redis_connection('cart')
         cart_key = f'cart_{user_id}'
-
         conn.hdel(cart_key, sku_id)
     except:
-        pass
+        print('Item not found in cart')
 
 
 def cal_shipping_fee(subtotal, total_count):

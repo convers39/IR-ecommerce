@@ -1,8 +1,11 @@
 from django import forms
+from django.db.models import fields
 from django.forms import ValidationError
 from django.contrib.auth.forms import AuthenticationForm
+from django.forms import widgets
+from django_countries.widgets import CountrySelectWidget
 from django.utils.translation import gettext_lazy as _
-from .models import User
+from .models import User, Address
 
 
 class RegisterForm(forms.ModelForm):
@@ -64,3 +67,79 @@ class RegisterForm(forms.ModelForm):
 
         raise forms.ValidationError(
             'This email address is already registered.')
+
+
+class UserInfoForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'first_name', 'last_name', 'phone_no', )
+        widgets = {
+            'username': forms.TextInput(attrs={
+                'class': 'form-control form-control-lg',
+                'id': 'username',
+                'placeholder': 'Enter your username'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control form-control-lg',
+                'id': 'email',
+                'placeholder': 'e.g. John@example.com'
+            }),
+            'first_name': forms.TextInput(attrs={
+                'class': 'form-control form-control-lg',
+                'id': 'first_name',
+                'placeholder': 'Enter your first name'
+            }),
+            'last_name': forms.TextInput(attrs={
+                'class': 'form-control form-control-lg',
+                'id': 'last_name',
+                'placeholder': 'Enter your last name'
+            }),
+            'phone_no': forms.TextInput(attrs={
+                'class': 'form-control form-control-lg',
+                'id': 'phone_number',
+                'placeholder': 'e.g.'
+            }),
+        }
+
+
+class AddressForm(forms.ModelForm):
+    class Meta:
+        model = Address
+        fields = ('recipient', 'phone_no', 'addr',
+                  'city', 'country', 'province', 'zip_code')
+        widgets = {
+            'recipient': forms.TextInput(attrs={
+                'class': 'form-control form-control-lg',
+                'name': f'recipient',
+                'placeholder': 'Enter the recipient name'
+            }),
+            'phone_no': forms.TextInput(attrs={
+                'class': 'form-control form-control-lg',
+                'name': 'phone_no',
+                'placeholder': 'Recipient phone number, e.g. +8766882244'
+            }),
+            'addr': forms.TextInput(attrs={
+                'class': 'form-control form-control-lg',
+                'name': 'addr',
+                'placeholder': 'Address after city'
+            }),
+            'city': forms.TextInput(attrs={
+                'class': 'form-control form-control-lg',
+                'name': 'city',
+                'placeholder': 'Your city'
+            }),
+            'province': forms.TextInput(attrs={
+                'class': 'form-control form-control-lg',
+                'name': 'province',
+                'placeholder': 'Province or state'
+            }),
+            'country': CountrySelectWidget(attrs={
+                'class': 'form-control form-control-lg',
+                'name': 'country',
+            }),
+            'zip_code': forms.TextInput(attrs={
+                'class': 'form-control form-control-lg',
+                'name': 'zip_code',
+                'placeholder': 'e.g. 552200'
+            }),
+        }

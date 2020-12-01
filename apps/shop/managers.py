@@ -3,6 +3,7 @@ from django.contrib.postgres.aggregates import StringAgg
 from django.contrib.postgres.search import (
     SearchQuery, SearchRank, SearchVector, TrigramSimilarity,
 )
+from django.db.models import Avg
 
 
 class SKUManager(models.Manager):
@@ -26,7 +27,7 @@ class SKUManager(models.Manager):
         """
         Return a queryset of products sku which has a customer review.
         """
-        pass
+        # return self.get_queryset().filter()
 
     def search(self, search_text):
         """

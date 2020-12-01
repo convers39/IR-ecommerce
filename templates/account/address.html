@@ -1,0 +1,232 @@
+{% extends 'account/account-base.html' %}
+{% block extra_head %}
+<!-- EXTRA HEAD -->
+{% endblock extra_head %}
+<!-- TAGS -->
+{% load mptt_tags %}
+{% load widget_tweaks %}
+
+<!-- HERO SECTION-->
+{% block hero %}
+<li class="breadcrumb-item " aria-current="page">
+  <a href="{% url 'account:center' %}"></a> Account
+</li>
+<li class="breadcrumb-item active" aria-current="page">
+  Address
+</li>
+{% endblock hero %}
+
+
+<!-- SHOP SIDEBAR-->
+
+<!-- USER INFO-->
+{% block detail %}
+<div class="col-lg-9 order-1 order-lg-2 mb-5 mb-lg-0">
+  <div class="container">
+    <!-- TABLE -->
+    <div class="row text-center">
+      <div class="table-responsive mb-4">
+        <table class="table" id="addrTable">
+          <thead class="bg-light">
+            <tr>
+              <th class="border-0" scope="col"> <strong class="text-small text-uppercase">Recipient</strong></th>
+              <th class="border-0" scope="col"> <strong class="text-small text-uppercase">Phone#</strong></th>
+              <th class="border-0" scope="col"> <strong class="text-small text-uppercase">Address</strong></th>
+              <th class="border-0" scope="col"> <strong class="text-small text-uppercase">city</strong></th>
+              <th class="border-0" scope="col"> <strong class="text-small text-uppercase">province</strong></th>
+              <th class="border-0" scope="col"> <strong class="text-small text-uppercase">country</strong></th>
+              <th class="border-0" scope="col"> <strong class="text-small text-uppercase">zip code</strong></th>
+              <th class="border-0" scope="col"> </th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for addr in addresses %}
+            <tr {% if addr.is_default %} class="text-primary" {% endif %}>
+              <th class="pl-0 border-0" scope="row">
+                <strong class="h6"><a class="reset-anchor animsition-link" href="#">{{addr.recipient}}</a></strong>
+              </th>
+              <td class="align-middle border-0">
+                <p class="mb-0 small">{{addr.phone_no}}</p>
+              </td>
+              <td class="align-middle border-0">
+                <p class="mb-0 small">{{addr.addr}}</p>
+              </td>
+              <td class="align-middle border-0">
+                <p class="mb-0 small">{{addr.city}}</p>
+              </td>
+              <td class="align-middle border-0">
+                <p class="mb-0 small">{{addr.province}}</p>
+              </td>
+              <td class="align-middle border-0">
+                <p class="mb-0 small">{{addr.country}}</p>
+              </td>
+              <td class="align-middle border-0">
+                <p class="mb-0 small">{{addr.zip_code}}</p>
+              </td>
+              <td class="align-middle border-0"><a class="reset-anchor delAddr" href="#" addId={{addr.id}}><i
+                    class="fas fa-trash-alt small text-muted"></i></a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="text-left">
+              <td colspan="4"><small><span class="text-primary">Highlighed</span> current default address</small></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    <hr>
+    <div class="row">
+      <div class="form-group text-left col-lg-12" id="newAddr">
+        <a class="btn btn-dark" data-toggle="collapse" href="#collapseForm" role="button" aria-expanded="false"
+          aria-controls="collapseForm" id="newAddrButton">New Address</a>
+      </div>
+      <div class="collapse col-lg-12" id="collapseForm">
+        <form action="#" id="addrForm"> {% csrf_token %}
+          <div class="row">
+            <div class="col-lg-6 form-group">
+              <label class="text-small text-uppercase" for="recipient">recipient</label>
+              {{form.recipient}}
+            </div>
+            <div class="col-lg-6 form-group">
+              <label class="text-small text-uppercase" for="phone_no">Phone#</label>
+              {{form.phone_no}}
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-lg-12 form-group">
+              <label class="text-small text-uppercase" for="addr">Address</label>
+              {{form.addr}}
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-lg-6 form-group">
+              <label class="text-small text-uppercase" for="city">City</label>
+              {{form.city }}
+            </div>
+            <div class="col-lg-6 form-group">
+              <label class="text-small text-uppercase" for="province">State/Province</label>
+              {{form.province }}
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-lg-6 form-group">
+              <label class="text-small text-uppercase" for="country">Country</label>
+              {{form.country }}
+            </div>
+            <div class="col-lg-6 form-group">
+              <label class="text-small text-uppercase" for="zip_code">Zip code</label>
+              {{form.zip_code }}
+            </div>
+          </div>
+          <div class="col-lg-12 form-group text-right" id="saveButton">
+            <button class="btn btn-dark" type="submit" id="save">Save</button>
+            <button class="btn btn-dark" type="reset" id="cancel">Cancel</button>
+          </div>
+      </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock detail %}
+
+<!-- BOTTOM -->
+{% block bottom %}
+<script>
+  //TODO: set default address
+  $(function () {
+    const csrftoken = Cookies.get('csrftoken');
+
+    $('#addrForm').submit(async function (event) {
+      event.preventDefault();
+      const formData = new FormData(event.currentTarget);
+      const plainData = Object.fromEntries(formData.entries());
+
+      const res = await fetch('/account/address/', {
+        method: 'POST',
+        headers: {
+          "X-CSRFToken": csrftoken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(plainData),
+      })
+      const data = await res.json();
+      if (data.res == '1') {
+        console.log(data)
+        $('#newAddrButton').click()
+        $(this)[0].reset();
+        showMsg(data.msg, 1)
+        addToTable(plainData)
+      } else {
+        console.log(data);
+        showMsg(data.errmsg, 0)
+      }
+    })
+
+    // function to add one record to address table
+    function addToTable(newAddr) {
+      let newAddrRow = `
+      <tr><th class="pl-0 border-0" scope="row">
+        <strong class="h6"><a class="reset-anchor animsition-link" href="#">${newAddr.recipient}</a></strong>
+      </th>
+      <td class="align-middle border-0">
+        <p class="mb-0 small">${newAddr.phone_no}</p>
+      </td>
+      <td class="align-middle border-0">
+        <p class="mb-0 small">${newAddr.addr}</p>
+      </td>
+      <td class="align-middle border-0">
+        <p class="mb-0 small">${newAddr.city}</p>
+      </td>
+      <td class="align-middle border-0">
+        <p class="mb-0 small">${newAddr.province}</p>
+      </td>
+      <td class="align-middle border-0">
+        <p class="mb-0 small">${newAddr.country}</p>
+      </td>
+      <td class="align-middle border-0">
+        <p class="mb-0 small">${newAddr.zip_code}</p>
+      </td>
+      <td class="align-middle border-0"><a class="reset-anchor" href="#"><i
+            class="fas fa-trash-alt small text-muted"></i></a></td>
+      </tr>
+      `
+      let newAddrObj = $(newAddrRow);
+      newAddrObj.hide();
+      $('#addrTable tr:last').after(newAddrObj);
+      newAddrObj.fadeIn('slow');
+    }
+
+    $('.delAddr').each(function () {
+      $(this).click(async function (event) {
+        event.preventDefault();
+        let addrId = $(this).attr('addId');
+        const res = await fetch(
+          '/account/address/', {
+            method: 'POST',
+            headers: {
+              "X-CSRFToken": csrftoken,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              operation: 'delete',
+              addr_id: addrId
+            }),
+          }
+        )
+        const data = await res.json();
+        if (data.res == '1') {
+          console.log(data)
+          $(this).parents('tr').remove();
+          showMsg(data.msg, 1)
+        } else {
+          console.log(data);
+          showMsg(data.errmsg, 0)
+        }
+      });
+    })
+  })
+
+</script>
+{% endblock bottom%}

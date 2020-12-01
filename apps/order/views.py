@@ -113,7 +113,7 @@ class OrderProcessView(OrderDataCheckMixin, View):
                 product.stock -= int(count)
                 product.sales += int(count)
                 product.save()
-            print('orderproduct created')
+            print('orderproducts created')
 
             # create stripe checkout session, keep 1 item only
             amount = order.total_amount

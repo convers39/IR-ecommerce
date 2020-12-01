@@ -31,7 +31,7 @@ $(function () {
       let skuId = $(this).siblings("input").attr("sku-id");
       // console.log("inc", skuId, count);
       if (parseInt(count) - 1 <= 0) {
-        showErrMsg("Cannot be less than 1 item");
+        showMsg("Cannot be less than 1 item", 0);
         return;
       }
       if (cartChecker) {
@@ -44,17 +44,15 @@ $(function () {
         } else {
           // updateErr == True, remote database update failed, do not change item qty
           updateErr = true;
-          showErrMsg(data.errmsg);
+          showMsg(data.errmsg, 0);
         }
       } else {
         // if not in cart page
-
         count = parseInt(count) - 1;
-
         $(this).siblings("input").val(count);
       }
     } catch (e) {
-      showErrMsg("Invalid item count");
+      showMsg("Invalid item count", 0);
     }
   });
 
@@ -67,7 +65,7 @@ $(function () {
 
       // do not increase if count equals to stock
       if (count + 1 > stock) {
-        showErrMsg("Out of inventory");
+        showMsg("Out of inventory", 0);
         return;
       }
       // check if increase in the cart page
@@ -84,7 +82,7 @@ $(function () {
         } else {
           updateErr = true;
           // alert(data.errmsg);
-          showErrMsg(data.errmsg);
+          showMsg(data.errmsg, 0);
         }
       } else {
         // if not in cart page
@@ -92,7 +90,7 @@ $(function () {
         $(this).siblings("input").val(count);
       }
     } catch (e) {
-      showErrMsg("Invalid item count");
+      showMsg("Invalid item count", 0);
     }
   });
 
@@ -106,25 +104,6 @@ $(function () {
     return (data = await res.json());
   };
 
-  // append message to message area, fade after timeout
-  function showErrMsg(errmsg) {
-    let msg = `
-    <div class="alert alert-warning alert-dismissable" role="alert">
-      <button type="button" class="close" data-dismiss="alert" aria-hidden="true" >
-        &times;
-      </button>
-      ${errmsg}
-    </div>
-    `;
-    $(".message-area").append(msg).hide().slideDown(500, 0).fadeIn(1000, 0);
-    setTimeout(() => {
-      $(".alert")
-        .fadeTo(500, 0)
-        .slideUp(500, function () {
-          $(this).remove();
-        });
-    }, 3000);
-  }
   /* ===============================================================
            BOOTSTRAP SELECT
         =============================================================== */
@@ -146,10 +125,6 @@ $(function () {
   /* ===============================================================
            AJAX REQUESTS ON SHOPPING CART
         =============================================================== */
-  // $('a[href="#"]').on("click", function (e) {
-  //   e.preventDefault();
-  // });
-
   // $.ajaxSetup({
   //   beforeSend: function (xhr) {
   //     xhr.setRequestHeader("X-CSRFToken", csrftoken);
@@ -175,7 +150,7 @@ $(function () {
       parseInt(count) > stock
     ) {
       $(this).val(preCount);
-      showErrMsg("Invalid item count");
+      showMsg("Invalid item count", 0);
       return;
     }
     let data = await updateRemote(skuId, count);
@@ -183,10 +158,33 @@ $(function () {
       $(this).val(count);
       updateCartPage();
     } else {
-      showErrMsg(data.errmsg);
+      showMsg(data.errmsg, 0);
       // location.reload();
     }
   });
+
+  // add or remove to wishlist
+  $(".wishlist").click(async function (event) {
+    event.preventDefault();
+    let skuId = $(this).attr("sku-id");
+    const res = await fetch("/cart/wishlist/", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": csrftoken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ sku_id: skuId }),
+    });
+    let data = await res.json();
+    console.log(data);
+    if (data.res == "1") {
+      showMsg(data.msg, 1);
+    } else {
+      showMsg(data.errmsg, 0);
+      // location.reload();
+    }
+  });
+
   // add cart item
   $(".add-cart").click(async function (event) {
     event.preventDefault();
@@ -206,7 +204,7 @@ $(function () {
     if (data.res == "1") {
       $("#cart-count").text(data.cart_count);
     } else {
-      showErrMsg(data.errmsg);
+      showMsg(data.errmsg, 0);
       // location.reload();
     }
   });
@@ -275,3 +273,23 @@ $.getJSON("/static/js/countries.json", function (data) {
     $("select.country").append(selectOption);
   });
 });
+// append message to message area, fade after timeout
+function showMsg(msg, resCode) {
+  let label = resCode == 0 ? "warning" : "success";
+  let msgEl = `
+    <div class="alert alert-${label} alert-dismissable" role="alert">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true" >
+        &times;
+      </button>
+      ${msg}
+    </div>
+    `;
+  $(".message-area").append(msgEl).hide().slideDown(500, 0).fadeIn(1000, 0);
+  setTimeout(() => {
+    $(".alert")
+      .fadeTo(500, 0)
+      .slideUp(500, function () {
+        $(this).remove();
+      });
+  }, 3000);
+}

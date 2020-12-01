@@ -1,14 +1,16 @@
+import json
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.http import HttpResponseRedirect
+from django.http.response import JsonResponse
 from django.shortcuts import render, redirect
-from django.views.generic import View, CreateView
 from django.urls import reverse_lazy, reverse
+from django.views.generic import View, CreateView
 from django.views.generic.detail import DetailView
-from django.views.generic.edit import FormView, UpdateView
+from django.views.generic.edit import FormMixin, UpdateView
 from django.views.generic.list import ListView, MultipleObjectMixin
 
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
@@ -16,21 +18,39 @@ from itsdangerous import SignatureExpired, BadData
 
 from order.models import Order
 
-from .forms import RegisterForm
+from .forms import RegisterForm, UserInfoForm, AddressForm
 from .models import User, Address
 from .tasks import send_activation_email
 
 
-class AccountCenterView(LoginRequiredMixin, UpdateView):
+class AccountCenterView(LoginRequiredMixin, FormMixin, View):
+    model = User
+    form_class = UserInfoForm
     template_name = 'account/account.html'
 
     def get(self, request, *args, **kwargs):
         user = request.user
-        address = Address.objects.get_default_address(user)
+        form = UserInfoForm(instance=user)
         context = {
-            'address': address
+            'user': user,
+            'form': form
         }
-        return render(request, self.template_name)
+        return render(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        try:
+            data = json.loads(request.body.decode())
+        except:
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
+        print(data)
+
+        form = UserInfoForm(data, instance=user)
+        if form.is_valid():
+            form.save()
+            return JsonResponse({'res': '1', 'msg': 'Data updated'})
+
+        return JsonResponse({'res': '0', 'errmsg': 'Error!'})
 
 
 class AccountOrderListView(LoginRequiredMixin, ListView):
@@ -60,8 +80,62 @@ class AccountOrderDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class AccountAddressView(LoginRequiredMixin, MultipleObjectMixin, UpdateView):
-    pass
+class AccountAddressView(LoginRequiredMixin, FormMixin, View):
+    model = Address
+    form_class = AddressForm
+    template_name = 'account/address.html'
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        addresses = user.addresses.all()
+        # forms = [AddressForm(instance=address) for address in all_addresses]
+        # default_addr = Address.objects.get_default_address(user)
+        context = {
+            'user': user,
+            # 'default_addr': default_addr,
+            'addresses': addresses,
+            'form': self.form_class
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        try:
+            data = json.loads(request.body.decode())
+        except:
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
+        print(data)
+
+        if data.get('operation') == 'delete':
+            try:
+                Address.objects.filter(id=data['addr_id']).delete()
+                return JsonResponse({'res': '1', 'msg': 'Address deleted'})
+            except Address.DoesNotExist:
+                return JsonResponse({'res': '0', 'errmsg': 'Address does not exist'})
+
+        form = AddressForm(data)
+        if form.is_valid():
+            new_addr = form.save(commit=False)
+            new_addr.user = user
+            new_addr.save()
+
+            return JsonResponse({'res': '1', 'msg': 'Data updated'})
+
+        return JsonResponse({'res': '0', 'errmsg': 'Error!'})
+
+        # TODO: check if addr already existed or create newone
+        # addr_id = data.pop('addr_id')
+        # if addr_id:
+        #     try:
+        #         addr = Address.objects.get(id=addr_id)
+        #     except Address.DoesNotExist:
+        #         return JsonResponse({'res': '0', 'errmsg': 'Address does not exist'})
+
+        #     if addr.user != user:
+        #         return JsonResponse({'res': '0', 'errmsg': 'Unauthorized user'})
+
+        #     form = AddressForm(data, instance=addr)
+        # else:
 
 
 class LoginView(SuccessMessageMixin, View):

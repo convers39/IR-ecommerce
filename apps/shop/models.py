@@ -1,6 +1,7 @@
 
 from datetime import datetime, timedelta, timezone
 from django.db import models
+from django.db.models import Avg
 from django.urls import reverse
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.postgres.search import SearchVectorField
@@ -165,8 +166,11 @@ class ProductSKU(BaseModel):
         Return a label from SALE, SOLD, NEW, HOT, or empty
         """
         label = ''
+        avg_sales = ProductSKU.objects.aggregate(Avg('sales'))
         if datetime.now(timezone.utc) - self.created_at < timedelta(days=14):
             label = 'new'
+        if self.sales >= avg_sales['sales__avg']:
+            label = 'hot'
         if self.stock == 0:
             label = 'sold'
 
@@ -177,8 +181,10 @@ class ProductSKU(BaseModel):
         badge = ''
         if label == 'new':
             badge = 'primary'
-        if label == 'sold':
+        if label == 'hot':
             badge = 'danger'
+        if label == 'sold':
+            badge = 'secondary'
         return badge
 
 
