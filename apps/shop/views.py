@@ -1,19 +1,23 @@
-import json
-from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
-from django.http import JsonResponse
-from django.urls import reverse
-from django.views.generic import ListView, View, DetailView
+from django.shortcuts import get_object_or_404
+from django.views.generic import ListView, DetailView
+
 from django_redis import get_redis_connection
-from .models import ProductSKU, ProductSPU, Category, Origin, Image
+
+from .models import ProductSKU, Category
 
 # Create your views here.
 
 
-class IndexView(View):
-    def get(self, request):
-        context = {}
-        return render(request, 'index.html', context)
+class IndexView(ListView):
+    template_name = 'index.html'
+    context_object_name = 'products'
+    queryset = ProductSKU.objects.get_trending_products().order_by('?')[:6]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["banners"] = ProductSKU.objects.get(id=2).banners.all()
+        return context
 
 
 class ProductListView(ListView):
@@ -39,11 +43,20 @@ class ProductListView(ListView):
         if search_term:
             queryset = ProductSKU.objects.search(search_term)
             print(queryset)
+
         # check if search by category
         category_slug = self.kwargs.get('category_slug')
         if category_slug:
             category = get_object_or_404(Category, slug=category_slug)
-            queryset = queryset.filter(category=category)
+            if category.get_descendant_count() > 0:
+                qs = ProductSKU.objects.none()
+                for cat in category.get_descendants():
+                    desc_qs = queryset.filter(category=cat)
+                    qs = qs.union(desc_qs)
+                queryset = qs
+            else:
+                queryset = queryset.filter(category=category)
+
         # check if search by tag
         tag = self.request.GET.get('tag')
         if tag:
@@ -69,6 +82,7 @@ class ProductListView(ListView):
         if category_slug:
             category = Category.objects.get(slug=category_slug)
             context['category'] = category
+
         # when query set is paginated, use paginator to return total results count,
         # otherwise use queryset count, including 0 item case
         try:

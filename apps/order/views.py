@@ -1,20 +1,20 @@
 from apps.cart.cart import cal_cart_count
 from django.contrib import messages
 from django.shortcuts import render, redirect
-from django.urls.base import reverse, reverse_lazy
+from django.urls.base import reverse
 from django.views.generic import View, TemplateView
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse
 from django.db import transaction
+from django.views.decorators.http import require_POST
 from django.conf import settings
 
 from django_redis import get_redis_connection
 
 import stripe
 import json
-from shop.models import ProductSKU
+from datetime import datetime, timedelta, timezone
 from account.models import Address
 from cart.cart import cal_total_count_subtotal, cal_shipping_fee
 
@@ -178,14 +178,18 @@ class PaymentSuccessView(TemplateView):
     def get(self, request):
         user = request.user
         payment = user.payments.first()
+        orders = payment.orders.all()
+        context = {'payment_number': payment.number, 'orders': orders}
 
-        if payment.status != 'SC':
+        time_delta = datetime.now(tz=timezone.utc) - payment.created_at
+        if payment.status != 'SC' or time_delta > timedelta(minutes=5):
             messages.error(request, 'Invalid visit')
-            return redirect(reverse('shop:index'))
+            return redirect(reverse('account:order-list'))
 
-        return render(request, self.template_name, {'payment_number': payment.number})
+        return render(request, self.template_name, context)
 
 
+@require_POST
 @csrf_exempt
 def checkout_webhook(request):
     endpoint_secret = settings.WEBHOOK_SECRET

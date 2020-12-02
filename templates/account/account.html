@@ -3,7 +3,7 @@
 <!-- EXTRA HEAD -->
 {% endblock extra_head %}
 <!-- TAGS -->
-{% load mptt_tags %}
+{% load mptt_tags %}{% load humanize %}
 
 
 <!-- HERO SECTION-->
@@ -15,9 +15,97 @@
 
 
 <!-- SHOP SIDEBAR-->
+{% block extra_sidebar %}
 
+{% endblock extra_sidebar %}
 <!-- USER INFO-->
 {% block detail %}
+<!--  Modal -->
+{% for item in recent_products %}
+<div class="modal fade" id="productView-{{forloop.counter}}" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-body p-0">
+        <div class="row align-items-stretch">
+          <div class="col-lg-6 p-lg-0">
+            <a class="product-view d-block h-100 bg-cover bg-center" style="background: url('{{ item.cover_img.url }}')"
+              href="{{ item.cover_img.url }}" data-lightbox="productview" title="{{ item.name }}"></a>
+            {% for image in item.images.all %}
+            <a class="d-none" href="{{ image.url }}" title="{{ item.name }}" data-lightbox="productview"></a>
+            {% endfor %}
+          </div>
+          <div class="col-lg-6">
+            <button class="close p-4" type="button" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">×</span>
+            </button>
+            <div class="p-5 my-md-4">
+              <ul class="list-inline mb-2">
+                <li class="list-inline-item m-0">
+                  <i class="fas fa-star small text-warning"></i>
+                </li>
+                <li class="list-inline-item m-0">
+                  <i class="fas fa-star small text-warning"></i>
+                </li>
+                <li class="list-inline-item m-0">
+                  <i class="fas fa-star small text-warning"></i>
+                </li>
+                <li class="list-inline-item m-0">
+                  <i class="fas fa-star small text-warning"></i>
+                </li>
+                <li class="list-inline-item m-0">
+                  <i class="fas fa-star small text-warning"></i>
+                </li>
+              </ul>
+              <h2 class="h4">{{ item.name }}</h2>
+              <p class="text-muted">
+                <i class="fa fa-jpy" aria-hidden="true"></i>{{ item.price }}
+              </p>
+              <p class="text-small mb-4">{{ item.summary }}</p>
+              <div class="row align-items-stretch mb-4">
+                <div class="col-sm-8 pr-sm-0">
+                  <div class="border d-flex align-items-center justify-content-between py-1 px-3">
+                    <span class="small text-uppercase text-gray mr-4 no-select">Quantity</span>
+                    <div class="quantity">
+                      <button class="dec-btn p-0">
+                        <i class="fas fa-caret-left"></i>
+                      </button>
+                      <input class="form-control border-0 shadow-0 p-0" type="text" value="1" id="qty-{{item.id}}"
+                        stock="{{item.stock}}" />
+                      <button class="inc-btn p-0">
+                        <i class="fas fa-caret-right"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-sm-4 pl-sm-0">
+                  <a class="btn btn-dark btn-sm btn-block add-cart h-100 d-flex align-items-center justify-content-center px-0"
+                    href="#" sku-id="{{item.id}}">
+                    <!-- <i class="fa fa-shopping-cart" aria-hidden="true"></i> -->
+                    Add to Cart
+                  </a>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-sm-7 pr-sm-2">
+                  <a class="wishlist btn btn-link text-dark p-0" href="#" sku-id="{{item.id}}">
+                    {% if item.wishlist %}<i class="fa fa-heartbeat" aria-hidden="true"></i>Remove wishlist
+                    {% else %}<i class="far fa-heart"></i>Add to wish list{% endif %}
+                  </a>
+                </div>
+                <div class="col-sm-5 pl-sm-2">
+                  <i class="fas fa-warehouse fa-xs"></i>
+                  <span class="mr-2 pl-1"> {{ item.stock }}</span>at stock
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
 <div class="col-lg-9 order-1 order-lg-2 mb-5 mb-lg-0">
   <!-- <div class="row mb-3 align-items-center">
     <div class="col-lg-6 mb-2 mb-lg-0">
@@ -93,8 +181,47 @@
       </div>
     </div>
   </div>
-
+  <hr>
+  <!-- WATCH HISTORY-->
+  <h2 class="h5 text-uppercase mb-4">Watch History</h2>
+  <div class="row">
+    <!-- PRODUCT-->
+    {% for item in recent_products %}
+    <div class="col-lg-3 col-sm-6">
+      <div class="product text-center skel-loader">
+        <div class="d-block mb-3 position-relative">
+          <a class="d-block" href="{{ item.get_absolute_url }}"><img class="img-fluid w-100"
+              src="{{ item.cover_img.url }}" alt="{{ item.name }}" /></a>
+          <div class="product-overlay">
+            <ul class="mb-0 list-inline">
+              <li class="list-inline-item m-0 p-0">
+                <a class="wishlist btn btn-sm btn-outline-dark" href="#" sku-id='{{item.id}}'>
+                  {% if product.wishlist %}<i class="fa fa-heartbeat" aria-hidden="true">
+                    {% else %}<i class="far fa-heart">{% endif %}</i></a>
+              </li>
+              <li class="list-inline-item m-0 p-0">
+                <a class="btn btn-sm btn-dark add-cart" href="#" sku-id="{{ item.id }}"><i class="fa fa-cart-plus"
+                    aria-hidden="true"></i></a>
+              </li>
+              <li class="list-inline-item mr-0">
+                <a class="btn btn-sm btn-outline-dark" href="#productView-{{forloop.counter}}" data-toggle="modal"><i
+                    class="fas fa-expand"></i></a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <h6>
+          <a class="reset-anchor" href="{% url 'shop:product-detail' item.id item.slug %}">{{ item.name }}</a>
+        </h6>
+        <p class="small text-muted">
+          <i class="fa fa-jpy" aria-hidden="true"></i>{{item.price|intcomma}}
+        </p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
 </div>
+
 {% endblock detail %}
 
 <!-- BOTTOM -->

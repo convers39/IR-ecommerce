@@ -8,7 +8,6 @@ from django_redis import get_redis_connection
 
 from shop.models import ProductSKU, Category
 import json
-from json import JSONDecodeError
 from .cart import cal_cart_count, cal_total_count_subtotal, delete_cart_item
 from .mixins import DataIntegrityCheckMixin
 
@@ -57,17 +56,14 @@ class CartInfoView(LoginRequiredMixin, View):
     """
 
     def get(self, request):
+
         user = request.user
-
         products, total_count, subtotal = cal_total_count_subtotal(user.id)
-
-        categories = Category.objects.all()
 
         context = {
             'total_count': total_count,
             'subtotal': subtotal,
             'products': products,
-            'categories': categories,
         }
 
         return render(request, 'cart/cart.html', context)
@@ -118,31 +114,3 @@ class CartDeleteView(DataIntegrityCheckMixin, View):
             'msg': 'Item deleted',
             'cart_count': cart_count
         })
-
-
-class WishlistView(View):
-    """
-    Add or remove item to wishlist, saved in redis as SET and can be retrieve in account center
-    """
-
-    def post(self, request):
-
-        user = request.user
-        if not user.is_authenticated:
-            return JsonResponse({'res': 0, 'errmsg': 'Please log in'})
-        try:
-            data = json.loads(request.body.decode())
-            sku_id = data['sku_id']
-        except:
-            return JsonResponse({'res': 0, 'errmsg': 'Invalid data'})
-
-        conn = get_redis_connection('cart')
-        wish_key = f'wish_{user.id}'
-        # check if in wishlist already
-        if conn.sismember(wish_key, sku_id):
-            conn.srem(wish_key, sku_id)
-            return JsonResponse({'res': 1, 'msg': 'Item removed from wishlist'})
-        # if not add to list
-        conn.sadd(wish_key, sku_id)
-
-        return JsonResponse({'res': 1, 'msg': 'Item added to wishlist'})

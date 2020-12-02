@@ -116,7 +116,7 @@ class ProductSKU(BaseModel):
     objects = SKUManager()
 
     class Meta:
-        ordering = ('name',)
+        # ordering = ('name',)
         verbose_name = 'SKU'
         verbose_name_plural = verbose_name
         get_latest_by = ('created_at',)
@@ -200,10 +200,10 @@ class Image(BaseModel):
 
 class HomeBanner(BaseModel):
     sku = models.ForeignKey(ProductSKU, verbose_name=_(
-        "SKU"), on_delete=models.CASCADE)
+        "SKU"), on_delete=models.CASCADE, related_name='banners')
     index = models.IntegerField(_("index no."), validators=[
         MaxValueValidator(10), MinValueValidator(1)])
     image = models.ImageField(_("image"), upload_to='media/banner/')
 
     def __str__(self):
-        return self.sku
+        return f'{self.sku} banner'

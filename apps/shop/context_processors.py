@@ -1,5 +1,6 @@
-from .models import Category
 from django_redis import get_redis_connection
+
+from .models import Category
 
 
 def base_template_data_processor(request):

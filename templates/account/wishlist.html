@@ -2,7 +2,6 @@
 
 <!-- EXTRA HEAD -->
 {% block extra_head %}
-<script src="https://js.stripe.com/v3/"></script>
 {% endblock extra_head %}
 <!-- TAGS -->
 {% load humanize %} {% load qs_url_tag %}
@@ -15,7 +14,7 @@
   <a href="{% url 'account:center' %}">Account</a>
 </li>
 <li class="breadcrumb-item active" aria-current="page">
-  Order
+  Wishlist
 </li>
 {% endblock hero %}
 
@@ -23,11 +22,11 @@
 <h6 class="text-uppercase mb-3 mt-3">Show only</h6>
 <div class="custom-control custom-checkbox mb-1">
   <input class="custom-control-input" id="customCheck1" type="checkbox" />
-  <label class="custom-control-label text-small" for="customCheck1">Returns Accepted</label>
+  <label class="custom-control-label text-small" for="customCheck1">In Stock</label>
 </div>
 <div class="custom-control custom-checkbox mb-1">
   <input class="custom-control-input" id="customCheck5" type="checkbox" />
-  <label class="custom-control-label text-small" for="customCheck5">Deals &amp; Savings</label>
+  <label class="custom-control-label text-small" for="customCheck5">On Sale</label>
 </div>
 {% endblock extra_sidebar %}
 
@@ -37,10 +36,10 @@
   <div class="row mb-3 align-items-center">
     <div class="col-lg-6 mb-2 mb-lg-0">
       <p class="text-small text-muted mb-0">
-        {% if count == 0 %} No results found.
-        {% elif count == 1 %} Showing 1 result. {% else %} Showing
+        {% if count == 0 %} No wishlisted item.
+        {% elif count == 1 %} Showing 1 wishlisted item. {% else %} Showing
         {{page_obj.start_index}}–{{page_obj.end_index}} of {{count}}
-        results {% endif %}
+        wishlisted items {% endif %}
       </p>
     </div>
     <div class="col-lg-6">
@@ -101,77 +100,59 @@
               </div>
             </div>
           </div>#} -->
-  <!-- ORDER -->
+  <!-- PRODUCT -->
+
   <div class="row mb-3 align-items-center">
     <div class="col-12">
-      <table class="table" width="100%">
+      <table class="table">
         <thead class="bg-light">
-          <tr class="text-center">
-            <th class="border-0" width='50%'> <strong class="text-small text-uppercase">Order#</strong>
-            </th>
-            <th class="border-0" width='25%'> <strong class="text-small text-uppercase">Status</strong>
-            </th>
-            <th class="border-0" width='25%'> <strong class="text-small text-uppercase">Total</strong>
-            </th>
+          <tr>
+            <th class="border-0" scope="col"> <strong class="text-small text-uppercase">Product</strong></th>
+            <th class="border-0 text-center" scope="col"> <strong class="text-small text-uppercase ">Price</strong></th>
+            <th class="border-0 text-center" scope="col"> <strong class="text-small text-uppercase ">Stock</strong></th>
+            <th class="border-0 text-center" scope="col"> <strong class="text-small text-uppercase ">Tags</strong></th>
+            <th class="border-0" scope="col"> </th>
           </tr>
         </thead>
-      </table>
-    </div>
-    <div class="col-12">
-      {% for order in orders %}
-      <div class="card  mb-2">
-        <div class="card-header">
-          <div class="row text-center">
-            <div class="col col-6">
-              <a data-toggle="collapse" href="#collapse-{{order.id}}" role="button" aria-expanded="false"
-                aria-controls="collapse-{{order.id}}">Order#{{order.number}}</a> </div>
-            <div class="col col-3"><span>{{order.status}}</span></div>
-            <div class="col col-3"><span><i class="fas fa-calculator"></i>
-                {{order.total_amount|intcomma}}</span></div>
-          </div>
-        </div>
-        <div class="collapse" id="collapse-{{order.id}}">
-          <div class="card-body ">
-            {% for order_product in order.order_products.all %}
-            <div class="row text-center">
-              <div class='col col-6'>
-                <p class="card-text"><small>{{forloop.counter}}- <a class="reset-anchor"
-                      href="{{order_product.product.get_absolute_url}}">{{order_product.product}}</a></small>
-                </p>
+        <tbody>
+          {% for product in products %}
+          <tr>
+            <th class="pl-0 border-0" scope="row">
+              <div class="media align-items-center">
+                <a class="reset-anchor d-block animsition-link" href="{{ product.get_absolute_url }}"><img
+                    src="{{ product.cover_img.url }}" alt="{{product.name}}" width="70" /></a>
+                <div class="media-body ml-3">
+                  <strong class="h6"><a class="reset-anchor animsition-link"
+                      href="{{ product.get_absolute_url }}">{{ product.name }}</a></strong>
+                </div>
               </div>
-              <div class='col col-3'>
-                <p class="card-text"><small><i class="fas fa-times"></i> {{order_product.count}}</small>
-                </p>
-              </div>
-              <div class='col col-3'>
-                <p class="card-text"><small>
-                    <i class="fa fa-jpy" aria-hidden="true"></i> {{order_product.unit_price|intcomma}}</small>
-                </p>
-              </div>
-            </div>
-
-            {% endfor %}
-            <hr>
-            <div class="row text-right m-1">
-              <p class="m-0 text-muted"><small> Created at: {{order.created_at|date:"DATETIME_FORMAT"}}</small>
+            </th>
+            <td class="align-middle border-0 text-center">
+              <p class="mb-0 small">
+                <i class="fa fa-jpy" aria-hidden="true"></i><span
+                  id="price-{{product.id}}">{{product.price|intcomma}}</span>
               </p>
-              <p class="m-0 text-muted"><small> Ship to: {{order.address.get_full_address}}</small></p>
-            </div>
-          </div>
-        </div>
-        <div class="card-footer text-muted text-right">
+            </td>
+            <td class="align-middle border-0 text-center">
+              <p class="mb-0 small {%if product.stock < 10 %}text-danger{% endif %}"> {{product.stock}} </p>
 
-          <a class="reset-anchor pr-2" href="#"><i class="fas fa-trash-alt small text-muted pr-1"></i>Delete
-            Order</a>
-          <a class="reset-anchor pr-2" href="#"><i class="fas fa-shipping-fast fa-sm pr-1"></i> Check
-            Shipment</a>
-          {% if order.status == 'NW' %}<a class="reset-anchor pr-2 payment" href="#"
-            session='{{order.payment.session_id}}'><i class="fas fa-credit-card pr-1"></i>Pay
-            Now<span id="countdown"></span></a>{% else %}<i class="fas fa-check-square pr-1"></i>Paid{% endif %}
+            </td>
+            <td class="align-middle border-0 text-center">
+              <p class="mb-0 small">
+                {% for tag in product.tags.all %}
+                <a href="{% url 'shop:product-list' %}{% qs_url 'tag' tag request.GET.urlencode %}">#{{tag}}</a>
+                {% endfor %}
+              </p>
+            </td>
+            <td class="align-middle border-0">
+              <a class="reset-anchor wishlist account" href="#" sku-id="{{product.id}}"><i
+                  class="fas fa-trash-alt small text-muted"></i></a>
+            </td>
+          </tr>
+          {% endfor %}
 
-        </div>
-      </div>
-      {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
   <!-- PAGINATION-->
@@ -219,49 +200,5 @@
 
 <!-- BOTTOM -->
 {% block bottom %}
-<script>
-  $(function () {
-    let remaining = $('#countdown').text();
 
-    function countdownTimer() {
-      //const difference = +new Date("2020-01-01") - +new Date();
-      const difference = 1000 * 60 * 60 * 24 - 10;
-      let remaining = "Expired";
-
-      if (difference > 0) {
-        const parts = {
-          //days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((difference / 1000 / 60) % 60),
-          //seconds: Math.floor((difference / 1000) % 60),
-        };
-        remaining = Object.keys(parts)
-          .map((part) => {
-            return `${parts[part]} ${part}`;
-          })
-          .join(" ");
-      }
-
-      document.getElementById("countdown").innerHTML = remaining;
-    }
-
-    //countDownTimer();
-    //setInterval(countdownTimer, 1000);
-
-    // redirect to checkout
-    var stripe = Stripe("{{ stripe_key }}");
-    $('.payment').click(async function (event) {
-      event.preventDefault();
-      let sessionId = $(this).attr('session');
-      console.log(sessionId)
-      const paymentSession = await stripe.redirectToCheckout({
-        sessionId: sessionId
-      });
-      if (paymentSession.error) {
-        showErrMsg(paymentSession.error.message);
-      }
-    })
-  })
-
-</script>
 {% endblock bottom%}

@@ -73,9 +73,10 @@
               </div>
               <div class="row">
                 <div class="col-sm-7 pr-sm-2">
-                  <a class="wishlist btn btn-link text-dark p-0" href="#">
-                    {% if product.wishlist %}<i class="fa fa-heartbeat" aria-hidden="true"></i>Remove wishlist
-                       {% else %}<i class="far fa-heart"></i>Add to wish list{% endif %}
+                  <a class="wishlist btn btn-link text-dark p-0" href="#" sku-id="{{item.id}}">
+                    {% if item.wishlist %}<i class="fa fa-heartbeat" aria-hidden="true"></i>Remove
+                    wishlist
+                    {% else %}<i class="far fa-heart"></i>Add to wish list{% endif %}
                   </a>
                 </div>
                 <div class="col-sm-5 pl-sm-2">
@@ -138,7 +139,7 @@
         </ul>
         <h1>{{ product.name }}</h1>
         <p class="text-muted lead">
-          <i class="fa fa-jpy" aria-hidden="true"></i>{{ product.price }}
+          <i class="fa fa-jpy" aria-hidden="true"></i>{{ product.price|intcomma }}
         </p>
         <p class="text-small mb-4">{{ product.summary }}</p>
         <div class="row align-items-stretch mb-4">
@@ -162,9 +163,9 @@
               href="#" sku-id="{{ product.id }}">Add to cart</a>
           </div>
         </div>
-        <a class="wishlist btn btn-link text-dark p-0 mb-4" href="#">
-          {% if product.wishlist %}<i class="fa fa-heartbeat" aria-hidden="true"></i>Remove from wish list
-          {% else %}<i class="far fa-heart"></i>Add to wish list{% endif %}</a><br />
+        <a class="wishlist btn btn-link text-dark p-0 mb-4" href="#" sku-id="{{product.id}}">
+          {% if product.wishlist %}<i class="fa fa-heartbeat px-2" aria-hidden="true"></i>Remove from wish list
+          {% else %}<i class="far fa-heart px-2"></i>Add to wish list{% endif %}</a><br />
         <ul class="list-unstyled small d-inline-block">
           <li class="px-3 py-2 mb-1 bg-white">
             <strong class="text-uppercase">Stock:</strong><span class="ml-2 text-muted">{{ product.stock }}</span>
@@ -287,9 +288,9 @@
             <div class="product-overlay">
               <ul class="mb-0 list-inline">
                 <li class="list-inline-item m-0 p-0">
-                  <a class="wishlist btn btn-sm btn-outline-dark" href="#">
+                  <a class="wishlist btn btn-sm btn-outline-dark" href="#" sku-id="{{item.id}}">
                     {% if product.wishlist %}<i class="fa fa-heartbeat" aria-hidden="true">
-                       {% else %}<i class="far fa-heart">{% endif %}</i></a>
+                      {% else %}<i class="far fa-heart">{% endif %}</i></a>
                 </li>
                 <li class="list-inline-item m-0 p-0">
                   <a class="btn btn-sm btn-dark add-cart" href="#" sku-id="{{ item.id }}">Add to cart</a>

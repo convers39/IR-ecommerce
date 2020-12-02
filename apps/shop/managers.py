@@ -1,4 +1,6 @@
+from datetime import datetime, timedelta, timezone
 from django.db import models
+from django.db.models import Q
 from django.contrib.postgres.aggregates import StringAgg
 from django.contrib.postgres.search import (
     SearchQuery, SearchRank, SearchVector, TrigramSimilarity,
@@ -28,6 +30,17 @@ class SKUManager(models.Manager):
         Return a queryset of products sku which has a customer review.
         """
         # return self.get_queryset().filter()
+
+    def get_trending_products(self):
+        """
+        Return products with most sales or new items
+        """
+        avg_sales = self.aggregate(Avg('sales'))
+        date_range = (datetime.now(tz=timezone.utc)-timedelta(days=14))
+        return self.get_queryset().filter(
+            Q(created_at__lt=date_range) |
+            Q(sales__gt=avg_sales['sales__avg'])
+        )
 
     def search(self, search_text):
         """

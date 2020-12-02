@@ -1,4 +1,3 @@
-import json
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -10,13 +9,17 @@ from django.shortcuts import render, redirect
 from django.urls import reverse_lazy, reverse
 from django.views.generic import View, CreateView
 from django.views.generic.detail import DetailView
-from django.views.generic.edit import FormMixin, UpdateView
-from django.views.generic.list import ListView, MultipleObjectMixin
+from django.views.generic.edit import FormMixin
+from django.views.generic.list import ListView
+
+import json
+from django_redis import get_redis_connection
 
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from itsdangerous import SignatureExpired, BadData
 
 from order.models import Order
+from shop.models import ProductSKU
 
 from .forms import RegisterForm, UserInfoForm, AddressForm
 from .models import User, Address
@@ -31,9 +34,15 @@ class AccountCenterView(LoginRequiredMixin, FormMixin, View):
     def get(self, request, *args, **kwargs):
         user = request.user
         form = UserInfoForm(instance=user)
+        # get recent watch history
+        conn = get_redis_connection('cart')
+        sku_ids = conn.lrange(f'history_{user.id}', 0, 7)
+        recent_products = ProductSKU.objects.filter(id__in=sku_ids)
+
         context = {
             'user': user,
-            'form': form
+            'form': form,
+            'recent_products': recent_products
         }
         return render(request, self.template_name, context)
 
@@ -53,7 +62,7 @@ class AccountCenterView(LoginRequiredMixin, FormMixin, View):
         return JsonResponse({'res': '0', 'errmsg': 'Error!'})
 
 
-class AccountOrderListView(LoginRequiredMixin, ListView):
+class OrderListView(LoginRequiredMixin, ListView):
     model = Order
     context_object_name = 'orders'
     template_name = 'account/order-list.html'
@@ -69,10 +78,11 @@ class AccountOrderListView(LoginRequiredMixin, ListView):
         return super().get_queryset()
 
 
-class AccountOrderDetailView(LoginRequiredMixin, DetailView):
+class OrderDetailView(LoginRequiredMixin, DetailView):
     model = Order
     context_object_name = 'order'
     template_name = 'account/order-detail.html'
+    slug_url_kwarg = 'number'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -80,7 +90,7 @@ class AccountOrderDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class AccountAddressView(LoginRequiredMixin, FormMixin, View):
+class AddressView(LoginRequiredMixin, FormMixin, View):
     model = Address
     form_class = AddressForm
     template_name = 'account/address.html'
@@ -106,6 +116,7 @@ class AccountAddressView(LoginRequiredMixin, FormMixin, View):
             return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
         print(data)
 
+        # delete existed address
         if data.get('operation') == 'delete':
             try:
                 Address.objects.filter(id=data['addr_id']).delete()
@@ -113,17 +124,18 @@ class AccountAddressView(LoginRequiredMixin, FormMixin, View):
             except Address.DoesNotExist:
                 return JsonResponse({'res': '0', 'errmsg': 'Address does not exist'})
 
+        # save new address
         form = AddressForm(data)
         if form.is_valid():
             new_addr = form.save(commit=False)
             new_addr.user = user
             new_addr.save()
-
-            return JsonResponse({'res': '1', 'msg': 'Data updated'})
+            new_id = new_addr.id
+            return JsonResponse({'res': '1', 'msg': 'New address added', 'new_id': new_id})
 
         return JsonResponse({'res': '0', 'errmsg': 'Error!'})
 
-        # TODO: check if addr already existed or create newone
+        # TODO: update existed address
         # addr_id = data.pop('addr_id')
         # if addr_id:
         #     try:
@@ -136,6 +148,58 @@ class AccountAddressView(LoginRequiredMixin, FormMixin, View):
 
         #     form = AddressForm(data, instance=addr)
         # else:
+
+
+class WishlistView(LoginRequiredMixin, ListView):
+    model = ProductSKU
+    context_object_name = 'products'
+    paginate_by = 10  # TODO: solve pagination issue when delete item from frontend
+    template_name = 'account/wishlist.html'
+
+    def get_queryset(self):
+        user = self.request.user
+        conn = get_redis_connection('cart')
+        wishlisted = conn.smembers(f'wish_{user.id}')
+        queryset = ProductSKU.objects.filter(id__in=wishlisted)
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # context[""] =
+        return context
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        try:
+            data = json.loads(request.body.decode())
+            sku_id = data['sku_id']
+        except:
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
+        print(data)
+
+        try:
+            ProductSKU.objects.filter(id=sku_id)
+        except ProductSKU.DoesNotExist:
+            return JsonResponse({'res': '0', 'errmsg': 'Item does not exist'})
+
+        conn = get_redis_connection('cart')
+        wish_key = f'wish_{user.id}'
+        wish_count = conn.scard(wish_key)
+        # check if in wishlist already
+        if conn.sismember(wish_key, sku_id):
+            conn.srem(wish_key, sku_id)
+            return JsonResponse({
+                'res': 1,
+                'msg': 'Item removed from wishlist',
+                'wish_count': int(wish_count) - 1
+            })
+        # if not add to list
+        conn.sadd(wish_key, sku_id)
+        return JsonResponse({
+            'res': 1,
+            'msg': 'Item added to wishlist',
+            'wish_count': int(wish_count) + 1
+        })
 
 
 class LoginView(SuccessMessageMixin, View):

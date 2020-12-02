@@ -9,17 +9,18 @@
 <!-- HERO SECTION-->
 {% block hero %}
 <li class="breadcrumb-item " aria-current="page">
-  <a href="{% url 'account:center' %}"></a> Account
+  <a href="{% url 'account:center' %}">Account</a>
 </li>
 <li class="breadcrumb-item active" aria-current="page">
   Address
 </li>
 {% endblock hero %}
 
+{% block extra_sidebar %}
 
-<!-- SHOP SIDEBAR-->
+{% endblock extra_sidebar %}
 
-<!-- USER INFO-->
+<!-- ADDRESS -->
 {% block detail %}
 <div class="col-lg-9 order-1 order-lg-2 mb-5 mb-lg-0">
   <div class="container">
@@ -39,7 +40,7 @@
               <th class="border-0" scope="col"> </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="addr-body">
             {% for addr in addresses %}
             <tr {% if addr.is_default %} class="text-primary" {% endif %}>
               <th class="pl-0 border-0" scope="row">
@@ -63,15 +64,15 @@
               <td class="align-middle border-0">
                 <p class="mb-0 small">{{addr.zip_code}}</p>
               </td>
-              <td class="align-middle border-0"><a class="reset-anchor delAddr" href="#" addId={{addr.id}}><i
+              <td class="align-middle border-0"><a class="reset-anchor addr-del" href="#" addr-id={{addr.id}}><i
                     class="fas fa-trash-alt small text-muted"></i></a></td>
             </tr>
             {% endfor %}
           </tbody>
-          <tfoot>
-            <tr class="text-left">
-              <td colspan="4"><small><span class="text-primary">Highlighed</span> current default address</small></td>
-            </tr>
+          <tfoot class="text-left">
+            <!-- <tr class="text-left"> -->
+            <td colspan="4"><small><span class="text-primary">Highlighed</span> current default address</small></td>
+            <!-- </tr> -->
           </tfoot>
         </table>
       </div>
@@ -157,7 +158,7 @@
         $('#newAddrButton').click()
         $(this)[0].reset();
         showMsg(data.msg, 1)
-        addToTable(plainData)
+        addToTable(plainData, data.new_id)
       } else {
         console.log(data);
         showMsg(data.errmsg, 0)
@@ -165,7 +166,7 @@
     })
 
     // function to add one record to address table
-    function addToTable(newAddr) {
+    function addToTable(newAddr, newId) {
       let newAddrRow = `
       <tr><th class="pl-0 border-0" scope="row">
         <strong class="h6"><a class="reset-anchor animsition-link" href="#">${newAddr.recipient}</a></strong>
@@ -188,44 +189,41 @@
       <td class="align-middle border-0">
         <p class="mb-0 small">${newAddr.zip_code}</p>
       </td>
-      <td class="align-middle border-0"><a class="reset-anchor" href="#"><i
-            class="fas fa-trash-alt small text-muted"></i></a></td>
+      <td class="align-middle border-0"><a class="reset-anchor addr-del" href="#" addr-id="${newId}">
+        <i class="fas fa-trash-alt small text-muted"></i></a></td>
       </tr>
       `
-      let newAddrObj = $(newAddrRow);
-      newAddrObj.hide();
-      $('#addrTable tr:last').after(newAddrObj);
-      newAddrObj.fadeIn('slow');
+      $('#addrTable').find('tbody:last').append(newAddrRow);
     }
 
-    $('.delAddr').each(function () {
-      $(this).click(async function (event) {
-        event.preventDefault();
-        let addrId = $(this).attr('addId');
-        const res = await fetch(
-          '/account/address/', {
-            method: 'POST',
-            headers: {
-              "X-CSRFToken": csrftoken,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              operation: 'delete',
-              addr_id: addrId
-            }),
-          }
-        )
-        const data = await res.json();
-        if (data.res == '1') {
-          console.log(data)
-          $(this).parents('tr').remove();
-          showMsg(data.msg, 1)
-        } else {
-          console.log(data);
-          showMsg(data.errmsg, 0)
+    // notice delegation here for dynamicly added address
+    $('#addr-body').on('click', 'a', async function (event) {
+      event.preventDefault();
+      let addrId = $(this).attr('addr-id');
+      const res = await fetch(
+        '/account/address/', {
+          method: 'POST',
+          headers: {
+            "X-CSRFToken": csrftoken,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            operation: 'delete',
+            addr_id: addrId
+          }),
         }
-      });
-    })
+      )
+      const data = await res.json();
+      if (data.res == '1') {
+        console.log(data)
+        $(this).parents('tr').remove();
+        showMsg(data.msg, 1)
+      } else {
+        console.log(data);
+        showMsg(data.errmsg, 0)
+      }
+    });
+
   })
 
 </script>

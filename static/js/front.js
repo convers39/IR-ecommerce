@@ -167,7 +167,7 @@ $(function () {
   $(".wishlist").click(async function (event) {
     event.preventDefault();
     let skuId = $(this).attr("sku-id");
-    const res = await fetch("/cart/wishlist/", {
+    const res = await fetch("/account/wishlist/", {
       method: "POST",
       headers: {
         "X-CSRFToken": csrftoken,
@@ -179,6 +179,10 @@ $(function () {
     console.log(data);
     if (data.res == "1") {
       showMsg(data.msg, 1);
+      $("#wishlist-count").text(data.wish_count);
+      if ($(this).hasClass("account")) {
+        $(this).parents("tr").remove();
+      }
     } else {
       showMsg(data.errmsg, 0);
       // location.reload();
@@ -203,6 +207,8 @@ $(function () {
     let data = await res.json();
     if (data.res == "1") {
       $("#cart-count").text(data.cart_count);
+      $(this).find("i").toggleClass("fa-heart fa-heart-o");
+      showMsg(data.msg, 1);
     } else {
       showMsg(data.errmsg, 0);
       // location.reload();

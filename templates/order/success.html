@@ -36,14 +36,17 @@
   <!-- BILLING ADDRESS-->
   <div class="container">
     <h2 class="h5 text-uppercase mb-4">Thank you! {{request.user.username}}</h2>
-    <p class="text-primary">
-      Your payment <span>{{ payment_number }}</span> has been confirmed, this page
-      will redirect to your account center in few seconds
-    </p>
+    <p> <strong> Your payment for your order below has been confirmed: </strong> </p>
+    <ul>
+      {% for order in orders %}
+      <li>Order# {{order.number}}</li>
+      {% endfor %}
+    </ul>
+    <p> This page will redirect to your account center in few seconds</p>
+    <hr>
     <p class="text-muted">
-      Please click here to account center if page does not refresh
+      <a href="{% url 'account:order-list' %}">Please click here to account center if page does not refresh</a>
     </p>
-    <a href="{url: 'account:order'}"></a>
   </div>
 </section>
 {% endblock content %}
@@ -51,7 +54,7 @@
 {% block bottom %}
 <script>
   setTimeout(function () {
-    window.location.href = "{% url: 'account:order' %}";
+    window.location.href = "{% url 'account:order-list' %}";
   }, 5000);
 
 </script>

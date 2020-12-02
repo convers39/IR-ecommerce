@@ -1,8 +1,5 @@
 from django import forms
-from django.db.models import fields
 from django.forms import ValidationError
-from django.contrib.auth.forms import AuthenticationForm
-from django.forms import widgets
 from django_countries.widgets import CountrySelectWidget
 from django.utils.translation import gettext_lazy as _
 from .models import User, Address

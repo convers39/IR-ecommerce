@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (CartInfoView, CartAddView,
-                    CartUpdateView, CartDeleteView, WishlistView)
+                    CartUpdateView, CartDeleteView)
 
 app_name = 'cart'
 urlpatterns = [
@@ -8,5 +8,4 @@ urlpatterns = [
     path('add/', CartAddView.as_view(), name='add'),
     path('update/', CartUpdateView.as_view(), name='update'),
     path('delete/', CartDeleteView.as_view(), name='delete'),
-    path('wishlist/', WishlistView.as_view(), name='wishlist'),
 ]

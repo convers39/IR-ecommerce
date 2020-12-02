@@ -103,7 +103,7 @@
                   </small></a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link" href="{% url 'account:wishlist' %}">
                   <i class="far fa-heart mr-1"></i>
                   <small class="text-gray">(<small id="wishlist-count">{{wishlist_count}}</small>)</small></a>
               </li>
@@ -135,7 +135,6 @@
     <section>
       <div class="container message-area">
         {% if messages %} {% for message in messages %}
-        <!--  -->
         {% if message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
         <div class="alert alert-primary alert-dismissable" role="alert">
           <button type="button" class="close" data-dismiss="alert" aria-hidden="true">
