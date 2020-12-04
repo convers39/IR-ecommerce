@@ -236,7 +236,7 @@ $(function () {
       updateCartPage();
       // $(".total-count").text(data.total_count);
     } else {
-      alert(data.errmsg);
+      showMsg(data.errmsg, 0);
       // location.reload();
     }
   });
@@ -279,6 +279,7 @@ $.getJSON("/static/js/countries.json", function (data) {
     $("select.country").append(selectOption);
   });
 });
+
 // append message to message area, fade after timeout
 function showMsg(msg, resCode) {
   let label = resCode == 0 ? "warning" : "success";

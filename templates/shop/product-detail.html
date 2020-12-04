@@ -4,7 +4,10 @@
 <!-- EXTRA_HEAD -->
 {% block extra_head %} {% endblock extra_head %}
 <!-- CONTENT -->
-{% block content %}{% load humanize %} {% load qs_url_tag %}
+{% block content %}
+<!-- TAGS -->
+{% load humanize %} {% load qs_url_tag %}
+{% load num_range_tag %}
 <!--  Modal -->
 {% for item in related_products %}
 <div class="modal fade" id="productView-{{forloop.counter}}" tabindex="-1" role="dialog" aria-hidden="true">
@@ -208,68 +211,30 @@
         <div class="p-4 p-lg-5 bg-white">
           <div class="row">
             <div class="col-lg-8">
+              {% for review in reviews %}
               <div class="media mb-3">
-                <img class="rounded-circle" src="img/customer-1.png" alt="" width="50" />
+                <!-- <img class="rounded-circle" src="img/customer-1.png" alt="" width="50" /> -->
                 <div class="media-body ml-3">
-                  <h6 class="mb-0 text-uppercase">Jason Doe</h6>
+                  <h6 class="mb-0 text-uppercase">{{review.order_product.order.user.username}}</h6>
                   <p class="small text-muted mb-0 text-uppercase">
-                    20 May 2020
+                    {{review.created_at|date:"DATE_FORMAT"}}
                   </p>
                   <ul class="list-inline mb-1 text-xs">
+                    {% for star in review.star|num_range %}
                     <li class="list-inline-item m-0">
                       <i class="fas fa-star text-warning"></i>
                     </li>
-                    <li class="list-inline-item m-0">
-                      <i class="fas fa-star text-warning"></i>
-                    </li>
-                    <li class="list-inline-item m-0">
-                      <i class="fas fa-star text-warning"></i>
-                    </li>
-                    <li class="list-inline-item m-0">
-                      <i class="fas fa-star text-warning"></i>
-                    </li>
-                    <li class="list-inline-item m-0">
+                    {% endfor %}
+                    <!-- <li class="list-inline-item m-0">
                       <i class="fas fa-star-half-alt text-warning"></i>
-                    </li>
+                    </li> -->
                   </ul>
                   <p class="text-small mb-0 text-muted">
-                    Lorem ipsum dolor sit amet, consectetur adipisicing elit,
-                    sed do eiusmod tempor incididunt ut labore et dolore magna
-                    aliqua.
+                    {{review.comment}}
                   </p>
                 </div>
               </div>
-              <div class="media">
-                <img class="rounded-circle" src="img/customer-2.png" alt="" width="50" />
-                <div class="media-body ml-3">
-                  <h6 class="mb-0 text-uppercase">Jason Doe</h6>
-                  <p class="small text-muted mb-0 text-uppercase">
-                    20 May 2020
-                  </p>
-                  <ul class="list-inline mb-1 text-xs">
-                    <li class="list-inline-item m-0">
-                      <i class="fas fa-star text-warning"></i>
-                    </li>
-                    <li class="list-inline-item m-0">
-                      <i class="fas fa-star text-warning"></i>
-                    </li>
-                    <li class="list-inline-item m-0">
-                      <i class="fas fa-star text-warning"></i>
-                    </li>
-                    <li class="list-inline-item m-0">
-                      <i class="fas fa-star text-warning"></i>
-                    </li>
-                    <li class="list-inline-item m-0">
-                      <i class="fas fa-star-half-alt text-warning"></i>
-                    </li>
-                  </ul>
-                  <p class="text-small mb-0 text-muted">
-                    Lorem ipsum dolor sit amet, consectetur adipisicing elit,
-                    sed do eiusmod tempor incididunt ut labore et dolore magna
-                    aliqua.
-                  </p>
-                </div>
-              </div>
+              {% endfor %}
             </div>
           </div>
         </div>

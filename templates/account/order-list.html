@@ -56,52 +56,7 @@
     </div>
   </div>
 
-  <!-- {#<div class="row">
-            <div class="col-12">
-              <div class="table-responsive mb-4">
-                <table class="table">
-                  <thead class="bg-light">
-                    <tr>
-                      <th class="border-0" scope="col"> <strong class="text-small text-uppercase">Order#</strong></th>
-                      <th class="border-0" scope="col"> <strong class="text-small text-uppercase">Created At</strong>
-                      </th>
-                      <th class="border-0" scope="col"> <strong class="text-small text-uppercase">Total</strong></th>
-                      <th class="border-0" scope="col"> <strong class="text-small text-uppercase">Status </strong></th>
-                      <th class="border-0" scope="col"> </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for order in orders %}
-                    <tr>
-                      <th class="pl-0 border-0" scope="row">
-                        <p class="mb-0 small"><a class="reset-anchor animsition-link" href="#">{{order.number}}</a></p>
-                      </th>
-                      <td class="align-middle border-0">
-                        <p class="mb-0 small">{{order.created_at|date:"DATETIME_FORMAT"}}</p>
-                      </td>
-                      <td class="align-middle border-0">
-                        <p class="mb-0 small"><i class="fa fa-jpy"
-                            aria-hidden="true"></i>{{order.total_amount|intcomma}}
-                        </p>
-                      </td>
-                      <td class="align-middle border-0">
-                        <p class="mb-0 small">{% if order.status == 'NW' %}<a class="payment" href="#"
-                            session='{{order.payment.session_id}}'>Pay Now<span
-                              id="countdown"></span></a>{% else %}{{order.status}}{% endif %}
-                        </p>
-                      </td>
-                      <td class="align-middle border-0"><a class="reset-anchor" href="#"><i
-                            class="fas fa-trash-alt small text-muted"></i></a></td>
-                    </tr>
 
-                    {% endfor %}
-                  </tbody>
-                </table>
-
-              </div>
-            </div>
-          </div>#} -->
-  <!-- ORDER -->
   <div class="row mb-3 align-items-center">
     <div class="col-12">
       <table class="table" width="100%">
@@ -109,9 +64,11 @@
           <tr class="text-center">
             <th class="border-0" width='50%'> <strong class="text-small text-uppercase">Order#</strong>
             </th>
-            <th class="border-0" width='25%'> <strong class="text-small text-uppercase">Status</strong>
+            <th class="border-0" width='22%'> <strong class="text-small text-uppercase">Status</strong>
             </th>
-            <th class="border-0" width='25%'> <strong class="text-small text-uppercase">Total</strong>
+            <th class="border-0" width='22%'> <strong class="text-small text-uppercase">Total</strong>
+            </th>
+            <th class="border-0" width='6%'> <strong class="text-small text-uppercase">Detail</strong>
             </th>
           </tr>
         </thead>
@@ -125,9 +82,12 @@
             <div class="col col-6">
               <a data-toggle="collapse" href="#collapse-{{order.id}}" role="button" aria-expanded="false"
                 aria-controls="collapse-{{order.id}}">Order#{{order.number}}</a> </div>
-            <div class="col col-3"><span>{{order.status}}</span></div>
+            <div class="col col-2"><span>{{order.status}}</span></div>
             <div class="col col-3"><span><i class="fas fa-calculator"></i>
                 {{order.total_amount|intcomma}}</span></div>
+            <div class="col col-1"><a href="{{order.get_absolute_url}}"><i class="fa fa-info-circle"
+                  aria-hidden="true"></i></i></a>
+            </div>
           </div>
         </div>
         <div class="collapse" id="collapse-{{order.id}}">

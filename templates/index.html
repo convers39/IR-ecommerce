@@ -176,7 +176,7 @@
       <div class="row">
         {% for product in products %}
         <!-- PRODUCT-->
-        <div class="col-lg-4 col-sm-6">
+        <div class="col-lg-3 col-sm-6">
           <div class="product text-center">
             <div class="mb-3 position-relative">
               <div class="badge text-white badge-{{product.get_label_badge}}">{{product.get_product_label|title}}
@@ -210,7 +210,7 @@
           </div>
         </div>
         {% empty %}
-        <div class="col-lg-4 col-sm-6">
+        <div class="col-lg-3 col-sm-6">
           <a class="reset-anchor text-primary" href="{% url 'shop:product-list' %}">
             Return to shop top</a>
         </div>

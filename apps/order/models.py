@@ -91,6 +91,7 @@ class Order(BaseModel):
 
     number = models.CharField(
         _("order number"), max_length=100, default='', unique=True)
+    slug = models.SlugField(_("slug"), null=True)
     status = FSMField(_("order status"),
                       choices=Status.choices, default=Status.NEW, protected=True)
     subtotal = models.DecimalField(
@@ -114,6 +115,7 @@ class Order(BaseModel):
     def save(self, *args, **kwargs):
         if not self.number:
             self.number = generate_order_number()
+            self.slug = self.number
         return super(Order, self).save(*args, **kwargs)
 
     def get_absolute_url(self):
@@ -149,7 +151,7 @@ class OrderProduct(BaseModel):
     count = models.PositiveIntegerField(_("count"))
 
     product = models.ForeignKey(
-        ProductSKU, verbose_name=_("sku"), on_delete=models.CASCADE)
+        ProductSKU, verbose_name=_("sku"), on_delete=models.CASCADE, related_name='order_products')
     order = models.ForeignKey(Order, verbose_name=_(
         'Order'), on_delete=models.SET_NULL, null=True, related_name='order_products')
 
@@ -162,6 +164,16 @@ class OrderProduct(BaseModel):
     @property
     def total_price(self):
         return self.unit_price * self.count
+
+    # FIXME: RelatedObjectDoesNotExist exception cannot be caught
+    @property
+    def is_reviewed(self):
+        return hasattr(self, 'review')
+        # try:
+        #     self.review
+        #     return False
+        # except:
+        #     return True
 
 
 class Review(BaseModel):
@@ -178,10 +190,10 @@ class Review(BaseModel):
     comment = models.TextField(_("comment"))
 
     order_product = models.OneToOneField(
-        OrderProduct, verbose_name=_("order product"), on_delete=models.CASCADE, related_name='review')
+        OrderProduct, verbose_name=_("order product"), on_delete=models.CASCADE)
 
     class Meta:
         ordering = ('-created_at',)
 
     def __str__(self):
-        return f'review for {self.order_product.product} by {self.order_product.user}'
+        return f'review for {self.order_product.product} by {self.order_product.order.user}'

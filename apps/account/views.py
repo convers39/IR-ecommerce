@@ -17,8 +17,9 @@ from django_redis import get_redis_connection
 
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from itsdangerous import SignatureExpired, BadData
+import stripe
 
-from order.models import Order
+from order.models import Order, OrderProduct, Review
 from shop.models import ProductSKU
 
 from .forms import RegisterForm, UserInfoForm, AddressForm
@@ -37,7 +38,13 @@ class AccountCenterView(LoginRequiredMixin, FormMixin, View):
         # get recent watch history
         conn = get_redis_connection('cart')
         sku_ids = conn.lrange(f'history_{user.id}', 0, 7)
-        recent_products = ProductSKU.objects.filter(id__in=sku_ids)
+
+        # NOTE: use filter will break the order of recent products
+        # recent_products = ProductSKU.objects.filter(id__in=sku_ids)
+        recent_products = []
+        for sku_id in sku_ids:
+            sku = ProductSKU.objects.get(id=sku_id)
+            recent_products.append(sku)
 
         context = {
             'user': user,
@@ -60,6 +67,35 @@ class AccountCenterView(LoginRequiredMixin, FormMixin, View):
             return JsonResponse({'res': '1', 'msg': 'Data updated'})
 
         return JsonResponse({'res': '0', 'errmsg': 'Error!'})
+
+
+class PasswordResetView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        user = request.user
+
+        try:
+            data = json.loads(request.body.decode())
+        except:
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
+        print(data)
+
+        current = data.get('currentPassword')
+        new = data.get('newPassword')
+        confirm = data.get('confirmNewPassword')
+
+        if new != confirm:
+            return JsonResponse({'res': '0', 'errmsg': 'Passwords does not match'})
+
+        if not user.check_password(current):
+            return JsonResponse({'res': '0', 'errmsg': 'Current password invalid'})
+
+        if new == current:
+            return JsonResponse({'res': '0', 'errmsg': 'Same as current password'})
+
+        user.set_password(data.get('newPassword'))
+        user.save()
+        # TODO: send email to customer
+        return JsonResponse({'res': '1', 'msg': 'Password changed'})
 
 
 class OrderListView(LoginRequiredMixin, ListView):
@@ -86,8 +122,43 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["order_products"] = self.object.order_products
+        context["order_products"] = self.object.order_products.all(
+        ).select_related('product')
+        payment = self.object.payment
+        payment_intent = stripe.PaymentIntent.retrieve(
+            payment.number)
+        context['stripe_key'] = settings.STRIPE_PUBLIC_KEY
+        if payment.status != 'SC':
+            context['payment_detail'] = None
+        else:
+            context['payment_detail'] = payment_intent.charges.data[0].payment_method_details
         return context
+
+    # TODO: post method to manage customer review
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        try:
+            data = json.loads(request.body.decode())
+        except:
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
+        print(data)
+
+        order_product_id = data.get('order_product_id')
+        star = data.get('star')
+        comment = data.get('comment')
+
+        try:
+            order_product = OrderProduct.objects.get(id=order_product_id)
+        except OrderProduct.DoesNotExist:
+            return JsonResponse({'res': '0', 'errmsg': 'Item does not exist'})
+
+        Review.objects.create(
+            order_product=order_product,
+            star=star,
+            comment=comment
+        )
+        return JsonResponse({'res': '1', 'msg': 'Comment submitted'})
 
 
 class AddressView(LoginRequiredMixin, FormMixin, View):
@@ -98,11 +169,8 @@ class AddressView(LoginRequiredMixin, FormMixin, View):
     def get(self, request, *args, **kwargs):
         user = request.user
         addresses = user.addresses.all()
-        # forms = [AddressForm(instance=address) for address in all_addresses]
-        # default_addr = Address.objects.get_default_address(user)
         context = {
             'user': user,
-            # 'default_addr': default_addr,
             'addresses': addresses,
             'form': self.form_class
         }

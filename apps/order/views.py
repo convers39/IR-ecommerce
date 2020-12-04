@@ -16,6 +16,7 @@ import stripe
 import json
 from datetime import datetime, timedelta, timezone
 from account.models import Address
+from shop.models import ProductSKU
 from cart.cart import cal_total_count_subtotal, cal_shipping_fee
 
 from .models import Order, Payment, OrderProduct
@@ -66,9 +67,12 @@ class CheckoutView(LoginRequiredMixin, View):
 
 class OrderProcessView(OrderDataCheckMixin, View):
     """
-    Create an Order instance when accept an ajax request from checkout page, 
+    Customer click place order to send an ajax request,
+    recieve address and payment method only from request data,
+    retrieve shopping cart data from redis and calculate price,
+    add lock when retrieve product data from DB (using pessimistic lock here), 
     create a stripe checkout session, response a json containing sessionId,
-    and in the fronend use this sessionId to redirect customer to stripe checkout
+    and in the fronend use the sessionId to redirect customer to stripe checkout
     """
 
     @transaction.atomic
@@ -98,7 +102,14 @@ class OrderProcessView(OrderDataCheckMixin, View):
 
             # create OrderProduct instance for earch product
             conn = get_redis_connection('cart')
-            for product in products:
+            for sku in products:
+                try:
+                    # add lock when retrieve product data
+                    product = ProductSKU.objects.select_for_update().get(id=sku.id)
+                except ProductSKU.DoesNotExist:
+                    transaction.savepoint_rollback(save_id)
+                    return JsonResponse({'res': 0, 'errmsg': f'Item {sku.name} does not exist'})
+
                 count = conn.hget(f'cart_{user.id}', product.id)
                 if int(count) > product.stock:
                     transaction.savepoint_rollback(save_id)
@@ -106,7 +117,7 @@ class OrderProcessView(OrderDataCheckMixin, View):
 
                 OrderProduct.objects.create(
                     order=order,
-                    product=product,
+                    product=sku,
                     count=int(count),
                     unit_price=product.price
                 )
@@ -117,8 +128,8 @@ class OrderProcessView(OrderDataCheckMixin, View):
 
             # create stripe checkout session, keep 1 item only
             amount = order.total_amount
-            item_name = f'{products[0].name} and other {len(products)} items' \
-                if len(products) > 1 else f'{products[0].name}'
+            item_name = f'{products[0].name} and other {len(products)-1} items' \
+                if len(products) > 2 else f'{products[0].name},{products[1].name}'
             session = create_checkout_session(
                 user, payment_method, item_name, amount)
             print('checkout session created')
@@ -139,7 +150,7 @@ class OrderProcessView(OrderDataCheckMixin, View):
             transaction.savepoint_rollback(save_id)
             return JsonResponse({'res': 0, 'errmsg': 'Failed to create order'})
 
-        # commitpt all changes to database
+        # committ all changes to database
         transaction.savepoint_commit(save_id)
 
         # clear shopping cart in the end
@@ -164,6 +175,7 @@ def create_checkout_session(user, payment_method, item_name, amount):
             'quantity': 1,
         }],
         mode='payment',
+        # TODO: add order number into url
         success_url='http://127.0.0.1:8080/order/success/',
         cancel_url='http://127.0.0.1:8080/account/order/',
         # success_url=reverse('order:success'),

@@ -19,7 +19,8 @@ class RegisterForm(forms.ModelForm):
             'email': forms.EmailInput(
                 attrs={'class': 'form-control', 'placeholder': 'Enter email', 'id': 'email'}),
             'password': forms.PasswordInput(
-                attrs={'class': 'form-control', 'placeholder': 'Enter password', 'id': 'password', 'pattern': '(?=.*\d)(?=.*[a-z]).{6,}', 'title': 'Must contain at least one number and one lowercase letter, and 6 or more characters'}),
+                attrs={'class': 'form-control', 'placeholder': 'Enter password', 'id': 'password',
+                       'pattern': '(?=.*\d)(?=.*[a-z]).{6,}', 'title': 'Must contain at least one number and one lowercase letter, and 6 or more characters'}),
         }
         # labels = {
         #     'name': _(''),

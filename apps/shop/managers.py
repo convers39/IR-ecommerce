@@ -27,8 +27,14 @@ class SKUManager(models.Manager):
 
     def get_products_with_review(self):
         """
-        Return a queryset of products sku which has a customer review.
+        Return a LIST of products sku which has a customer review.
         """
+        products = self.get_queryset()
+        order_products = []
+        for product in products:
+            order_products = order_products.extend(
+                list(product.order_products.all()))
+        return [i for i in order_products if i.is_reviewed]
         # return self.get_queryset().filter()
 
     def get_trending_products(self):

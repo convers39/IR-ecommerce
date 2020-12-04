@@ -12,10 +12,10 @@ class ImageInline(admin.TabularInline):
 @admin.register(ProductSKU)
 class SKUAdmin(admin.ModelAdmin):
     ordering = ('name', 'category',)
-    list_display = ('name', 'spu', 'category',
+    list_display = ('id', 'name', 'spu', 'category',
                     'origin', 'stock', 'price', 'sales')
-    search_fields = ('name', 'summary', 'detail',)
-    list_filter = ('status', 'spu', 'category', 'origin',)
+    search_fields = ('id', 'name', 'summary', 'detail',)
+    list_filter = ('id', 'status', 'spu', 'category', 'origin',)
 
     fieldsets = (
         ('Basic Information', {
@@ -40,7 +40,7 @@ class SKUAdmin(admin.ModelAdmin):
 @admin.register(Category)
 class CategoryAdmin(DraggableMPTTAdmin):
     mptt_indent_field = "name"
-    list_display = ('tree_actions', 'indented_title',
+    list_display = ('id', 'tree_actions', 'indented_title',
                     'related_products_count', 'related_products_cumulative_count')
     list_display_links = ('indented_title',)
     # list_filter = (('Category', TreeRelatedFieldListFilter),)

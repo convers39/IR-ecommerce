@@ -12,7 +12,7 @@ from .models import ProductSKU, Category
 class IndexView(ListView):
     template_name = 'index.html'
     context_object_name = 'products'
-    queryset = ProductSKU.objects.get_trending_products().order_by('?')[:6]
+    queryset = ProductSKU.objects.get_trending_products().order_by('?')[:8]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -122,10 +122,12 @@ class ProductDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['images'] = self.object.images.all()
+        product = self.object
+        context['images'] = product.images.all()
         context['related_products'] = ProductSKU.objects.get_same_category_products(
-            self.object)[:4]
-
+            product)[:4]
+        context['reviews'] = [
+            order_product.review for order_product in product.order_products.all()]
         return context
 
     def render_to_response(self, context):
