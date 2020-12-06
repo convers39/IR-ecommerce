@@ -4,19 +4,22 @@ from django.views.generic import ListView, DetailView
 
 from django_redis import get_redis_connection
 
-from .models import ProductSKU, Category
-
-# Create your views here.
+from .models import ProductSKU, Category, HomeBanner
 
 
 class IndexView(ListView):
     template_name = 'index.html'
     context_object_name = 'products'
-    queryset = ProductSKU.objects.get_trending_products().order_by('?')[:8]
+    # NOTE: By only using queryset attribute will lead error on testing, use get_queryset method intead
+    # queryset = ProductSKU.objects.get_trending_products().order_by('?')[:8]
+
+    def get_queryset(self):
+        return ProductSKU.objects.get_trending_products().order_by('?')[:8]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["banners"] = ProductSKU.objects.get(id=2).banners.all()
+        # TODO: implement slide for banners
+        context["banners"] = HomeBanner.objects.all()
         return context
 
 
@@ -38,7 +41,7 @@ class ProductListView(ListView):
     def get_queryset(self):
         queryset = ProductSKU.objects.get_queryset()
 
-        # check if user input a search text
+        # check if user input a search text, consider to asign seperate route for search
         search_term = self.request.GET.get('search')
         if search_term:
             queryset = ProductSKU.objects.search(search_term)
@@ -83,7 +86,7 @@ class ProductListView(ListView):
             category = Category.objects.get(slug=category_slug)
             context['category'] = category
 
-        # when query set is paginated, use paginator to return total results count,
+        # NOTE:when query set is paginated, use paginator to return total results count,
         # otherwise use queryset count, including 0 item case
         try:
             context['count'] = context['paginator'].count

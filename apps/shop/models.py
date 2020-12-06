@@ -1,12 +1,13 @@
 
-from datetime import datetime, timedelta, timezone
+from django.contrib.postgres.search import SearchVectorField
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Avg
 from django.urls import reverse
-from django.core.validators import MaxValueValidator, MinValueValidator
-from django.contrib.postgres.search import SearchVectorField
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
+
+from datetime import datetime, timedelta, timezone
 
 from taggit.managers import TaggableManager
 from ckeditor.fields import RichTextField
@@ -14,7 +15,6 @@ from mptt.models import MPTTModel, TreeForeignKey
 
 from db.base_model import BaseModel
 from .managers import SKUManager
-# from .tasks import update_search_vector
 
 
 class Category(MPTTModel):

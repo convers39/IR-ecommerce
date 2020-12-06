@@ -1,13 +1,12 @@
 from django.test import TestCase, Client, override_settings
 from django.urls import resolve, reverse
-from django.contrib.messages import get_messages
 from django_redis import get_redis_connection
 
 import tempfile
 import json
 from PIL import Image
 
-from .factory import UserFacotry
+from account.tests.factory import UserFacotry
 from shop.tests.factory import SkuFactory, CategoryFactory
 from cart.views import CartInfoView, CartAddView, CartUpdateView, CartDeleteView
 

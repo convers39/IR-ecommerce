@@ -3,7 +3,7 @@ from django.shortcuts import reverse
 from db.base_model import BaseModel
 from django.utils.translation import ugettext_lazy as _
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from django_fsm import FSMField, transition
 import stripe
 
@@ -49,7 +49,7 @@ class Payment(BaseModel):
         return f'Payment {self.number} for {self.user}'
 
     def is_expired(self):
-        return (datetime.now() - self.created_at) > timedelta(hours=24)
+        return (datetime.now(timezone.utc) - self.created_at) > timedelta(hours=24)
 
     @transition(field=status, source='PD', target='SC')
     def pay(self):
@@ -84,7 +84,7 @@ class Order(BaseModel):
         NEW = 'NW', _('New')  # created new order
         # payment succeeded -> order confirmed
         CONFIRMED = 'CF', _('Confirmed')
-        # order canceled -> payment intent clear
+        # order canceled -> payment cancel
         CANCELED = 'CX', _('Canceled')
         SHIPPED = 'SP', _('Shipped')
         RETURNED = 'RT', _('Returned')
@@ -165,15 +165,9 @@ class OrderProduct(BaseModel):
     def total_price(self):
         return self.unit_price * self.count
 
-    # FIXME: RelatedObjectDoesNotExist exception cannot be caught
     @property
     def is_reviewed(self):
         return hasattr(self, 'review')
-        # try:
-        #     self.review
-        #     return False
-        # except:
-        #     return True
 
 
 class Review(BaseModel):
@@ -190,7 +184,7 @@ class Review(BaseModel):
     comment = models.TextField(_("comment"))
 
     order_product = models.OneToOneField(
-        OrderProduct, verbose_name=_("order product"), on_delete=models.CASCADE)
+        OrderProduct, verbose_name=_("order product"), on_delete=models.CASCADE, related_name='review')
 
     class Meta:
         ordering = ('-created_at',)

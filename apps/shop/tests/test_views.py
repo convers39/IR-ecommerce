@@ -6,8 +6,9 @@ from django.contrib.messages import get_messages
 from PIL import Image
 
 import tempfile
+from shop.models import ProductSKU
 from shop.views import ProductListView
-from .factory import SkuFactory, CategoryFactory, get_temporary_image
+from .factory import BannerFactory, SkuFactory, CategoryFactory
 
 # TODO: finish view test
 
@@ -27,23 +28,25 @@ class TestShopListView(TestCase):
     @classmethod
     def setUpTestData(cls) -> None:
         cls.category = CategoryFactory()
+        cls.url = reverse('shop:product-list')
         for _ in range(10):
             dummy = SkuFactory()
-            temp_file = tempfile.NamedTemporaryFile()
+            # temp_file = tempfile.NamedTemporaryFile()
             dummy.category = cls.category
-            dummy.cover_img = get_temporary_image(temp_file.name)
+            # dummy.cover_img = get_temporary_image(temp_file.name)
             dummy.save()
 
     def test_view_url_reverse(self):
-        self.assertEqual(reverse('shop:product-list'), '/shop/')
+        self.assertEqual(self.url, '/shop/')
         self.assertEqual(reverse('shop:category-list', kwargs={
                          'category_slug': self.category.slug}), f'/shop/{self.category.slug}/')
         self.assertEqual(reverse('shop:index'), '/')
 
     # @override_settings(MEDIA_ROOT=tempfile.gettempdir())
     def test_shop_list_view_show_items(self):
-        res = self.client.get(reverse('shop:product-list'))
+        res = self.client.get(self.url)
         total_count = int(res.context['paginator'].count)
+
         self.assertEqual(res.status_code, 200)
         self.assertEqual(total_count, 10)
         self.assertTemplateUsed(res, 'shop/product-list.html')
@@ -51,25 +54,28 @@ class TestShopListView(TestCase):
                          ProductListView.as_view().__name__)
 
     def test_shop_list_view_pagination(self):
-        res = self.client.get(reverse('shop:product-list'))
+        res = self.client.get(self.url)
         paginator = res.context['paginator']
-        object_per_page = res.context['object_list'].count()
+        object_per_page = len(res.context['object_list'])
         paginate_by = paginator.per_page
         orphan = paginator.orphans
         last_page = paginator.get_page(paginator.num_pages)
+
         self.assertEqual(res.status_code, 200)
         self.assertTrue(res.context['is_paginated'])
         self.assertEqual(object_per_page, paginate_by)
         self.assertEqual(orphan+paginate_by, len(last_page))
 
     def test_bad_page_request(self):
-        res = self.client.get(reverse('shop:product-list')+'?page=100')
+        res = self.client.get(self.url+'?page=100')
+
         self.assertRaises(InvalidPage)
         self.assertEqual(res.status_code, 404)
 
     def test_category_list_view(self):
         res = self.client.get(f'/shop/{self.category.slug}/')
         item = res.context['object_list'][0]
+
         self.assertEqual(res.status_code, 200)
         self.assertEqual(item.category, self.category)
         self.assertTrue(res.context['is_paginated'])
@@ -79,35 +85,40 @@ class TestShopListView(TestCase):
 
     def test_category_list_view_404(self):
         res = self.client.get('/shop/random_slug/')
+
         self.assertEqual(res.status_code, 404)
 
     def test_shop_list_view_search(self):
-        res = self.client.get(reverse('shop:product-list')+'?search=awesome')
+        res = self.client.get(self.url+'?search=awesome')
+
         self.assertEqual(res.status_code, 200)
         self.assertTrue(res.context['is_paginated'])
         self.assertTemplateUsed(res, 'shop/product-list.html')
 
     def test_shop_list_no_result_found(self):
         res = self.client.get(
-            reverse('shop:product-list')+'?search=randomstuff')
+            self.url+'?search=randomstuff')
         items = res.context['object_list']
         msg = list(get_messages(res.wsgi_request))
+
         self.assertEqual(res.status_code, 200)
         self.assertFalse(items)
         self.assertEqual(str(msg[0]), 'No results found!')
         self.assertTemplateUsed(res, 'shop/product-list.html')
 
     def test_shop_list_view_sort(self):
-        res = self.client.get(reverse('shop:product-list')+'?sorting=sales')
+        res = self.client.get(self.url+'?sorting=sales')
+
         self.assertEqual(res.status_code, 200)
         self.assertTrue(res.context['is_paginated'])
         self.assertTemplateUsed(res, 'shop/product-list.html')
 
     def test_shop_list_view_invalid_sort(self):
         res = self.client.get(
-            reverse('shop:product-list')+'?sorting=invalidsort')
+            self.url+'?sorting=invalidsort')
         items = res.context['object_list']
         msg = list(get_messages(res.wsgi_request))
+
         self.assertEqual(res.status_code, 200)
         self.assertTrue(items)
         self.assertEqual(str(msg[0]), 'Sorted by default (latest).')
@@ -166,7 +177,7 @@ class TestShopDetailView(TestCase):
     # def test_tags_search(self):
     #     new_sku = SkuFactory
     #     new_sku.tags.add('awesome')
-    #     res = self.client.get(reverse('shop:product-list')+f'?tag=awesome')
+    #     res = self.client.get(self.url+f'?tag=awesome')
     #     items = res.context['object_list']
     #     self.assertEqual(res.status_code, 200)
     #     self.assertEqual(len(items), 2)
@@ -174,4 +185,20 @@ class TestShopDetailView(TestCase):
 
 
 class TestShopIndexView(TestCase):
-    pass
+    def setUp(self) -> None:
+        self.client = Client()
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.sku = SkuFactory()
+        cls.banner = BannerFactory(sku=cls.sku)
+        cls.url = reverse('shop:index')
+
+    def test_index_view_GET(self):
+        res = self.client.get(self.url)
+        for _ in range(5):
+            sku = SkuFactory()
+        context = res.resolve_context('banner')
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, 'index.html')

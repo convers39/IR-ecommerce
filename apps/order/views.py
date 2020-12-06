@@ -79,13 +79,9 @@ class OrderProcessView(OrderDataCheckMixin, View):
     def post(self, request):
         # retreive data from request
         user = request.user
-
         data = json.loads(request.body.decode())
         addr_id = data.get('addr').split('-')[-1]
         payment_method = data.get('payment_method')
-
-        products, total_count, subtotal = cal_total_count_subtotal(user.id)
-        shipping_fee = cal_shipping_fee(subtotal, total_count)
 
         # make transaction savepoint before changing any data in database
         save_id = transaction.savepoint()
@@ -93,8 +89,7 @@ class OrderProcessView(OrderDataCheckMixin, View):
             # create an Order instance
             address = Address.objects.get(id=addr_id)
             order = Order.objects.create(
-                subtotal=subtotal,
-                shipping_fee=shipping_fee,
+                subtotal=0,
                 user=user,
                 address=address
             )
@@ -102,29 +97,42 @@ class OrderProcessView(OrderDataCheckMixin, View):
 
             # create OrderProduct instance for earch product
             conn = get_redis_connection('cart')
-            for sku in products:
+            cart_dict = conn.hgetall(f'cart_{user.id}')
+
+            products = []
+            total_count = subtotal = 0
+            for sku_id, count in cart_dict.items():
                 try:
                     # add lock when retrieve product data
-                    product = ProductSKU.objects.select_for_update().get(id=sku.id)
+                    product = ProductSKU.objects.select_for_update().get(id=sku_id)
                 except ProductSKU.DoesNotExist:
                     transaction.savepoint_rollback(save_id)
-                    return JsonResponse({'res': 0, 'errmsg': f'Item {sku.name} does not exist'})
+                    return JsonResponse({'res': 0, 'errmsg': 'Item does not exist'})
 
-                count = conn.hget(f'cart_{user.id}', product.id)
                 if int(count) > product.stock:
                     transaction.savepoint_rollback(save_id)
                     return JsonResponse({'res': 0, 'errmsg': f'Item {product.name} understocked'})
 
                 OrderProduct.objects.create(
                     order=order,
-                    product=sku,
+                    product=product,
                     count=int(count),
                     unit_price=product.price
                 )
                 product.stock -= int(count)
                 product.sales += int(count)
                 product.save()
+
+                products.append(product)
+                total_count += int(count)
+                subtotal += product.price * int(count)
             print('orderproducts created')
+
+            # update shipping fee and subtotal in order object
+            shipping_fee = cal_shipping_fee(subtotal, total_count)
+            order.shipping_fee = shipping_fee
+            order.subtotal = subtotal
+            print('order updated')
 
             # create stripe checkout session, keep 1 item only
             amount = order.total_amount
@@ -176,7 +184,7 @@ def create_checkout_session(user, payment_method, item_name, amount):
         }],
         mode='payment',
         # TODO: add order number into url
-        success_url='http://127.0.0.1:8080/order/success/',
+        success_url='http://127.0.0.1:8080/order/success/?session_id={CHECKOUT_SESSION_ID}',
         cancel_url='http://127.0.0.1:8080/account/order/',
         # success_url=reverse('order:success'),
         # cancel_url=reverse('account:center'),
@@ -195,7 +203,7 @@ class PaymentSuccessView(TemplateView):
 
         time_delta = datetime.now(tz=timezone.utc) - payment.created_at
         if payment.status != 'SC' or time_delta > timedelta(minutes=5):
-            messages.error(request, 'Invalid visit')
+            messages.error(request, 'Invalid access')
             return redirect(reverse('account:order-list'))
 
         return render(request, self.template_name, context)

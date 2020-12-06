@@ -1,8 +1,9 @@
 from django.test import TestCase
-# from unittest import mock
 
-from shop.models import ProductSKU, Category, ProductSPU, Origin
-from .factory import SkuFactory, CategoryFacotry, SpuFacotry, OriginFacotry
+import factory
+
+from shop.models import ProductSKU, Category, ProductSPU, Origin, HomeBanner
+from .factory import BannerFactory, SkuFactory, CategoryFactory, SpuFactory, OriginFactory
 
 
 class TestSkuModel(TestCase):
@@ -50,12 +51,12 @@ class TestCategoryModel(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.category = CategoryFacotry()
+        cls.category = CategoryFactory()
 
     def test_create_category(self):
         count = Category.objects.count()
         for _ in range(3):
-            c = CategoryFacotry()
+            c = CategoryFactory()
             self.assertIsInstance(c, Category)
         self.assertEqual(count+3, Category.objects.count())
 
@@ -77,7 +78,7 @@ class TestCategoryModel(TestCase):
             str(self.category._meta.verbose_name_plural), 'categories')
 
     def test_create_slug_on_save(self):
-        new_category = CategoryFacotry(name='awesome new category')
+        new_category = CategoryFactory(name='awesome new category')
         self.assertEqual(new_category.slug, 'awesome-new-category')
 
     def test_get_absolute_url(self):
@@ -89,12 +90,12 @@ class TestSpuModel(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.spu = SpuFacotry()
+        cls.spu = SpuFactory()
 
     def test_create_spu(self):
         count = ProductSPU.objects.count()
         for _ in range(3):
-            p = SpuFacotry()
+            p = SpuFactory()
             self.assertIsInstance(p, ProductSPU)
         self.assertEqual(count+3, ProductSPU.objects.count())
 
@@ -120,12 +121,12 @@ class TestOriginModel(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.origin = OriginFacotry()
+        cls.origin = OriginFactory()
 
     def test_create_origin(self):
         count = ProductSPU.objects.count()
         for _ in range(3):
-            p = SpuFacotry()
+            p = SpuFactory()
             self.assertIsInstance(p, ProductSPU)
         self.assertEqual(count+3, ProductSPU.objects.count())
 
@@ -140,3 +141,19 @@ class TestOriginModel(TestCase):
             self.assertEqual(sku.origin, self.origin)
         self.assertEqual(self.origin.sku.count(), 3)
         self.assertEqual(sku_count+3, ProductSKU.objects.count())
+
+
+class TestHomeBannerModel(TestCase):
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.banner = BannerFactory()
+
+    def test_create_banner(self):
+        count = HomeBanner.objects.count()
+        banner = BannerFactory()
+        self.assertIsInstance(banner, HomeBanner)
+        self.assertEqual(count+1, HomeBanner.objects.count())
+
+    def test_str_representation(self):
+        self.assertEqual(str(self.banner), f'{self.banner.sku.name} banner')

@@ -1,9 +1,10 @@
+from django.db.models.signals import post_save
 import factory
 from factory.django import DjangoModelFactory
 from taggit.managers import TaggableManager
 from taggit.models import TaggedItem
 
-from shop.models import ProductSPU, ProductSKU, Origin, Category, Image
+from shop.models import ProductSPU, ProductSKU, Origin, Category, Image, HomeBanner
 
 
 class CategoryFactory(DjangoModelFactory):
@@ -12,6 +13,7 @@ class CategoryFactory(DjangoModelFactory):
 
     name = factory.Sequence(lambda n: 'awesome category %d' % n)
     desc = factory.Faker('sentence')
+    image = factory.django.ImageField()
 
 
 class OriginFactory(DjangoModelFactory):
@@ -35,6 +37,7 @@ class TagsFactory(DjangoModelFactory):
         model = TaggedItem
 
 
+@factory.django.mute_signals(post_save)
 class SkuFactory(DjangoModelFactory):
     class Meta:
         model = ProductSKU
@@ -44,6 +47,7 @@ class SkuFactory(DjangoModelFactory):
     unit = 1
     price = 500
     brand = factory.Faker('company')
+    cover_img = factory.django.ImageField()
     # tags = ProductSKU.tags.add('bug')
     # tags = ['buff']
     category = factory.SubFactory(CategoryFactory)
@@ -62,6 +66,19 @@ class SkuFactory(DjangoModelFactory):
     #             self.tags.add(tags)
 
 
-class ImageFacotry(DjangoModelFactory):
+class ImageFactory(DjangoModelFactory):
     class Meta:
         model = Image
+
+    name = factory.Faker('last_name')
+    image = factory.django.ImageField()
+    sku = factory.SubFactory(SkuFactory)
+
+
+class BannerFactory(DjangoModelFactory):
+    class Meta:
+        model = HomeBanner
+
+    index = factory.Sequence(int)
+    image = factory.django.ImageField()
+    sku = factory.SubFactory(SkuFactory)
