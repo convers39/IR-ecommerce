@@ -4,7 +4,7 @@ from pathlib import Path
 import sys
 import os
 
-from django.conf.global_settings import MEDIA_ROOT, STATIC_ROOT
+from django.conf.global_settings import EMAIL_HOST_PASSWORD, MEDIA_ROOT, STATIC_ROOT
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
@@ -15,13 +15,9 @@ sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '0w@xsv9re+3w=9*%n(*g&oua9rnz090n51=_szwt@ktk0ao*dw'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 ALLOWED_HOSTS = ['*']
-
 
 # Application definition
 
@@ -89,22 +85,22 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'oda.ichii@gmail.com'
-EMAIL_FROM = 'IREC<oda.ichii@gmail.com>'
-EMAIL_HOST_PASSWORD = 'hxmkwnfyrgrkzxxz'
+EMAIL_HOST = os.environ.get('EMAIL_HOST')
+EMAIL_PORT = os.environ.get('EMAIL_PORT')
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_FROM = os.environ.get('EMAIL_FROM')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'admin',
-        'PASSWORD': 'pgadmin',
-        'HOST': 'pgdb',
-        'PORT': 5432,
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST'),
+        'PORT': os.environ.get('DB_PORT'),
     }
 }
 
@@ -187,14 +183,15 @@ LOGIN_REDIRECT_URL = '/account/'
 TAGGIT_CASE_INSENSITIVE = True
 
 # AWS setting
-AWS_ACCESS_KEY_ID = 'AKIAX5AS5QG7C7S3AHXT'
-AWS_SECRET_ACCESS_KEY = '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'
-AWS_STORAGE_BUCKET_NAME = 'ir-ecommerce'
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
 
+
+AWS_S3_REGION_NAME = os.environ.get(
+    'AWS_S3_REGION_NAME')  # change to your region
+AWS_S3_SIGNATURE_VERSION = os.environ.get('AWS_S3_SIGNATURE_VERSION')
 AWS_S3_FILE_OVERWRITE = True
-
-AWS_S3_REGION_NAME = 'ap-northeast-1'  # change to your region
-AWS_S3_SIGNATURE_VERSION = 's3v4'
 
 # CKEDITOR
 CKEDITOR_CONFIGS = {
@@ -212,6 +209,6 @@ CKEDITOR_CONFIGS = {
 }
 
 # stripe key
-STRIPE_SECRET_KEY = 'sk_test_51HLl4uEz7XMShQN5T2wQAp2egqsIgx18ufPmslxpnUG153iuahSyKT8syxAcdBPX8sbJ5XbIhNgDvz1bEjlykjBY00sw2FHzpy'
-STRIPE_PUBLIC_KEY = 'pk_test_51HLl4uEz7XMShQN5JTytPqSCJPGhNhrs3z9ancAoo5U19wJ0EATsdBKL6aLStvVkGLCElkVLrQLqWhoLZ4oLGX3A00bYlbNoiC'
-WEBHOOK_SECRET = 'whsec_JCmllYTrZo4wMyf6qthmhu2YtTLzL51M'
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
+STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY')
+WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET')

@@ -10,15 +10,6 @@ if DEBUG:
         'SHOW_TOOLBAR_CALLBACK': lambda _request: DEBUG
     }
 
-# CACHES = {
-#     'default': {
-#         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-#     },
-#     'cart': {
-#         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-#     }
-# }
-# print(CACHES)
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",

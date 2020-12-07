@@ -1,27 +1,26 @@
-from apps.cart.cart import cal_cart_count
+from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from django.urls.base import reverse
-from django.views.generic import View, TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse, HttpResponse
-from django.db import transaction
 from django.views.decorators.http import require_POST
-from django.conf import settings
-
-from django_redis import get_redis_connection
+from django.views.generic import View, TemplateView
 
 import stripe
 import json
 from datetime import datetime, timedelta, timezone
+
+from django_redis import get_redis_connection
+
 from account.models import Address
 from shop.models import ProductSKU
-from cart.cart import cal_total_count_subtotal, cal_shipping_fee
+from cart.cart import cal_total_count_subtotal, cal_shipping_fee, cal_cart_count
 
 from .models import Order, Payment, OrderProduct
 from .mixins import OrderDataCheckMixin
-from .utils import generate_order_number
 
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
