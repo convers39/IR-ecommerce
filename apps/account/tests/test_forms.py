@@ -3,14 +3,20 @@ from django.urls.base import reverse
 from account.forms import RegisterForm
 from account.models import User
 
+from .factory import UserFactory, AddressFactory
+
 
 class TestAccountForms(TestCase):
-    def setUp(self):
-        self.form = RegisterForm
-        self.url = reverse('account:register')
+
+    def setUp(self) -> None:
         self.client = Client()
-        User.objects.create_user(
-            username='username', email='email@email.com', password='password1')
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.form = RegisterForm
+        cls.url = reverse('account:register')
+        UserFactory(username='username', email='email@email.com',
+                    password='password1')
 
     def test_register_form_data_is_valid(self):
         data = {

@@ -14,7 +14,12 @@ class IndexView(ListView):
     # queryset = ProductSKU.objects.get_trending_products().order_by('?')[:8]
 
     def get_queryset(self):
-        return ProductSKU.objects.get_trending_products().order_by('?')[:8]
+        try:
+            queryset = ProductSKU.objects.get_trending_products().\
+                order_by('?')[:8]
+        except ValueError:
+            queryset = []
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -129,8 +134,9 @@ class ProductDetailView(DetailView):
         context['images'] = product.images.all()
         context['related_products'] = ProductSKU.objects.get_same_category_products(
             product)[:4]
-        context['reviews'] = [
-            order_product.review for order_product in product.order_products.all()]
+
+        context['reviews'] = [order_product.review for order_product in product.order_products.all(
+        ) if order_product.is_reviewed]
         return context
 
     def render_to_response(self, context):

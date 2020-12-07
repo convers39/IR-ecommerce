@@ -125,9 +125,14 @@
             Order</a>
           <a class="reset-anchor pr-2" href="#"><i class="fas fa-shipping-fast fa-sm pr-1"></i> Check
             Shipment</a>
-          {% if order.status == 'NW' %}<a class="reset-anchor pr-2 payment" href="#"
-            session='{{order.payment.session_id}}'><i class="fas fa-credit-card pr-1"></i>Pay
-            Now<span id="countdown"></span></a>{% else %}<i class="fas fa-check-square pr-1"></i>Paid{% endif %}
+          {% if order.payment.status == 'PD' %}
+          <a class="reset-anchor pr-2 payment" href="#" session='{{order.payment.session_id}}'><i
+              class="fas fa-credit-card pr-1"></i>Pay
+            Now<span id="countdown"></span></a>
+          {% elif order.payment.status == 'EX' %}
+          <i class="fas fa-calendar-times pr-1"></i><span>Expired</span>
+          {% else %}
+          <i class="fas fa-check-square pr-1"></i>Paid{% endif %}
 
         </div>
       </div>

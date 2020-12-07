@@ -26,7 +26,7 @@ class OrderProductInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('number', 'status',
+    list_display = ('id', 'number', 'status',
                     'user', 'payment', 'created_at')
     search_fields = ('status', 'user', 'number')
     list_filter = ('status', 'user',)
@@ -49,7 +49,7 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('number', 'status', 'created_at',)
+    list_display = ('id', 'number', 'status', 'created_at',)
     search_fields = ('status', 'number',)
     list_filter = ('status', 'user')
     readonly_fields = ('is_deleted', 'number', 'status',

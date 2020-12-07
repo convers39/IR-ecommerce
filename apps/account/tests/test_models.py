@@ -2,15 +2,16 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django_countries import countries
 
-from account.models import Address
-
-
-User = get_user_model()
+from account.models import Address, User
+from .factory import UserFactory, AddressFactory
 
 
 class UserAccountTests(TestCase):
-    def setUp(self) -> None:
-        self.model = User
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.model = User
+        cls.user = UserFactory()
 
     def test_create_superuser(self):
         super_user = self.model.objects.create_superuser(
@@ -68,7 +69,7 @@ class UserAddressTests(TestCase):
     def test_add_address(self):
         user = User.objects.create_user(
             'username', 'user@test.com', 'password')
-        Address.objects.create(
+        address = AddressFactory(
             user=user, recipient='recipientname',
             phone_no='55550000',
             addr='room 00, 66 building, xx road, yy district',
@@ -77,7 +78,6 @@ class UserAddressTests(TestCase):
             zip_code='777777',
             is_default=True
         )
-        address = Address.objects.get(id=1)
         self.assertEqual(address.user, user)
         self.assertEqual(address.recipient, 'recipientname')
         self.assertEqual(address.phone_no, '55550000')

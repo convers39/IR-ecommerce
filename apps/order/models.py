@@ -1,12 +1,13 @@
 from django.db import models
 from django.shortcuts import reverse
-from db.base_model import BaseModel
 from django.utils.translation import ugettext_lazy as _
 
 from datetime import datetime, timedelta, timezone
+
 from django_fsm import FSMField, transition
 import stripe
 
+from db.base_model import BaseModel
 from shop.models import ProductSKU
 from account.models import User, Address
 from .utils import generate_order_number

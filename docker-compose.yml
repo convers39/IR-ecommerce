@@ -1,75 +1,78 @@
 version: "3.8"
-   
-services:
-    django:
-        restart: always
-        build: .
-        container_name: django
-        command: python manage.py runserver 0.0.0.0:8080
-        volumes:
-            - .:/usr/src/app
-            # - ./config/nginx/certs/:/etc/certs
-        ports:
-            - "8080:8080"
-        # expose:
-        #   - "443"
-        environment:
-            - DEBUG=1
-            - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
-            - CELERY_BROKER=redis://redis:6379/0
-            - CELERY_BACKEND=redis://redis:6379/0
-        depends_on:
-            - pgdb
-            - redis
-    celery:
-        restart: always
-        build: .
-        container_name: celery
-        command: celery -A core worker -l INFO
-        volumes:
-            - .:/usr/src/app
-        environment:
-            - DEBUG=1
-            - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
-            - CELERY_BROKER=redis://redis:6379/0
-            - CELERY_BACKEND=redis://redis:6379/0
-        depends_on:
-            - django
-            - redis
-            # - rabbitmq
-    pgdb:
-        image: postgres:alpine
-        container_name: pgdb
-        environment:
-            - POSTGRES_DB=postgres
-            - POSTGRES_USER=admin
-            - POSTGRES_PASSWORD=pgadmin
-        volumes:
-            - pgdata:/var/lib/postgresql/data/
-    redis:
-        restart: always
-        image: redis:alpine
-        container_name: redis
-        volumes: 
-            - redisdata:/data
-        # command: ["redis-server", "--bind", "redis", "--port", "6379"]
-    # rabbitmq:
-    #     restart: always
-    #     image: rabbitmq:latest
 
-    # nginx:
-    #     restart: always
-    #     image: nginx:latest
-    #     container_name: ng
-    #     ports:
-    #         - "443:443"
-    #         - "80:80"
-    #     volumes:
-    #         - ./static:/www/static
-    #         - ./config/nginx/:/etc/nginx/conf.d
-    #     depends_on:
-    #         - django
-        
+services:
+  django:
+    restart: always
+    build: .
+    container_name: django
+    command: python manage.py runserver 0.0.0.0:8080
+    volumes:
+      - .:/usr/src/app
+      # - ./config/nginx/certs/:/etc/certs
+    ports:
+      - "8080:8080"
+    # expose:
+    #   - "443"
+    env_file:
+      - core/env/env
+    # environment:
+    #   - DEBUG=1
+    #   - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+    #   - CELERY_BROKER=redis://redis:6379/0
+    #   - CELERY_BACKEND=redis://redis:6379/0
+    depends_on:
+      - pgdb
+      - redis
+  celery:
+    restart: always
+    build: .
+    container_name: celery
+    command: celery -A core worker -l INFO
+    volumes:
+      - .:/usr/src/app
+    env_file:
+      - core/env/env
+    # environment:
+    #   - DEBUG=1
+    depends_on:
+      - django
+      - redis
+      # - rabbitmq
+  pgdb:
+    image: postgres:alpine
+    container_name: pgdb
+    # environment:
+    #   - POSTGRES_DB="${DB_NAME}"
+    #   - POSTGRES_USER='${DB_USER}'
+    #   - POSTGRES_PASSWORD='${DB_PASSWORD}'
+    #   - POSTGRES_HOST=${DB_HOST}
+    #   - POSTGRES_PORT=${DB_PORT}
+    volumes:
+      - pgdata:/var/lib/postgresql/data/
+  redis:
+    restart: always
+    image: redis:alpine
+    container_name: redis
+    volumes:
+      - redisdata:/data
+    # command: ["redis-server", "--bind", "redis", "--port", "6379"]
+  # rabbitmq:
+  #     restart: always
+  #     image: rabbitmq:latest
+
+  # nginx:
+  #     restart: always
+  #     image: nginx:latest
+  #     container_name: ng
+  #     ports:
+  #         - "443:443"
+  #         - "80:80"
+  #     volumes:
+  #         - ./static:/www/static
+  #         - ./config/nginx/:/etc/nginx/conf.d
+  #     depends_on:
+  #         - django
+
 volumes:
-    pgdata:
-    redisdata:
+  pgdata:
+  redisdata:

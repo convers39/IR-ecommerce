@@ -21,6 +21,7 @@ import stripe
 
 from order.models import Order, OrderProduct, Review
 from shop.models import ProductSKU
+from order.views import create_checkout_session
 
 from .forms import RegisterForm, UserInfoForm, AddressForm
 from .models import User, Address
@@ -66,7 +67,7 @@ class AccountCenterView(LoginRequiredMixin, FormMixin, View):
             form.save()
             return JsonResponse({'res': '1', 'msg': 'Data updated'})
 
-        return JsonResponse({'res': '0', 'errmsg': 'Error!'})
+        return JsonResponse({'res': '0', 'errmsg': 'Invalid form data'})
 
 
 class PasswordResetView(LoginRequiredMixin, View):
@@ -92,7 +93,7 @@ class PasswordResetView(LoginRequiredMixin, View):
         if new == current:
             return JsonResponse({'res': '0', 'errmsg': 'Same as current password'})
 
-        user.set_password(data.get('newPassword'))
+        user.set_password(new)
         user.save()
         # TODO: send email to customer
         return JsonResponse({'res': '1', 'msg': 'Password changed'})
@@ -108,6 +109,24 @@ class OrderListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context["count"] = Order.objects.filter(user=self.request.user).count()
         context['stripe_key'] = settings.STRIPE_PUBLIC_KEY
+        # TODO: renew payment session if session expired
+        # user = self.request.user
+        # for order in self.object_list:
+        #     if order.payment.is_expired():
+        #         try:
+        #             order.payment.expire_payment()
+        #             order.payment.save()
+        #         except:
+        #             pass
+
+        #         method = order.payment.method
+        #         name = f'Retry payment for {order.number}'
+        #         amount = order.payment.amount
+        #         session = create_checkout_session(
+        #             user, method, name, amount)
+        #         order.payment.session_id = session.id
+        #         order.payment.number = session.payment_intent
+        #         order.save()
         return context
 
     def get_queryset(self):
@@ -133,8 +152,6 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
         else:
             context['payment_detail'] = payment_intent.charges.data[0].payment_method_details
         return context
-
-    # TODO: post method to manage customer review
 
     def post(self, request, *args, **kwargs):
         user = request.user
@@ -278,7 +295,7 @@ class LoginView(SuccessMessageMixin, View):
         # TODO: check cookie setting logic
         if 'email' in request.COOKIES:
             email = request.COOKIES.get('email')
-            remember = 'checked'
+            remember = 'on'
         else:
             email = ''
             remember = ''
@@ -302,7 +319,7 @@ class LoginView(SuccessMessageMixin, View):
         next_url = request.GET.get('next', self.success_url)
         response = redirect(next_url)
 
-        if remember == 'on':
+        if remember == 'on':  # either on or none
             response.set_cookie('email', email, max_age=7*24*3600)
         else:
             response.delete_cookie('email')
