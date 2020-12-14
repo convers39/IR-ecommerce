@@ -43,7 +43,7 @@
   <div class="row mb-3 align-items-center">
     <div class="col-lg-6 mb-2 mb-lg-0">
       <p class="text-small text-muted text-uppercase mb-0">
-        order#{{order.number}}
+        order#<span id="order-id">{{order.number}}</span>
       </p>
     </div>
     <div class="col-lg-6">
@@ -122,6 +122,7 @@
                 <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p>
 
                 <!-- TODO: add share product -->
+                {% if order.status == 'SP' %}
                 {% if order_product.is_reviewed %}
                 <a class="btn btn-sm btn-secondary" type="button" data-toggle="collapse"
                   href="#collapse-{{order_product.id}}" role="button" aria-expanded="false"
@@ -172,6 +173,7 @@
                   </div>
                 </div>
                 {% endif %}
+                {% endif %}
               </div>
             </div>
           </div>
@@ -181,11 +183,22 @@
       <div class="card-footer text-muted text-right">
         <a class="reset-anchor pr-2" href="#"><i class="fas fa-trash-alt text-muted pr-1"></i>Delete
           Order</a>
+        {% if order.status == 'NW' %}
+        <a class="reset-anchor pr-2 payment" href="#" session='{{order.payment.session_id}}'>
+          <i class="fas fa-credit-card pr-1"></i>Pay Now<span id="countdown"></span></a>
+        <a class="reset-anchor pr-2 " href="#"><i class='fa fa-remove'></i> Cancel order</a>
+        {% elif order.status == 'CF' %}
+        <i class="fas fa-check-square text-muted pr-1"></i>Paid
+        <a class="reset-anchor px-2 " href="#"><i class="fas fa-hand-holding-usd"></i> Refund</a>
+        {% elif order.status == 'CL' %}
+        <i class="fa fa-exclamation text-muted pr-1" aria-hidden="true"></i> Cancelling
+        {% elif order.status == 'SP' %}
         <a class="reset-anchor pr-2" href="#"><i class="fas fa-shipping-fast fa-sm text-muted pr-1"></i> Check
           Shipment</a>
-        {% if order.status == 'NW' %}<a class="reset-anchor pr-2 payment" href="#"
-          session='{{order.payment.session_id}}'><i class="fas fa-credit-card pr-1"></i>Pay
-          Now<span id="countdown"></span></a>{% else %}<i class="fas fa-check-square pr-1"></i>Paid{% endif %}
+        <a class="reset-anchor px-2 " href="#"><i class="fas fa-hand-holding-usd"></i> Refund</a>
+        {% else %}
+        <i class="fa fa-window-close text-muted pr-1" aria-hidden="true"></i> Cancelled
+        {% endif %}
 
       </div>
     </div>
@@ -237,12 +250,34 @@
     $('.payment').click(async function (event) {
       event.preventDefault();
       let sessionId = $(this).attr('session');
+      // retrieve new session id if payment session expired, 
+      // which will set session id to empty string
+      if (!sessionId) {
+        let orderId = $('#order-id').text();
+        const res = await fetch('/order/paymentrenew/', {
+          method: 'POST',
+          headers: {
+            "X-CSRFToken": csrftoken,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            order_id: orderId,
+          }),
+        })
+        const data = await res.json()
+        if (data.res == '0') {
+          const sessionId = data.session.id
+        } else {
+          showMsg(data.errmsg, 0)
+          return;
+        }
+      }
       console.log(sessionId)
       const paymentSession = await stripe.redirectToCheckout({
         sessionId: sessionId
       });
       if (paymentSession.error) {
-        showErrMsg(paymentSession.error.message);
+        showErrMsg(paymentSession.error.message, 0);
       }
     })
 

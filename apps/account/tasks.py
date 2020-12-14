@@ -20,3 +20,8 @@ def send_activation_email(to_email, username, token):
 
     send_mail(subject, message, sender, receiver, html_message=html_message)
     print(f'Email has been sent to {receiver[0]}')
+
+
+@shared_task
+def async_send_email(subject, message, sender, recipient):
+    send_mail(subject, message, sender, recipient)

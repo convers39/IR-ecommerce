@@ -241,5 +241,5 @@ def fulfill_order(session):
     payment.pay()
     payment.save()
     for order in payment.orders.all():
-        order.confirm_payment()
+        order.confirm()
         order.save()

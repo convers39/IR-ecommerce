@@ -27,7 +27,7 @@ services:
     restart: always
     build: .
     container_name: celery
-    command: celery -A core worker -l INFO
+    command: celery -A core worker -B -l DEBUG
     volumes:
       - .:/usr/src/app
     env_file:

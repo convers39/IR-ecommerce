@@ -39,7 +39,7 @@
       <p class="text-small text-muted mb-0">
         {% if count == 0 %} No results found.
         {% elif count == 1 %} Showing 1 result. {% else %} Showing
-        {{page_obj.start_index}}–{{page_obj.end_index}} of {{count}}
+        {{page_obj.start_index}}–{{page_obj.end_index}} of {{order.count}}
         results {% endif %}
       </p>
     </div>
@@ -123,16 +123,22 @@
 
           <a class="reset-anchor pr-2" href="#"><i class="fas fa-trash-alt small text-muted pr-1"></i>Delete
             Order</a>
-          <a class="reset-anchor pr-2" href="#"><i class="fas fa-shipping-fast fa-sm pr-1"></i> Check
+          {% if order.status == 'NW' %}
+          <a class="reset-anchor pr-2 payment" href="#" session='{{order.payment.session_id}}'>
+            <i class="fas fa-credit-card pr-1"></i>Pay Now<span id="countdown"></span></a>
+          <a class="reset-anchor pr-2 " href="#"><i class='fa fa-remove'></i> Cancel order</a>
+          {% elif order.status == 'CF' %}
+          <i class="fas fa-check-square text-muted pr-1"></i>Paid
+          <a class="reset-anchor px-2 " href="#"><i class="fas fa-hand-holding-usd"></i> Refund</a>
+          {% elif order.status == 'CL' %}
+          <i class="fa fa-exclamation text-muted pr-1" aria-hidden="true"></i> Cancelling
+          {% elif order.status == 'SP' %}
+          <a class="reset-anchor pr-2" href="#"><i class="fas fa-shipping-fast fa-sm text-muted pr-1"></i> Check
             Shipment</a>
-          {% if order.payment.status == 'PD' %}
-          <a class="reset-anchor pr-2 payment" href="#" session='{{order.payment.session_id}}'><i
-              class="fas fa-credit-card pr-1"></i>Pay
-            Now<span id="countdown"></span></a>
-          {% elif order.payment.status == 'EX' %}
-          <i class="fas fa-calendar-times pr-1"></i><span>Expired</span>
+          <a class="reset-anchor px-2 " href="#"><i class="fas fa-hand-holding-usd"></i> Refund</a>
           {% else %}
-          <i class="fas fa-check-square pr-1"></i>Paid{% endif %}
+          <i class="fa fa-window-close text-muted pr-1" aria-hidden="true"></i> Cancelled
+          {% endif %}
 
         </div>
       </div>

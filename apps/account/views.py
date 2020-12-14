@@ -3,9 +3,10 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db.models import query
 from django.http import HttpResponseRedirect
 from django.http.response import JsonResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse_lazy, reverse
 from django.views.generic import View, CreateView
 from django.views.generic.detail import DetailView
@@ -105,32 +106,47 @@ class OrderListView(LoginRequiredMixin, ListView):
     template_name = 'account/order-list.html'
     paginate_by = 5
 
+    def get_queryset(self):
+        queryset = super().get_queryset().select_related('payment')
+        return queryset
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["count"] = Order.objects.filter(user=self.request.user).count()
+        # context["count"] = Order.objects.filter(user=self.request.user).count()
         context['stripe_key'] = settings.STRIPE_PUBLIC_KEY
-        # TODO: renew payment session if session expired
-        # user = self.request.user
-        # for order in self.object_list:
-        #     if order.payment.is_expired():
-        #         try:
-        #             order.payment.expire_payment()
-        #             order.payment.save()
-        #         except:
-        #             pass
-
-        #         method = order.payment.method
-        #         name = f'Retry payment for {order.number}'
-        #         amount = order.payment.amount
-        #         session = create_checkout_session(
-        #             user, method, name, amount)
-        #         order.payment.session_id = session.id
-        #         order.payment.number = session.payment_intent
-        #         order.save()
         return context
 
     def get_queryset(self):
         return super().get_queryset()
+
+
+class PaymentRenewView(View):
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        try:
+            data = json.loads(request.body.decode())
+        except:
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
+        print(data)
+
+        order_id = data.get('order_id')
+        order = Order.objects.select_related('payment').get(id=order_id)
+        payment = order.payment
+        method = payment.method
+        name = f'Retry payment for order# {order.number}'
+        amount = payment.amount
+        try:
+            session = create_checkout_session(
+                user, method, name, amount)
+        except:
+            return JsonResponse({'res': '0', 'errmsg': 'Failed to renew payment session'})
+
+        payment.renew_payment(session)
+        return JsonResponse({
+            'res': 1,
+            'session': session,
+            'msg': 'Payment session renewed'
+        })
 
 
 class OrderDetailView(LoginRequiredMixin, DetailView):
@@ -176,6 +192,11 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
             comment=comment
         )
         return JsonResponse({'res': '1', 'msg': 'Comment submitted'})
+
+
+class OrderCancelView(View):
+    def post(self, request, *args, **kwargs):
+        return JsonResponse()
 
 
 class AddressView(LoginRequiredMixin, FormMixin, View):

@@ -1,6 +1,7 @@
 from .base import *
 
 DEBUG = False
+EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 # for debug tool:
 DEBUG_TOOLBAR_PATCH_SETTINGS = False
 if DEBUG:

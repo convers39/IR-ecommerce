@@ -212,3 +212,16 @@ CKEDITOR_CONFIGS = {
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
 STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY')
 WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET')
+
+# admin UI
+SIMPLEUI_ICON = {
+    'Account': 'fas fa-user-circle',
+    'Shop': 'fas fa-store-alt',
+    'Payments': 'fas fa-file-invoice-dollar',
+    'Categories': 'far fa-list-alt',
+    'Images': 'far fa-images',
+    'Addresses': 'far fa-address-card',
+    'Origins': 'fas fa-map-marker-alt',
+    'SKU': 'fas fa-box',
+    'SPU': 'fas fa-boxes'
+}
