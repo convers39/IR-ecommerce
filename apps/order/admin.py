@@ -1,15 +1,11 @@
-from django.conf import settings
 from django.contrib import admin
-from django.contrib import messages
-from django.shortcuts import render
-from django.utils.translation import ngettext
-from django.http import HttpResponseRedirect
+from django.db.models import Sum, Q, F, Prefetch
+from django.http.response import JsonResponse
 
+from simpleui.admin import AjaxAdmin
 
-import stripe
-
-from account.tasks import async_send_email
 from .models import OrderProduct, Order, Payment, Review
+# from .actions import create_refund
 
 
 @admin.register(Review)
@@ -32,7 +28,7 @@ class OrderProductInline(admin.TabularInline):
 
 
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
+class OrderAdmin(AjaxAdmin):
     list_display = ('id', 'number', 'status',
                     'user', 'payment', 'created_at', 'updated_at',)
     search_fields = ('status', 'user', 'number')
@@ -55,34 +51,159 @@ class OrderAdmin(admin.ModelAdmin):
     actions = ['ship_order', 'cancel_order', ]
 
     def ship_order(self, request, queryset):
-        qs = queryset.filter(status="CF").all()
-        updated = qs.update(status='SP')
-        self.message_user(request, ngettext(
-            '%d order was successfully marked as shipped.',
-            '%d orders were successfully marked as shipped.',
-            updated,
-        ) % updated, messages.SUCCESS)
-    ship_order.short_description = 'Make selected orders as shipped'
+        post = request.POST
+        order_id = post.get('_selected')
+        if not order_id:
+            return JsonResponse(data={
+                'status': 'error',
+                'msg': 'No order selected'
+            })
+
+        ids = order_id.split(',')
+        orders = Order.objects.filter(Q(id__in=ids), status='CF')
+        # print('qs', queryset, request.POST)
+        if not orders:
+            return JsonResponse(data={
+                'status': 'error',
+                'msg': 'None of selected order can be shipped'
+            })
+
+        for order in orders:
+            order.ship()
+            order.save()
+
+        return JsonResponse(data={
+            'status': 'success',
+            'msg': 'Selected orders are marked as shipped'
+        })
+
+    ship_order.short_description = ' Ship'
+    ship_order.type = 'secondary'
+    ship_order.icon = 'fas fa-shipping-fast'
+    ship_order.layer = {
+        'title': 'Ship Orders',
+        'tips': 'You can ship multiple orders simultaneously, this operation CANNOT be canceled.',
+        'confirm_button': 'confirm',
+        'cancel_button': 'cancel',
+        'width': '50%',
+        'labelWidth': '50%',
+        'params': [{
+            'type': 'checkbox',
+            'key': 'confirmed',
+            'value': [],
+            'label': 'Confirm on shipment?',
+            'require':True,
+            'options': [{
+                'key': '0',
+                'label': 'Yes, no problem'
+            }]
+        }, ]
+    }
     # add permission for shipping
 
     def cancel_order(self, request, queryset):
-        # only apply to orders requested by guests
-        qs = queryset.filter(status='CL').all()
-        updated = qs.update(status='CX')
-        for order_product in queryset.order_products.all():
-            order_product.product.sales -= 1
-            order_product.product.stock += 1
+        """
+        Use this action to cancel or refund an order as the first choice.
+        Every payment can  berefunded only once.
+        As an alternative refund could be operated on Stripe Dashboard.
+        In the case of using Stripe Dashboard for refund, add refund events to webhook
+        """
+        post = request.POST
+        order_id = post.get('_selected')
+        if not order_id:
+            return JsonResponse(data={
+                'status': 'error',
+                'msg': 'No order selected'
+            })
 
-        self.message_user(request, ngettext(
-            '%d order was successfully marked as cancelled.',
-            '%d orders were successfully marked as cancelled.',
-            updated,
-        ) % updated, messages.SUCCESS)
-    cancel_order.short_description = 'Make selected orders as canceled'
+        ids = order_id.split(',')
+        refund = post.get('refund')
+        amount = post.get('amount')
+
+        if len(ids) > 1 and not amount:
+            return JsonResponse(data={
+                'status': 'error',
+                'msg': 'Cannot apply same refund amount to multiple orders'
+            })
+
+        if amount:
+            try:
+                amount = int(amount)
+            except:
+                return JsonResponse(data={
+                    'status': 'error',
+                    'msg': 'Invalid input amount'
+                })
+
+        orders = Order.objects.filter(
+            Q(id__in=ids), status='CL').select_related('payment').prefetch_related('order_products')
+        # print('qs', queryset, request.POST)
+        if not orders:
+            return JsonResponse(data={
+                'status': 'error',
+                'msg': 'None of selected order can be cancelled'
+            })
+
+        for order in orders:
+            order.confirm_cancel()
+            order.save()
+            order.restore_product_stock()
+
+            if refund == 'YES':
+                payment = order.payment
+                refund_amount = order.subtotal if not amount else amount
+                payment.refund(refund_amount)
+                payment.save()
+
+        return JsonResponse(data={
+            'status': 'success',
+            'msg': 'Selected orders are cancelled'
+        })
+
+    cancel_order.short_description = ' Cancel'
+    cancel_order.type = 'danger'
+    cancel_order.icon = 'fas fa-times'
+    cancel_order.layer = {
+        'title': 'Cancel Orders',
+        'tips': 'You can cancel multiple orders simultaneously. \
+            As default the system will use the order subtotal as the refund amount.\
+            You cannot make refund to multiple orders with an entered amount,\
+            this operation CANNOT be canceled.',
+        'confirm_button': 'confirm',
+        'cancel_button': 'cancel',
+        'width': '50%',
+        'labelWidth': '50%',
+        'params': [{
+            'type': 'radio',
+            'key': 'refund',
+            'label': 'Create refund?',
+            'require': True,
+            'options': [{
+                'key': '0',
+                'label': 'NO'
+            }, {
+                'key': '1',
+                'label': 'YES'
+            }]},
+            {'type': 'input',
+             'key': 'amount',
+             'label': 'Refund Amount (JPY)',
+             },
+            {'type': 'checkbox',
+             'key': 'confirmed',
+             'value': [],
+             'label': 'Confirm to cancel?',
+             'require':True,
+             'options': [{
+                     'key': '0',
+                     'label': 'Yes, no problem'
+             }]
+             }, ]
+    }
 
 
-@admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
+@ admin.register(Payment)
+class PaymentAdmin(AjaxAdmin):
     list_display = ('id', 'number', 'status', 'created_at', 'updated_at',)
     search_fields = ('status', 'number',)
     list_filter = ('status', 'user')
@@ -97,32 +218,97 @@ class PaymentAdmin(admin.ModelAdmin):
         }),
     )
     inlines = [OrderInline]
-    actions = ['create_refund']
+    actions = ['create_refund', ]
 
     def create_refund(self, request, queryset):
-        return render(request, 'admin/create-refund.html', context={})
-        # return HttpResponseRedirect()
-        qs = queryset.filter(status="SC").all()
-        # check refund amount
-        if not amount:
-            amount = self.amount
-        stripe.api_key = settings.STRIPE_SECRET_KEY
-        refund = stripe.Refund.create(
-            amount=amount, payment_intent=self.number)
-        # send email to costumer
-        if refund.status == 'succeeded':
-            subject = f'Payment {self.number} Refunded'
-            message = f'Payment has been refunded, this will take few days to refund to your account or card.'
-            from_email = settings.EMAIL_FROM
-            recipient_list = [self.user.email, ]
-            async_send_email.delay(
-                subject, message, from_email, recipient_list)
-        # listen to failed event in webhook
-        # create a cancellation record
-        updated = qs.update(status='RF')
-        self.message_user(request, ngettext(
-            '%d order was successfully marked as cancelled.',
-            '%d orders were successfully marked as cancelled.',
-            updated,
-        ) % updated, messages.SUCCESS)
-    create_refund.short_description = 'Make refund for payment'
+        """
+        Retrieve payment instances with the sum of related orders subtotal,
+        orders must be in the status of cancelling or returning.
+        Cannot use queryset directly, will contain all objects if no instance was selected.
+        NOTE: the SUM amount of all related orders will be the total refund amount,
+        in some rare cases (e.g. 2 related orders under cancelling, while only 1 is OK to cancel)
+        this will lead to trouble on refunding, to make sure cancel only 1 singel order, 
+        use cancel action in Order page instead.
+        """
+        post = request.POST
+        amount = post.get('amount')
+        payment_id = post.get('_selected')
+        ids = payment_id.split(',')
+        # print('qs', queryset, request.POST)
+
+        if not payment_id:
+            return JsonResponse(data={
+                'status': 'error',
+                'msg': 'No payment selected'
+            })
+
+        if len(ids) > 1 and not amount:
+            return JsonResponse(data={
+                'status': 'error',
+                'msg': 'Cannot refund same amount to multiple payments'
+            })
+
+        if amount:
+            try:
+                amount = int(amount)
+            except:
+                return JsonResponse(data={
+                    'status': 'error',
+                    'msg': 'Invalid amount'
+                })
+
+        payments = Payment.objects.filter(Q(id__in=ids), status='SC').prefetch_related(
+            Prefetch('orders', queryset=Order.objects.filter(status__in=['CL', 'RT'])))\
+            .annotate(refund_amount=Sum('orders__subtotal'))
+
+        if not payments:
+            return JsonResponse(data={
+                'status': 'error',
+                'msg': 'No refundable payment'
+            })
+
+        for payment in payments:
+            amount = payment.refund_amount
+            payment.refund(amount)
+            payment.save()
+            for order in payment.orders.filter(status__in=['CL', 'RT']):
+                order.comfirm_cancel()
+                order.save()
+                order.restore_product_stock()
+
+                # listen to failed event in webhook
+                # create a cancellation record
+        return JsonResponse(data={
+            'status': 'success',
+            'msg': 'Refund created'
+        })
+
+    # config for create refund modal window
+    create_refund.short_description = ' Refund'
+    create_refund.type = 'danger'
+    create_refund.icon = 'fas fa-hand-holding-usd'
+    create_refund.layer = {
+        'title': 'Make a refund',
+        'tips': 'If no amount is entered, as default system will refund the subtotal except shipping fee,\
+            this can be applied to multiple instances.\
+            You cannot make refund to multiple payments with an entered amount.',
+        'confirm_button': 'confirm',
+        'cancel_button': 'cancel',
+        'width': '50%',
+        'labelWidth': '50%',
+        'params': [{
+            'type': 'input',
+            'key': 'amount',
+            'label': 'Refund Amount (JPY)',
+        }, {
+            'type': 'checkbox',
+            'key': 'confirmed',
+            'value': [],
+            'label': 'CANNOT BE CANCELED!',
+            'require':True,
+            'options': [{
+                'key': '0',
+                'label': 'Yes, no problem'
+            }]
+        }, ]
+    }

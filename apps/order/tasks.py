@@ -23,10 +23,11 @@ def auto_cancel_orders():
         if order.payment.is_auto_canceled():
             order.auto_cancel()
             order.save()
+            order.restore_product_stock()
 
 
 @app.task
-def complete_orders():
+def auto_complete_orders():
     orders = Order.objects.filter(
         status__in=['SP', 'RT']).select_related('payment')
     for order in orders:

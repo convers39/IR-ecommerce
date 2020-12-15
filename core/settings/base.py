@@ -22,7 +22,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
-    'simpleui',  # theme for admin page
+    'simpleui',  # customized admin page
     # django apps
     'django.contrib.admin',
     'django.contrib.auth',
@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'rangefilter',
     'mathfilters',
     'django_fsm',
+    'import_export',
 ]
 
 MIDDLEWARE = [
@@ -217,7 +218,8 @@ WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET')
 SIMPLEUI_ICON = {
     'Account': 'fas fa-user-circle',
     'Shop': 'fas fa-store-alt',
-    'Payments': 'fas fa-file-invoice-dollar',
+    'Orders': 'fas fa-file-invoice-dollar',
+    'Payments': 'far fa-credit-card',
     'Categories': 'far fa-list-alt',
     'Images': 'far fa-images',
     'Addresses': 'far fa-address-card',

@@ -1,12 +1,14 @@
+from django.core.checks.messages import Error
 from django.core.mail import send_mail
 from django.conf import settings
 from django.db import models
+from django.db.models import F, Q
 from django.shortcuts import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from datetime import datetime, timedelta, timezone
 
-from django_fsm import FSMField, transition
+from django_fsm import FSMField, transition, GET_STATE, RETURN_VALUE
 import stripe
 
 from db.base_model import BaseModel
@@ -32,11 +34,11 @@ class Payment(BaseModel):
 
     class Method(models.TextChoices):
         CARD = 'CARD', _('Credit Card')
-
+        ALIPAY = 'ALIPAY', _('Alipay')
     # payment_intent id, create refund
     number = models.CharField(_("payment number"), max_length=100, default='')
     status = FSMField(
-        _("payment status"), choices=Status.choices, default=Status.PENDING)
+        _("payment status"), choices=Status.choices, default=Status.PENDING, protected=True)
     amount = models.DecimalField(_("amount"), max_digits=9, decimal_places=0)
     method = models.CharField(
         _("payment method"), choices=Method.choices, default=Method.CARD, max_length=10)
@@ -91,12 +93,36 @@ class Payment(BaseModel):
         self.number = session.payment_intent
         self.save()
 
+    @transition(field=status, source='EX', target='PD')
+    def refund(self, amount=None):
+        refund = stripe.Refund.create(
+            amount=amount, payment_intent=self.number)
+        if refund.status == 'succeeded':
+            subject = f'Payment {self.number} Refunded'
+            message = f'Payment has been refunded, this will take few days to refund to your account or card.'
+            from_email = settings.EMAIL_FROM
+            recipient_list = [self.user.email, ]
+            async_send_email.delay(
+                subject, message, from_email, recipient_list)
+        else:
+            raise Exception(
+                f'Failed to create a refund instance, status: {refund.status}')
+
 # class Invoice(BaseModel):
 #     invoice_no = models.CharField(_("invoice number"), max_length=50)
 #     user = models.ForeignKey(
 #         "account.user", verbose_name=_(""), on_delete=models.CASCADE)
 #     address = models.ForeignKey(
 #         "account.address", verbose_name=_(""), on_delete=models.CASCADE)
+
+
+class Refund(BaseModel):
+    number = models.CharField(_("refund id"), max_length=100, default='')
+    amount = models.DecimalField(
+        _("refund amount"), max_digits=9, decimal_places=0)
+
+    payment = models.ForeignKey(Payment, verbose_name=_(
+        "payment"), on_delete=models.CASCADE, related_name='refunds')
 
 
 class Order(BaseModel):
@@ -116,7 +142,7 @@ class Order(BaseModel):
         _("order number"), max_length=100, default='', unique=True)
     slug = models.SlugField(_("slug"), null=True)
     status = FSMField(_("order status"),
-                      choices=Status.choices, default=Status.NEW)
+                      choices=Status.choices, default=Status.NEW, protected=True)
     subtotal = models.DecimalField(
         _("subtotal"), max_digits=9, decimal_places=0)
     shipping_fee = models.DecimalField(
@@ -168,23 +194,46 @@ class Order(BaseModel):
             time_elapsed = (datetime.now(timezone.utc) - self.return_at)
             return time_elapsed >= timedelta(days=30)
 
+    def restore_product_stock(self):
+        """
+        Use to restore product stock and sales data after cancellation
+        """
+        if self.status == 'CX':
+            products = [
+                op.product for op in self.order_products.select_related('product')]
+            for product in products:
+                product.sales = F('sales') - 1
+                product.stock = F('stock') + 1
+            ProductSKU.objects.bulk_update(products, ['sales', 'stock'])
+        else:
+            raise Exception(
+                'This method can only be applied to cancelled orders')
+
     @transition(field=status, source='NW', target='CF', conditions=[is_confirmed])
     def confirm(self):
-        # send email
         subject = f'Order# {self.number} Confirmed'
         message = f'Hi! {self.user.username}, your order has been confirmed, will be shipped in 48hrs.'
         from_email = settings.EMAIL_FROM
         recipient_list = [self.user.email, ]
         async_send_email.delay(subject, message, from_email, recipient_list)
 
-    # shipping needs to be an action function in admin page
-    # @transition(field=status, source='CF', target='SP')
-    # def deliver(self):
-    #     # shipping logic
-    #     return True
+    @transition(field=status, source='CF', target='SP')
+    def ship(self):
+        """
+        This method is only called in admin page to ship a order.
+        TODO: add permissions to admin only methods
+        """
+        subject = f'Order# {self.number} Shipping'
+        message = f'Your order has been shipped, tracking number is xxx'
+        from_email = settings.EMAIL_FROM
+        recipient_list = [self.user.email, ]
+        async_send_email.delay(subject, message, from_email, recipient_list)
 
     @transition(field=status, source='SP', target='RT', conditions=[in_return_deadline])
     def return_product(self):
+        """
+        User can request to return products within deadline, send an email to admin for further operation.
+        """
         self.return_at = datetime.now()
         subject = f'Order# {self.number} Return Request'
         message = f'Return request from customer {self.user.username}'
@@ -193,17 +242,33 @@ class Order(BaseModel):
         async_send_email.delay(subject, message, from_email, recipient_list)
 
     @transition(field=status, source=['NW', 'CF'], target='CL')
-    def request_cancel_order(self):
+    def request_cancel(self):
+        # TODO: add frontend logic and cancelation view
         """
         Only use when customer ask for cancellation, 
         possible to request cancellation from new and confirmed orders,
         send email to admin for cancel operation
         """
-        subject = f'Order# {self.number} Cancellation'
+        subject = f'Order# {self.number} Cancellation Request'
         message = f'Cancellation request from customer {self.user.username}'
         from_email = settings.EMAIL_FROM
         recipient_list = [settings.EMAIL_HOST_USER, ]
         async_send_email.delay(subject, message, from_email, recipient_list)
+
+    @transition(field=status, source=['CL'], target=RETURN_VALUE('CF', 'NW'))
+    def stop_cancel_request(self):
+        """
+        Use by a customer or an admin to stop a cancellation request and move back to the former state.
+        """
+        return 'CF' if self.is_confirmed() else 'NW'
+
+    @transition(field=status, source=['RT'], target='SP')
+    def stop_return_request(self):
+        """
+        Use by a customer or an admin to stop a return request and move back to shipped state,
+        if order is over the return deadline, it will be handled by cron job.
+        """
+        return True
 
     @transition(field=status, source=['NW'], target='CX')
     def auto_cancel(self):
@@ -213,6 +278,17 @@ class Order(BaseModel):
         requested cancellation from customer need to be canceled on admin page.
         """
         subject = f'Order# {self.number} Cancellation'
+        message = f'Your order has been canceled due to the expiration of payment'
+        from_email = settings.EMAIL_FROM
+        recipient_list = [self.user.email, ]
+        async_send_email.delay(subject, message, from_email, recipient_list)
+
+    @transition(field=status, source=['CL'], target='CX')
+    def comfirm_cancel(self):
+        """
+        This method will only be called in admin page
+        """
+        subject = f'Order# {self.number} Cancellation'
         message = f'Your order has been canceled'
         from_email = settings.EMAIL_FROM
         recipient_list = [self.user.email, ]
@@ -220,8 +296,16 @@ class Order(BaseModel):
 
     @transition(field=status, source=['SP', 'RT'], target='CP')
     def complete(self):
+        """
+        This method is used in cron job or manully operated by an admin.
+        """
         # send email with coupon and asking for review
-        return True
+        subject = f'Order# {self.number} Cancellation'
+        message = f'Your order is completed, please tell us your thoughts.\
+            \nWrite a review: link\nContact us'
+        from_email = settings.EMAIL_FROM
+        recipient_list = [self.user.email, ]
+        async_send_email.delay(subject, message, from_email, recipient_list)
 
 
 class OrderProduct(BaseModel):

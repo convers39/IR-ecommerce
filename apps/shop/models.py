@@ -145,6 +145,14 @@ class ProductSKU(BaseModel):
         tax_in_price = self.price * (1+tax_rate)
         return float('{0:.2f}'.format(tax_in_price))
 
+    @property
+    def review_count(self):
+        count = 0
+        order_products = self.order_products.all()
+        for op in order_products:
+            if op.is_reviewed:
+                count += 1
+        return count
     # @property
     # def sku_number(self):
     #     """

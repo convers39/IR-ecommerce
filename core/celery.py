@@ -22,7 +22,11 @@ app.conf.beat_schedule = {
     'auto-cancel-orders': {
         'task': 'order.tasks.auto_cancel_orders',
         'schedule': crontab(minute='0', hour='*')
-    }
+    },
+    'auto-complete-orders': {
+        'task': 'order.tasks.auto_complete_orders',
+        'schedule': crontab(minute='0', hour='0')
+    },
 }
 # or every 30mins? crontab(minute='*/30')
 app.conf.timezone = 'UTC'

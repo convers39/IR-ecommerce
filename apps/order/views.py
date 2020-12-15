@@ -237,7 +237,8 @@ def checkout_webhook(request):
 
 def fulfill_order(session):
     # change payment status to succeeded, order status to confirmed
-    payment = Payment.objects.get(number=session.payment_intent)
+    payment = Payment.objects.get(
+        number=session.payment_intent).prefetch_related('orders')
     payment.pay()
     payment.save()
     for order in payment.orders.all():
