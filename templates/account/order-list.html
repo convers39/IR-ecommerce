@@ -81,10 +81,28 @@
           <div class="row text-center">
             <div class="col col-6">
               <a data-toggle="collapse" href="#collapse-{{order.id}}" role="button" aria-expanded="false"
-                aria-controls="collapse-{{order.id}}">Order#{{order.number}}</a> </div>
-            <div class="col col-2"><span>{{order.status}}</span></div>
-            <div class="col col-3"><span><i class="fas fa-calculator"></i>
-                {{order.total_amount|intcomma}}</span></div>
+                aria-controls="collapse-{{order.id}}">Order# {{order.number}}</a> </div>
+            <div class="col col-2">
+              {% if order.status == 'NW' %}
+              <i class="fas fa-ellipsis-h text-muted pr-1"></i> <small class="text-muted">NEW</small>
+              {% elif order.status == 'CF' %}
+              <i class="fas fa-check-square text-muted pr-1"></i><small class="text-muted">Confirmed</small>
+              {% elif order.status == 'CL' %}
+              <i class="fa fa-exclamation text-muted pr-1" aria-hidden="true"></i> <small
+                class="text-muted">Cancelling</small>
+              {% elif order.status == 'SP' %}
+              <i class="fas fa-shipping-fast fa-sm text-muted pr-1"></i><small class="text-muted">Shipped</small>
+              {% elif order.status == 'RT' %}
+              <i class="fas fa-reply text-muted pr-1"></i><small class="text-muted">Returning</small>
+              {% elif order.status == 'CX' %}
+              <i class="fa fa-window-close text-muted pr-1" aria-hidden="true"></i><small
+                class="text-muted">Cancelled</small>
+              {% else %}
+              <i class="fas fa-check-circle text-muted pr-1"></i><small class="text-muted">Completed</small>
+              {% endif %}
+            </div>
+            <div class="col col-3"><span class="text-muted"><i class="fas fa-calculator"></i>
+                <small> {{order.total_amount|intcomma}}</small></span></div>
             <div class="col col-1"><a href="{{order.get_absolute_url}}"><i class="fa fa-info-circle"
                   aria-hidden="true"></i></i></a>
             </div>
@@ -120,24 +138,30 @@
           </div>
         </div>
         <div class="card-footer text-muted text-right">
-
-          <a class="reset-anchor pr-2" href="#"><i class="fas fa-trash-alt small text-muted pr-1"></i>Delete
-            Order</a>
           {% if order.status == 'NW' %}
-          <a class="reset-anchor pr-2 payment" href="#" session='{{order.payment.session_id}}'>
+          <a class="reset-anchor pr-2 payment" href="#" session='{{order.payment.session_id}}' orderId='{{order.id}}'>
             <i class="fas fa-credit-card pr-1"></i>Pay Now<span id="countdown"></span></a>
-          <a class="reset-anchor pr-2 " href="#"><i class='fa fa-remove'></i> Cancel order</a>
-          {% elif order.status == 'CF' %}
-          <i class="fas fa-check-square text-muted pr-1"></i>Paid
-          <a class="reset-anchor px-2 " href="#"><i class="fas fa-hand-holding-usd"></i> Refund</a>
+          <a class="reset-anchor pr-2 cancel" href="#" orderId='{{order.id}}'><i class='fa fa-remove pr-1'></i>
+            Cancel</a>
           {% elif order.status == 'CL' %}
-          <i class="fa fa-exclamation text-muted pr-1" aria-hidden="true"></i> Cancelling
+          <a class="reset-anchor pr-2 cancel" href="#" orderId='{{order.id}}'><i class="fas fa-ban pr-1"></i>Stop
+            Cancel</a>
+          {% elif order.status == 'CF' %}
+          <a class="reset-anchor px-2 cancel" href="#" orderId='{{order.id}}'><i
+              class="fas fa-hand-holding-usd pr-1"></i> Refund</a>
           {% elif order.status == 'SP' %}
-          <a class="reset-anchor pr-2" href="#"><i class="fas fa-shipping-fast fa-sm text-muted pr-1"></i> Check
+          <a class="reset-anchor pr-2" href="#"><i class="fas fa-shipping-fast fa-sm pr-1"></i> Check
             Shipment</a>
-          <a class="reset-anchor px-2 " href="#"><i class="fas fa-hand-holding-usd"></i> Refund</a>
+          <a class="reset-anchor pr-2 cancel" href="#" orderId='{{order.id}}'><i
+              class="fas fa-hand-holding-usd pr-1"></i> Return</a>
+          <a class="reset-anchor pr-2" href="{{order.get_absolute_url}}"><i class="far fa-comment-dots pr-1"></i>
+            Review</a>
+          {% elif order.status == 'RT' %}
+          <a class="reset-anchor pr-2 cancel" href="#" orderId='{{order.id}}'><i class="fas fa-ban pr-1"></i>Stop Return
+          </a>
           {% else %}
-          <i class="fa fa-window-close text-muted pr-1" aria-hidden="true"></i> Cancelled
+          <a class="reset-anchor pr-2 delete" href="#" orderId='{{order.id}}'><i
+              class="fas fa-trash-alt small pr-1"></i>Delete Order</a>
           {% endif %}
 
         </div>
@@ -218,18 +242,67 @@
 
     //countDownTimer();
     //setInterval(countdownTimer, 1000);
-
+    const csrftoken = Cookies.get("csrftoken");
     // redirect to checkout
     var stripe = Stripe("{{ stripe_key }}");
     $('.payment').click(async function (event) {
       event.preventDefault();
       let sessionId = $(this).attr('session');
+      // retrieve new session id if payment session expired, 
+      // which will set session id to empty string
+      if (!sessionId) {
+        let orderId = $(this).attr('orderId');
+        const res = await fetch('/account/order/paymentrenew/', {
+          method: 'POST',
+          headers: {
+            "X-CSRFToken": csrftoken,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            order_id: orderId,
+          }),
+        })
+        const data = await res.json()
+        if (data.res == '1') {
+          const sessionId = data.session.id
+        } else {
+          showMsg(data.errmsg, 0)
+          return;
+        }
+      }
       console.log(sessionId)
       const paymentSession = await stripe.redirectToCheckout({
         sessionId: sessionId
       });
       if (paymentSession.error) {
         showErrMsg(paymentSession.error.message);
+      }
+    })
+
+    // request a cancellation
+    $('.cancel').click(async function (event) {
+      event.preventDefault();
+      let orderId = $(this).attr('orderId');
+      const res = await fetch('/account/order/cancel/', {
+        method: 'POST',
+        headers: {
+          "X-CSRFToken": csrftoken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          order_id: orderId,
+        }),
+      })
+      const data = await res.json()
+      console.log(data)
+      if (data.res == '1') {
+        showMsg(data.msg, 1)
+        setTimeout(function () {
+          location.reload()
+        }, 3000);
+      } else {
+        showMsg(data.errmsg, 0)
+        return;
       }
     })
   })

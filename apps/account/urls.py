@@ -1,14 +1,15 @@
 from django.urls import path
 from .views import (LoginView, LogoutView, RegisterView, ActivateView, PasswordResetView,
                     AccountCenterView, OrderListView, OrderDetailView, PaymentRenewView,
-                    AddressView, WishlistView)
+                    OrderCancelView, AddressView, WishlistView)
 
 app_name = 'account'
 urlpatterns = [
     path('', AccountCenterView.as_view(), name='center'),
     path('order/', OrderListView.as_view(), name='order-list'),
-    path('order/<slug:number>/', OrderDetailView.as_view(), name='order-detail'),
+    path('order/cancel/', OrderCancelView.as_view(), name='order-cancel'),
     path('order/paymentrenew/', PaymentRenewView.as_view(), name='payment-renew'),
+    path('order/<slug:number>/', OrderDetailView.as_view(), name='order-detail'),
     path('address/', AddressView.as_view(), name='address'),
     path('wishlist/', WishlistView.as_view(), name='wishlist'),
     path('register/', RegisterView.as_view(), name='register'),

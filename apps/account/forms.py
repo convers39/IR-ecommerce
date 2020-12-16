@@ -1,6 +1,7 @@
 from django import forms
 from django.forms import ValidationError
 from django_countries.widgets import CountrySelectWidget
+from django_countries.fields import CountryField
 from django.utils.translation import gettext_lazy as _
 from .models import User, Address
 
@@ -98,6 +99,10 @@ class UserInfoForm(forms.ModelForm):
                 'placeholder': 'e.g.'
             }),
         }
+
+
+class ContryForm(forms.Form):
+    country = CountryField().formfield()
 
 
 class AddressForm(forms.ModelForm):

@@ -28,8 +28,7 @@ def auto_cancel_orders():
 
 @app.task
 def auto_complete_orders():
-    orders = Order.objects.filter(
-        status__in=['SP', 'RT']).select_related('payment')
+    orders = Order.objects.filter(status__in=['SP', 'RT'])
     for order in orders:
         if order.is_completed():
             order.complete()

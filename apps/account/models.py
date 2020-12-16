@@ -62,3 +62,10 @@ class Address(BaseModel):
     def get_full_address(self):
         return f'Recipient: {self.recipient}   Contact: {self.phone_no}\n\
                Address: {self.addr}, {self.city}, {self.country} {self.zip_code}'
+
+    def set_default_address(self):
+        # TODO:add to admin page
+        if not self.is_default:
+            current = Address.objects.get_default_address()
+            current.update(is_default=False)
+            self.update(is_default=True)

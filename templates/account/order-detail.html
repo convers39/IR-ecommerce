@@ -43,7 +43,7 @@
   <div class="row mb-3 align-items-center">
     <div class="col-lg-6 mb-2 mb-lg-0">
       <p class="text-small text-muted text-uppercase mb-0">
-        order#<span id="order-id">{{order.number}}</span>
+        order#<span id="order-number" orderId='{{order.id}}'>{{order.number}}</span>
       </p>
     </div>
     <div class="col-lg-6">
@@ -245,6 +245,7 @@
     //countDownTimer();
     //setInterval(countdownTimer, 1000);
 
+    const csrftoken = Cookies.get("csrftoken");
     // redirect to checkout
     var stripe = Stripe("{{ stripe_key }}");
     $('.payment').click(async function (event) {
@@ -253,8 +254,8 @@
       // retrieve new session id if payment session expired, 
       // which will set session id to empty string
       if (!sessionId) {
-        let orderId = $('#order-id').text();
-        const res = await fetch('/order/paymentrenew/', {
+        let orderId = $('#order-number').attr('orderId');
+        const res = await fetch('/account/order/paymentrenew/', {
           method: 'POST',
           headers: {
             "X-CSRFToken": csrftoken,
@@ -265,7 +266,7 @@
           }),
         })
         const data = await res.json()
-        if (data.res == '0') {
+        if (data.res == '1') {
           const sessionId = data.session.id
         } else {
           showMsg(data.errmsg, 0)
@@ -281,13 +282,37 @@
       }
     })
 
+    // request a cancellation
+    $('.cancel').click(async function (event) {
+      event.preventDefault();
+      let orderId = $('#order-number').attr('orderId');
+      const res = await fetch('/account/order/cancel/', {
+        method: 'POST',
+        headers: {
+          "X-CSRFToken": csrftoken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          order_id: orderId,
+        }),
+      })
+      const data = await res.json()
+      console.log(data)
+      if (data.res == '1') {
+        showMsg(data.msg, 1)
+        location.reload();
+      } else {
+        showMsg(data.errmsg, 0)
+        return;
+      }
+    })
+
     // post review
     // FIXME: star validate seems not right, 
     // backend error when check if an OrderProduct obj has review
-    const csrftoken = Cookies.get("csrftoken");
     $('.review').submit(async function (event) {
       event.preventDefault();
-      let star = $(this).find('select').val();
+      let star = parseInt($(this).find('select').val());
       if (!(star in [1, 2, 3, 4, 5])) {
         showMsg('Please select a rating star')
         return

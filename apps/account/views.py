@@ -45,7 +45,7 @@ class AccountCenterView(LoginRequiredMixin, FormMixin, View):
         # recent_products = ProductSKU.objects.filter(id__in=sku_ids)
         recent_products = []
         for sku_id in sku_ids:
-            sku = ProductSKU.objects.get(id=sku_id)
+            sku = ProductSKU.objects.prefetch_related('images').get(id=sku_id)
             recent_products.append(sku)
 
         context = {
@@ -107,20 +107,29 @@ class OrderListView(LoginRequiredMixin, ListView):
     paginate_by = 5
 
     def get_queryset(self):
-        queryset = super().get_queryset().select_related('payment')
+        """Optimize SQL from over 20 queries to only 3 queries:
+
+        SELECT * FROM "order_order" LEFT OUTER JOIN "account_address" ON 
+        ("order_order"."address_id" = "account_address"."id") 
+        WHERE NOT "order_order"."is_deleted" ORDER BY "order_order"."created_at" DESC LIMIT 5
+
+        SELECT * FROM "order_orderproduct" WHERE 
+        "order_orderproduct"."order_id" IN (17, 16, 15, 13, 12) 
+        ORDER BY "order_orderproduct"."created_at" DESC
+
+        SELECT * FROM "shop_productsku" WHERE "shop_productsku"."id" IN (1, 3, 6, 7, 8)
+        """
+        queryset = super().get_queryset().filter(is_deleted=False).select_related(
+            'address').prefetch_related('order_products').prefetch_related('order_products__product')
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # context["count"] = Order.objects.filter(user=self.request.user).count()
         context['stripe_key'] = settings.STRIPE_PUBLIC_KEY
         return context
 
-    def get_queryset(self):
-        return super().get_queryset()
 
-
-class PaymentRenewView(View):
+class PaymentRenewView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         user = request.user
         try:
@@ -143,10 +152,54 @@ class PaymentRenewView(View):
 
         payment.renew_payment(session)
         return JsonResponse({
-            'res': 1,
+            'res': '1',
             'session': session,
             'msg': 'Payment session renewed'
         })
+
+
+class OrderCancelView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body.decode())
+        except:
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
+        print('cancel view', data)
+        order_id = data.get('order_id')
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            return JsonResponse({'res': '0', 'errmsg': 'Order does not exist'})
+
+        status = order.status
+        if status == 'SP':
+            order.request_return()
+            order.save()
+            return JsonResponse({'res': '1', 'msg': 'Return request has been sent'})
+
+        elif status == 'CF':
+            order.request_cancel()
+            order.save()
+            return JsonResponse({'res': '1', 'msg': 'Cancel request has been sent'})
+
+        elif status == 'NW':
+            order.auto_cancel()
+            order.save()
+            order.restore_product_stock()
+            return JsonResponse({'res': '1', 'msg': 'Your order has been cancelled'})
+
+        elif status == 'CL':
+            order.stop_cancel_request()
+            order.save()
+            return JsonResponse({'res': '1', 'msg': 'Cancel request stopped'})
+
+        elif status == 'RT':
+            order.stop_return_request()
+            order.save()
+            return JsonResponse({'res': '1', 'msg': 'Return request stopped'})
+
+        else:
+            return JsonResponse({'res': '0', 'errmsg': f'Order at {order.status} cannot be cancelled'})
 
 
 class OrderDetailView(LoginRequiredMixin, DetailView):
@@ -170,12 +223,11 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
         return context
 
     def post(self, request, *args, **kwargs):
-        user = request.user
         try:
             data = json.loads(request.body.decode())
         except:
             return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
-        print(data)
+        print('detail view', data)
 
         order_product_id = data.get('order_product_id')
         star = data.get('star')
@@ -194,11 +246,6 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
         return JsonResponse({'res': '1', 'msg': 'Comment submitted'})
 
 
-class OrderCancelView(View):
-    def post(self, request, *args, **kwargs):
-        return JsonResponse()
-
-
 class AddressView(LoginRequiredMixin, FormMixin, View):
     model = Address
     form_class = AddressForm
@@ -215,45 +262,67 @@ class AddressView(LoginRequiredMixin, FormMixin, View):
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
+        # TODO: set default address
         user = request.user
         try:
             data = json.loads(request.body.decode())
         except:
             return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
-        print(data)
+        print('address data ', data)
+
+        try:
+            operation = data.pop('operation')
+        except KeyError:
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid Operation'})
+        # save new address
+        if operation == 'create':
+            # try:
+            #     set_default = data.pop('setDefault')
+            # except KeyError:
+            #     pass
+            form = AddressForm(data)
+            if form.is_valid():
+                new_addr = form.save(commit=False)
+                new_addr.user = user
+                new_addr.save()
+                new_id = new_addr.id
+                return JsonResponse({'res': '1', 'msg': 'New address added', 'new_id': new_id})
+            else:
+                return JsonResponse({'res': '0', 'errmsg': 'Invalid form data'})
+
+        if operation == 'update':
+            try:
+                addr_id = data.pop('addr_id')
+            except KeyError:
+                return JsonResponse({'res': '0', 'errmsg': 'Address id missing'})
+
+            try:
+                address = Address.objects.get(id=addr_id)
+            except Address.DoesNotExist:
+                return JsonResponse({'res': '0', 'errmsg': 'Address does not exist'})
+
+            form = AddressForm(instance=address, data=data)
+            if form.is_valid():
+                updated_addr = form.save()
+                updated_id = updated_addr.id
+                return JsonResponse({'res': '1', 'msg': 'Address updated', 'updated_id': updated_id})
+            else:
+                return JsonResponse({'res': '0', 'errmsg': 'Invalid form data'})
 
         # delete existed address
-        if data.get('operation') == 'delete':
+        if operation == 'delete':
             try:
-                Address.objects.filter(id=data['addr_id']).delete()
+                addr_id = data['addr_id']
+            except KeyError:
+                return JsonResponse({'res': '0', 'errmsg': 'Address id missing'})
+
+            try:
+                Address.objects.filter(id=addr_id).delete()
                 return JsonResponse({'res': '1', 'msg': 'Address deleted'})
             except Address.DoesNotExist:
                 return JsonResponse({'res': '0', 'errmsg': 'Address does not exist'})
 
-        # save new address
-        form = AddressForm(data)
-        if form.is_valid():
-            new_addr = form.save(commit=False)
-            new_addr.user = user
-            new_addr.save()
-            new_id = new_addr.id
-            return JsonResponse({'res': '1', 'msg': 'New address added', 'new_id': new_id})
-
-        return JsonResponse({'res': '0', 'errmsg': 'Error!'})
-
-        # TODO: update existed address
-        # addr_id = data.pop('addr_id')
-        # if addr_id:
-        #     try:
-        #         addr = Address.objects.get(id=addr_id)
-        #     except Address.DoesNotExist:
-        #         return JsonResponse({'res': '0', 'errmsg': 'Address does not exist'})
-
-        #     if addr.user != user:
-        #         return JsonResponse({'res': '0', 'errmsg': 'Unauthorized user'})
-
-        #     form = AddressForm(data, instance=addr)
-        # else:
+        return JsonResponse({'res': '0', 'errmsg': 'Invalid operation!'})
 
 
 class WishlistView(LoginRequiredMixin, ListView):

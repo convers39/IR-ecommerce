@@ -116,13 +116,13 @@ class Payment(BaseModel):
 #         "account.address", verbose_name=_(""), on_delete=models.CASCADE)
 
 
-class Refund(BaseModel):
-    number = models.CharField(_("refund id"), max_length=100, default='')
-    amount = models.DecimalField(
-        _("refund amount"), max_digits=9, decimal_places=0)
+# class RefundRecord(BaseModel):
+#     number = models.CharField(_("refund id"), max_length=100, default='')
+#     amount = models.DecimalField(
+#         _("refund amount"), max_digits=9, decimal_places=0)
 
-    payment = models.ForeignKey(Payment, verbose_name=_(
-        "payment"), on_delete=models.CASCADE, related_name='refunds')
+#     payment = models.OneToOneField(Payment, verbose_name=_(
+#         "payment"), on_delete=models.CASCADE, related_name='refunds')
 
 
 class Order(BaseModel):
@@ -230,7 +230,7 @@ class Order(BaseModel):
         async_send_email.delay(subject, message, from_email, recipient_list)
 
     @transition(field=status, source='SP', target='RT', conditions=[in_return_deadline])
-    def return_product(self):
+    def request_return(self):
         """
         User can request to return products within deadline, send an email to admin for further operation.
         """
@@ -274,8 +274,8 @@ class Order(BaseModel):
     def auto_cancel(self):
         """
         Cancel order automatically after 48hrs without payment confirmation
-        This only use for automatic cancellation in cron jobs, 
-        requested cancellation from customer need to be canceled on admin page.
+        This method is used for automatic cancellation in cron jobs, 
+        also for NEW orders before payment confirmed, which does not require admin operations.
         """
         subject = f'Order# {self.number} Cancellation'
         message = f'Your order has been canceled due to the expiration of payment'
@@ -286,7 +286,7 @@ class Order(BaseModel):
     @transition(field=status, source=['CL'], target='CX')
     def comfirm_cancel(self):
         """
-        This method will only be called in admin page
+        This method will only be called in the admin page to confirm a cancellation request from the customer
         """
         subject = f'Order# {self.number} Cancellation'
         message = f'Your order has been canceled'
@@ -306,6 +306,18 @@ class Order(BaseModel):
         from_email = settings.EMAIL_FROM
         recipient_list = [self.user.email, ]
         async_send_email.delay(subject, message, from_email, recipient_list)
+
+
+# class CancelRecord(BaseModel):
+#     class Executor(models.TextChoices):
+#         CUSTOMER = 'CM', _('Customer') # requested by customer (confirmed by admin)
+#         ADMIN = 'AD', _('Admin')  # canceled by admin
+#         SYSTEM = 'ST', _('System')  # cancel by system cron job for expired orders
+
+#     cancel_by = models.CharField(_("cancel by"), max_length=10, choices=Executor.choices,default=Executor.SYSTEM)
+
+#     order = models.OneToOneField(Order, verbose_name=_(
+#         "order"), on_delete=models.CASCADE, related_name='cancle_record')
 
 
 class OrderProduct(BaseModel):
@@ -349,6 +361,8 @@ class Review(BaseModel):
 
     order_product = models.OneToOneField(
         OrderProduct, verbose_name=_("order product"), on_delete=models.CASCADE, related_name='review')
+    user = models.ForeignKey(User, verbose_name=_(
+        "user"), on_delete=models.SET_DEFAULT, default='Anonymous User', related_name='reviews')
 
     class Meta:
         ordering = ('-created_at',)
