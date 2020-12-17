@@ -11,6 +11,7 @@ from .models import OrderProduct, Order, Payment, Review
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
     model = Review
+    list_select_related = ('order_product', 'user',)
 
 
 class OrderInline(admin.TabularInline):
@@ -25,6 +26,7 @@ class OrderProductInline(admin.TabularInline):
     model = OrderProduct
     exclude = ('is_deleted',)
     readonly_fields = ('unit_price', 'count', 'product')
+    list_select_related = ('product', 'order',)
 
 
 @admin.register(Order)
@@ -32,13 +34,14 @@ class OrderAdmin(AjaxAdmin):
     list_display = ('id', 'number', 'status',
                     'user', 'payment', 'created_at', 'updated_at',)
     search_fields = ('status', 'user', 'number')
-    list_filter = ('status', 'user',)
+    list_filter = ('status', 'user', 'created_at')
+    list_select_related = ('payment', 'user', 'address',)
     readonly_fields = ('is_deleted', 'number', 'status',
                        'subtotal', 'payment', 'user',)
     fieldsets = (
-        (None, {
+        ('Order Info', {
             "fields": (
-                'number', 'slug', 'status', 'subtotal', 'shipping_fee'
+                'number', 'slug', 'status', 'subtotal', 'shipping_fee', 'is_deleted'
             ),
         }),
         ('Payment', {
@@ -206,7 +209,8 @@ class OrderAdmin(AjaxAdmin):
 class PaymentAdmin(AjaxAdmin):
     list_display = ('id', 'number', 'status', 'created_at', 'updated_at',)
     search_fields = ('status', 'number',)
-    list_filter = ('status', 'user')
+    list_filter = ('status', 'user', 'created_at')
+    list_select_related = ('user',)
     readonly_fields = ('is_deleted', 'number', 'status',
                        'amount', 'method', 'session_id',)
 

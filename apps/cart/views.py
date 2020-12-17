@@ -1,14 +1,19 @@
-from django.shortcuts import render
-from django.views.generic import View
-from django.http import JsonResponse
+from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import JsonResponse
+from django.shortcuts import render, redirect
+from django.views.generic import View
+from django.urls.base import reverse
 
-
+import json
+from django.views.generic.edit import FormMixin
 from django_redis import get_redis_connection
 
-from shop.models import ProductSKU, Category
-import json
-from .cart import cal_cart_count, cal_total_count_subtotal, delete_cart_item
+from shop.models import ProductSKU
+from account.models import Address
+from account.forms import AddressForm, create_address_formset
+from .cart import cal_cart_count, cal_total_count_subtotal, delete_cart_item, cal_shipping_fee
 from .mixins import DataIntegrityCheckMixin
 
 # Create your views here.
@@ -55,8 +60,7 @@ class CartInfoView(LoginRequiredMixin, View):
     Retrieve data from redis and render current shopping cart page,
     """
 
-    def get(self, request):
-
+    def get(self, request, *args, **kwargs):
         user = request.user
         products, total_count, subtotal = cal_total_count_subtotal(user.id)
 
@@ -65,7 +69,7 @@ class CartInfoView(LoginRequiredMixin, View):
             'subtotal': subtotal,
             'products': products,
         }
-
+        print(context)
         return render(request, 'cart/cart.html', context)
 
 
@@ -114,3 +118,45 @@ class CartDeleteView(DataIntegrityCheckMixin, View):
             'msg': 'Item deleted',
             'cart_count': cart_count
         })
+
+
+class CheckoutView(LoginRequiredMixin, View):
+    """
+    Retrieve data from redis and render a checkout confirmation page
+    """
+
+    def get(self, request):
+        user = request.user
+        form = AddressForm()
+        # formset = create_address_formset(user)
+
+        cart_count = cal_cart_count(user.id)
+        if cart_count == 0:
+            messages.error(request, 'Cart is empty')
+            return redirect(reverse('cart:info'))
+
+        products, total_count, subtotal = cal_total_count_subtotal(user.id)
+
+        # shipping should be an independant module in a more complex project
+        shipping_fee = cal_shipping_fee(subtotal, total_count)
+        total_price = subtotal + shipping_fee
+
+        if shipping_fee == 0:
+            shipping_fee = 'Free'
+
+        addrs = Address.objects.filter(user=user)
+
+        stripe_api_key = settings.STRIPE_PUBLIC_KEY
+
+        context = {'products': products,
+                   'addrs': addrs,
+                   'shipping_fee': shipping_fee,
+                   'subtotal': subtotal,
+                   'total_count': total_count,
+                   'total_price': total_price,
+                   'stripe_api_key': stripe_api_key,
+                   'form': form,
+                   #    'formset': formset
+                   }
+
+        return render(request, 'cart/checkout.html', context)

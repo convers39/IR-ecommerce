@@ -20,48 +20,10 @@ from shop.models import ProductSKU
 from cart.cart import cal_total_count_subtotal, cal_shipping_fee, cal_cart_count
 
 from .models import Order, Payment, OrderProduct
-from .mixins import OrderDataCheckMixin
+from .mixins import OrderDataCheckMixin, OrderManagementMixin
 
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
-
-
-class CheckoutView(LoginRequiredMixin, View):
-    """
-    Retrieve data from redis and render a checkout confirmation page
-    """
-
-    def get(self, request):
-        user = request.user
-
-        cart_count = cal_cart_count(user.id)
-        if cart_count == 0:
-            messages.error(request, 'Cart is empty')
-            return redirect(reverse('cart:info'))
-
-        products, total_count, subtotal = cal_total_count_subtotal(user.id)
-
-        # shipping should be an independant module in a more complex project
-        shipping_fee = cal_shipping_fee(subtotal, total_count)
-        total_price = subtotal + shipping_fee
-
-        if shipping_fee == 0:
-            shipping_fee = 'Free'
-
-        addrs = Address.objects.filter(user=user)
-
-        stripe_api_key = settings.STRIPE_PUBLIC_KEY
-
-        context = {'products': products,
-                   'addrs': addrs,
-                   'shipping_fee': shipping_fee,
-                   'subtotal': subtotal,
-                   'total_count': total_count,
-                   'total_price': total_price,
-                   'stripe_api_key': stripe_api_key,
-                   }
-
-        return render(request, 'order/checkout.html', context)
 
 
 class OrderProcessView(OrderDataCheckMixin, View):
@@ -79,7 +41,7 @@ class OrderProcessView(OrderDataCheckMixin, View):
         # retreive data from request
         user = request.user
         data = json.loads(request.body.decode())
-        addr_id = data.get('addr').split('-')[-1]
+        addr_id = data.get('addr_id')
         payment_method = data.get('payment_method')
 
         # make transaction savepoint before changing any data in database
@@ -244,3 +206,77 @@ def fulfill_order(session):
     for order in payment.orders.all():
         order.confirm()
         order.save()
+
+
+class PaymentRenewView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        try:
+            data = json.loads(request.body.decode())
+        except:
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
+        print(data)
+
+        order_id = data.get('order_id')
+        order = Order.objects.select_related('payment').get(id=order_id)
+        payment = order.payment
+        method = payment.method
+        name = f'Retry payment for order# {order.number}'
+        amount = payment.amount
+        try:
+            session = create_checkout_session(
+                user, method, name, amount)
+        except:
+            return JsonResponse({'res': '0', 'errmsg': 'Failed to renew payment session'})
+
+        payment.renew_payment(session)
+        return JsonResponse({
+            'res': '1',
+            'session': session,
+            'msg': 'Payment session renewed'
+        })
+
+
+class OrderCancelView(OrderManagementMixin, View):
+    def post(self, request, *args, **kwargs):
+        data = json.loads(request.body.decode())
+        order = Order.objects.get(id=data['order_id'])
+
+        status = order.status
+        if status == 'SP':
+            order.request_return()
+            order.save()
+            return JsonResponse({'res': '1', 'msg': 'Return request has been sent'})
+
+        elif status == 'CF':
+            order.request_cancel()
+            order.save()
+            return JsonResponse({'res': '1', 'msg': 'Cancel request has been sent'})
+
+        elif status == 'NW':
+            order.auto_cancel()
+            order.save()
+            order.restore_product_stock()
+            return JsonResponse({'res': '1', 'msg': 'Your order has been cancelled'})
+
+        elif status == 'CL':
+            order.stop_cancel_request()
+            order.save()
+            return JsonResponse({'res': '1', 'msg': 'Cancel request stopped'})
+
+        elif status == 'RT':
+            order.stop_return_request()
+            order.save()
+            return JsonResponse({'res': '1', 'msg': 'Return request stopped'})
+
+        else:
+            return JsonResponse({'res': '0', 'errmsg': f'Order at {order.status} cannot be cancelled'})
+
+
+class OrderDeleteView(OrderManagementMixin, View):
+    def post(self, request, *args, **kwargs):
+        data = json.loads(request.body.decode())
+        order = Order.objects.get(id=data['order_id'])
+        order.is_deleted = True  # similar as 'hided by user', still available in database
+        order.save()
+        return JsonResponse({'res': '1', 'msg': 'Order deleted'})

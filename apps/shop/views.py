@@ -50,26 +50,19 @@ class ProductListView(ListView):
         search_term = self.request.GET.get('search')
         if search_term:
             queryset = ProductSKU.objects.search(search_term)
-            print(queryset)
 
         # check if search by category
         category_slug = self.kwargs.get('category_slug')
         if category_slug:
             category = get_object_or_404(Category, slug=category_slug)
-            if category.get_descendant_count() > 0:
-                qs = ProductSKU.objects.none()
-                for cat in category.get_descendants():
-                    desc_qs = queryset.filter(category=cat)
-                    qs = qs.union(desc_qs)
-                queryset = qs
-            else:
-                queryset = queryset.filter(category=category)
+            queryset = ProductSKU.objects.filter_category_products(
+                category, queryset)
 
         # check if search by tag
         tag = self.request.GET.get('tag')
         if tag:
             queryset = queryset.filter(tags__name__in=[tag])
-        if not queryset:
+        if queryset.count() == 0:
             messages.error(self.request, 'No results found!')
         queryset = queryset.order_by(self.get_ordering())
 
@@ -86,9 +79,10 @@ class ProductListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # TODO: duplicate with get_queryset, figure out a better solution to reduce duplicate query
         category_slug = self.kwargs.get('category_slug')
         if category_slug:
-            category = Category.objects.get(slug=category_slug)
+            category = get_object_or_404(Category, slug=category_slug)
             context['category'] = category
 
         # NOTE:when query set is paginated, use paginator to return total results count,
@@ -128,16 +122,16 @@ class ProductDetailView(DetailView):
 
         return self.render_to_response(context)
 
+    def get_queryset(self):
+        return super().get_queryset().prefetch_related('order_products__review')
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         product = self.object
         context['images'] = product.images.all()
-        context['related_products'] = ProductSKU.objects.get_same_category_products(
+        context['related_products'] = ProductSKU.objects.get_related_products(
             product)[:4]
 
-        context['reviews'] = [order_product.review for order_product in product.order_products.all(
-        ) if order_product.is_reviewed]
+        context['reviews'] = [
+            op.review for op in product.orderproducts.all() if op.is_reviewed]
         return context
-
-    def render_to_response(self, context):
-        return super().render_to_response(context)

@@ -59,13 +59,19 @@ class Address(BaseModel):
     class Meta:
         verbose_name_plural = 'addresses'
 
-    def get_full_address(self):
-        return f'Recipient: {self.recipient}   Contact: {self.phone_no}\n\
-               Address: {self.addr}, {self.city}, {self.country} {self.zip_code}'
+    @property
+    def recipient_with_contact(self):
+        return f'Recipient: {self.recipient} -- Contact: {self.phone_no}'
 
-    def set_default_address(self):
+    @property
+    def full_address(self):
+        return f'{self.addr}, {self.city} City, {self.province}, {self.country}'
+
+    def set_default_address(self, user):
         # TODO:add to admin page
         if not self.is_default:
-            current = Address.objects.get_default_address()
-            current.update(is_default=False)
-            self.update(is_default=True)
+            current = Address.objects.get_default_address(user)
+            current.is_default = False
+            current.save()
+            self.is_default = True
+            self.save()

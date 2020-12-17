@@ -1,5 +1,5 @@
 from django import forms
-from django.forms import ValidationError
+from django.forms import ValidationError, modelformset_factory
 from django_countries.widgets import CountrySelectWidget
 from django_countries.fields import CountryField
 from django.utils.translation import gettext_lazy as _
@@ -139,10 +139,16 @@ class AddressForm(forms.ModelForm):
             'country': CountrySelectWidget(attrs={
                 'class': 'form-control form-control-lg',
                 'name': 'country',
-            }),
+            }, layout='{widget}'),
             'zip_code': forms.TextInput(attrs={
                 'class': 'form-control form-control-lg',
                 'name': 'zip_code',
                 'placeholder': 'e.g. 552200'
             }),
         }
+
+
+def create_address_formset(user):
+    AddressFormSet = modelformset_factory(Address, form=AddressForm)
+    formset = AddressFormSet(queryset=Address.objects.filter(user=user))
+    return formset

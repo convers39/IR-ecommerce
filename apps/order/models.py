@@ -115,7 +115,7 @@ class Payment(BaseModel):
 #     address = models.ForeignKey(
 #         "account.address", verbose_name=_(""), on_delete=models.CASCADE)
 
-
+# TODO: save refund record when apply a refund
 # class RefundRecord(BaseModel):
 #     number = models.CharField(_("refund id"), max_length=100, default='')
 #     amount = models.DecimalField(
@@ -308,13 +308,19 @@ class Order(BaseModel):
         async_send_email.delay(subject, message, from_email, recipient_list)
 
 
+#  TODO: create cancel record when a cancel/refund request is launched
 # class CancelRecord(BaseModel):
 #     class Executor(models.TextChoices):
-#         CUSTOMER = 'CM', _('Customer') # requested by customer (confirmed by admin)
+#         # requested by customer (confirmed by admin)
+#         CUSTOMER = 'CM', _('Customer')
 #         ADMIN = 'AD', _('Admin')  # canceled by admin
-#         SYSTEM = 'ST', _('System')  # cancel by system cron job for expired orders
+#         # cancel by system cron job for expired orders
+#         SYSTEM = 'ST', _('System')
 
-#     cancel_by = models.CharField(_("cancel by"), max_length=10, choices=Executor.choices,default=Executor.SYSTEM)
+#     cancel_by = models.CharField(
+#         _("cancel by"), max_length=10, choices=Executor.choices, default=Executor.SYSTEM)
+#     reason = models.CharField(_("cancel reason"), max_length=250, default='')
+
 
 #     order = models.OneToOneField(Order, verbose_name=_(
 #         "order"), on_delete=models.CASCADE, related_name='cancle_record')
@@ -362,7 +368,7 @@ class Review(BaseModel):
     order_product = models.OneToOneField(
         OrderProduct, verbose_name=_("order product"), on_delete=models.CASCADE, related_name='review')
     user = models.ForeignKey(User, verbose_name=_(
-        "user"), on_delete=models.SET_DEFAULT, default='Anonymous User', related_name='reviews')
+        "user"), on_delete=models.SET_NULL, null=True, related_name='reviews')
 
     class Meta:
         ordering = ('-created_at',)

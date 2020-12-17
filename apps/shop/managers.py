@@ -11,19 +11,35 @@ from django.db.models import Avg
 class SKUManager(models.Manager):
     def get_queryset(self):
         """
-        Only return products on the shelf, prefetch all images to avoid duplicate query.
+        Only return products on the shelf, prefetch all images, 
+        and annotate average sales to avoid duplicate queries.
         """
-        return super().get_queryset().filter(status='ON').prefetch_related('images')
+        return super().get_queryset().filter(status='ON').\
+            prefetch_related('images').annotate(avg_sales=Avg('sales'))
 
-    def get_same_category_products(self, obj):
+    def get_related_products(self, obj):
         """
-        Return a queryset containing most popular and recent products 
+        Return a queryset containing most popular and recent products
         in the same category, exluding current product.
         """
         category = obj.category
         current = obj.id
         return self.get_queryset().filter(category=category).\
             exclude(id=current).order_by('sales', '-created_at')
+
+    def filter_category_products(self, category, queryset):
+        """
+        Filter a queryset with a category, category can be parent category.
+        """
+        if category.get_descendant_count() > 0:
+            qs = self.none()
+            for cat in category.get_descendants():
+                desc_qs = queryset.filter(category=cat)
+                qs = qs.union(desc_qs)
+            queryset = qs
+        else:
+            queryset = queryset.filter(category=category)
+        return queryset
 
     def get_products_with_review(self):
         """

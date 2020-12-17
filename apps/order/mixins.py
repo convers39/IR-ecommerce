@@ -1,22 +1,20 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
-from shop.models import ProductSKU
 from account.models import Address
+from .models import Order
 import json
 
 
-class OrderDataCheckMixin:
+class OrderDataCheckMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
         # validate data
-        if not request.user.is_authenticated:
-            return JsonResponse({'res': 0, 'errmsg': 'Please login'})
-
         try:
             data = json.loads(request.body.decode())
-            addr_id = data.get('addr').split('-')[-1]
-            payment_method = data.get('payment_method')
         except:
             return JsonResponse({'res': 0, 'errmsg': 'Invalid data'})
 
+        addr_id = data.get('addr_id')
+        payment_method = data.get('payment_method')
         if not all([addr_id, payment_method]):
             return JsonResponse({'res': 0, 'errmsg': 'Lack of data'})
 
@@ -24,5 +22,21 @@ class OrderDataCheckMixin:
             Address.objects.get(id=addr_id)
         except Address.DoesNotExist:
             return JsonResponse({'res': 0, 'errmsg': 'Address does not exist'})
+
+        return super().dispatch(request, *args, **kwargs)
+
+
+class OrderManagementMixin(LoginRequiredMixin):
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body.decode())
+        except:
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
+
+        order_id = data.get('order_id')
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            return JsonResponse({'res': '0', 'errmsg': 'Order does not exist'})
 
         return super().dispatch(request, *args, **kwargs)

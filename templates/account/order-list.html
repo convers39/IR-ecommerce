@@ -160,7 +160,7 @@
           <a class="reset-anchor pr-2 cancel" href="#" orderId='{{order.id}}'><i class="fas fa-ban pr-1"></i>Stop Return
           </a>
           {% else %}
-          <a class="reset-anchor pr-2 delete" href="#" orderId='{{order.id}}'><i
+          <a class="reset-anchor pr-2 order-del" href="#" orderId='{{order.id}}'><i
               class="fas fa-trash-alt small pr-1"></i>Delete Order</a>
           {% endif %}
 
@@ -252,7 +252,7 @@
       // which will set session id to empty string
       if (!sessionId) {
         let orderId = $(this).attr('orderId');
-        const res = await fetch('/account/order/paymentrenew/', {
+        const res = await fetch('/order/paymentrenew/', {
           method: 'POST',
           headers: {
             "X-CSRFToken": csrftoken,
@@ -283,7 +283,34 @@
     $('.cancel').click(async function (event) {
       event.preventDefault();
       let orderId = $(this).attr('orderId');
-      const res = await fetch('/account/order/cancel/', {
+      const res = await fetch('/order/cancel/', {
+        method: 'POST',
+        headers: {
+          "X-CSRFToken": csrftoken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          order_id: orderId,
+        }),
+      })
+      const data = await res.json()
+      console.log(data)
+      if (data.res == '1') {
+        showMsg(data.msg, 1)
+        setTimeout(function () {
+          location.reload()
+        }, 3000);
+      } else {
+        showMsg(data.errmsg, 0)
+        return;
+      }
+    })
+
+    // delete an order
+    $('.order-del').click(async function (event) {
+      event.preventDefault();
+      let orderId = $(this).attr('orderId');
+      const res = await fetch('/order/delete/', {
         method: 'POST',
         headers: {
           "X-CSRFToken": csrftoken,

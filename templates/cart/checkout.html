@@ -1,0 +1,378 @@
+{% extends 'base.html' %}{% load humanize %}{% load static %}
+<!-- TITL -->
+{% block title %}Checkout{% endblock title %}
+<!-- EXTRA_HEAD -->
+{% block extra_head %}
+<script src="https://js.stripe.com/v3/" defer></script>
+{% endblock extra_head %}
+<!-- CONTENT -->
+{% block content %}
+<div class="container">
+  <!-- HERO SECTION-->
+  <section class="py-5 bg-light">
+    <div class="container">
+      <div class="row px-4 px-lg-5 py-lg-4 align-items-center">
+        <div class="col-lg-6">
+          <h1 class="h2 text-uppercase mb-0">Checkout</h1>
+        </div>
+        <div class="col-lg-6 text-lg-right">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb justify-content-lg-end mb-0 px-0">
+              <li class="breadcrumb-item">
+                <a href="{% url 'shop:index' %}">Home</a>
+              </li>
+              <li class="breadcrumb-item">
+                <a href="{% url 'cart:info' %}">Cart</a>
+              </li>
+              <li class="breadcrumb-item active" aria-current="page">
+                Checkout
+              </li>
+            </ol>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- New Address Modal -->
+  <div class="row">
+    <div class="modal fade" id="newAddrModal" tabindex="-1" aria-labelledby="newAddrModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="newAddrModalLabel">Add New Address</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <form action="#" id="createForm"> {% csrf_token %}
+            <div class="modal-body">
+              <div class="row">
+                <div class="col-lg-6 form-group">
+                  <label class="text-small text-uppercase" for="recipient">recipient</label>
+                  {{form.recipient}}
+                </div>
+                <div class="col-lg-6 form-group">
+                  <label class="text-small text-uppercase" for="phone_no">Phone</label>
+                  {{form.phone_no}}
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-lg-12 form-group">
+                  <label class="text-small text-uppercase" for="addr">Address</label>
+                  {{form.addr}}
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-lg-6 form-group">
+                  <label class="text-small text-uppercase" for="city">City</label>
+                  {{form.city }}
+                </div>
+                <div class="col-lg-6 form-group">
+                  <label class="text-small text-uppercase" for="province">State/Province</label>
+                  {{form.province }}
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-lg-6 form-group">
+                  <label class="text-small text-uppercase" for="country">Country</label>
+                  {{form.country }}
+                </div>
+                <div class="col-lg-6 form-group">
+                  <label class="text-small text-uppercase" for="zip_code">Zip code</label>
+                  {{form.zip_code }}
+                </div>
+              </div>
+              <div class="form-group row">
+                <div class="custom-control">
+                  <div class="custom-control custom-checkbox">
+                    <input class="custom-control-input" id="setDefault-{{addr.id}}" name='setDefault' type="checkbox">
+                    <label class="custom-control-label" for="setDefault-{{addr.id}}"> <span class=" text-muted">
+                        Set as default shipping address</span></label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary close-modal" data-dismiss="modal">Close</button>
+              <button type="submit" class="btn btn-primary" id="save">Create</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Edit Address Modal -->
+  <div class='row'>
+    {% for addr in addrs %}
+    <div class="modal fade" id="addrModal-{{addr.id}}" tabindex="-1" aria-labelledby="addrModal-{{addr.id}}-label"
+      aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addrModal-{{addr.id}}-label">Edit Address</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <form action="#" class="updateForm" id="address-{{addr.id}}-update" addrId="{{addr.id}}">
+            <div class="modal-body">
+              {% csrf_token %}
+              <div class="row text-left">
+                <div class="col-lg-6 form-group">
+                  <label class="text-small text-uppercase" for="recipient">recipient</label>
+                  <input class="form-control form-control-lg" id="recipient-{{addr.id}}" name="recipient" type="text"
+                    value="{{addr.recipient}}">
+                </div>
+                <div class="col-lg-6 form-group">
+                  <label class="text-small text-uppercase" for="phone">phone </label>
+                  <input class="form-control form-control-lg" id="phone-{{addr.id}}" name="phone_no" type="text"
+                    value="{{addr.phone_no}}">
+                </div>
+                <div class="col-lg-12 form-group">
+                  <label class="text-small text-uppercase" for="addr">Address</label>
+                  <input class="form-control form-control-lg" id="addr-{{addr.id}}" name="addr" type="text"
+                    value="{{addr.addr}}">
+                </div>
+                <div class="col-lg-6 form-group">
+                  <label class="text-small text-uppercase" for="city">city</label>
+                  <input class="form-control form-control-lg" id="city-{{addr.id}}" name="city" type="text"
+                    value="{{addr.city}}">
+                </div>
+                <div class="col-lg-6 form-group">
+                  <label class="text-small text-uppercase" for="province">Province</label>
+                  <input class="form-control form-control-lg" id="province-{{addr.id}}" name="province" type="text"
+                    value="{{addr.province}}">
+                </div>
+                <div class="col-lg-6 form-group">
+                  <label class="text-small text-uppercase" for="country">Country</label>
+                  <div class="autocomplete">
+                    <input id="country-{{addr.id}}" class="country-input form-control form-control-lg" type="text"
+                      name="country" value="{{addr.country.name}}">
+                  </div>
+                </div>
+                <div class="col-lg-6 form-group">
+                  <label class="text-small text-uppercase" for="zip_code">Zip Code</label>
+                  <input class="form-control form-control-lg" id="zipcode-{{addr.id}}" name="zip_code" type="text"
+                    value="{{addr.zip_code}}">
+                </div>
+              </div>
+              <hr>
+              {% if addr.is_default %}
+              <div class="form-group row">
+                <div class="custom-control">
+                  <i class="far fa-check-circle text-muted pr-1"></i> <span class="text-muted">
+                    This address is default shipping address
+                  </span>
+                </div>
+              </div>
+              {% else %}
+              <div class="form-group row">
+                <div class="custom-control">
+                  <div class="custom-control custom-checkbox">
+                    <input class="custom-control-input" id="setDefault-{{addr.id}}" name='setDefault' type="checkbox">
+                    <label class="custom-control-label" for="setDefault-{{addr.id}}"> <span class=" text-muted">
+                        Set as default shipping address</span></label>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary close-modal" data-dismiss="modal">Close</button>
+              <button type="submit" class="btn btn-primary" id="save-{{addr.id}}">Save changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor%}
+  </div>
+  <section class="py-5">
+    <!-- BILLING ADDRESS-->
+    <!-- <h2 class="h5 text-uppercase mb-4">Billing details</h2> -->
+    <div class="row">
+      <div class="col-lg-12">
+        <form> {% csrf_token %}
+          <div class="form-group row">
+            <div class="card border-0 rounded-0 p-lg-4">
+              <div class="card-body">
+                <h5 class="text-uppercase mb-4">Shipping Address</h5>
+                <div class="row">
+                  {% for addr in addrs %}
+                  <div class="col-lg-12">
+                    <div class="custom-control custom-radio">
+                      <input class="custom-control-input address col-lg-1" id="{{addr.id}}" type="radio"
+                        name="customRadio" {%if addr.is_default%} checked {%endif%} />
+                      <label class="custom-control-label col-lg-11" for="{{addr.id}}">
+                        <div class='row'>
+                          <div class="text-muted col-lg-2">
+                            <span><i class="fas fa-user-check px-1"></i>{{addr.recipient}}</span>
+                          </div>
+                          <div class="text-muted col-lg-2">
+                            <span><i class="fas fa-mobile-alt px-1"></i>{{addr.phone_no}}</span>
+                          </div>
+                          <div class="text-muted col-lg-6">
+                            <span><i class="fas fa-map-marker-alt px-1"></i> {{addr.full_address}},
+                              {{addr.zip_code}}</span>
+                          </div>
+                          <div class="text-muted col-lg-2">
+                            <span> <a data-toggle="modal" data-target="#addrModal-{{addr.id}}">
+                                <i class="fas fa-edit px-1"></i> Edit</a></span>
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {% empty %}
+                  <div class="col-lg-12">
+                    <span class="col-sm-12 text-muted">No shipping address, click to add new address</span>
+                  </div>
+                  {% endfor %}
+                </div>
+                <div class="row">
+                  <div class="col-sm-12 mt-2">
+                    <a class="reset-anchor" href="#" type="button" data-toggle="modal"
+                      data-target="#newAddrModal"><strong class="text-small text-uppercase">
+                        <i class="fa fa-plus px-1" aria-hidden="true"></i> Add New Address</strong>
+                      </i>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- ORDER SUMMARY-->
+          <div class="form-group row">
+            <div class="col-lg-12">
+              <div class="card border-0 rounded-0 p-lg-4 bg-light">
+                <div class="card-body">
+                  <h5 class="text-uppercase mb-4">Your order</h5>
+                  <ul class="list-unstyled mb-0">
+                    {% for product in products %}
+                    <li class="d-flex align-items-center justify-content-between">
+                      <strong class="small font-weight-bold">{{forloop.counter}} - {{ product.name }} *
+                        {{ product.count }}</strong><span class="text-muted small"><i class="fa fa-jpy"
+                          aria-hidden="true"></i>
+                        {{product.amount|intcomma}}
+                      </span>
+                    </li>
+                    <li class="border-bottom my-2"></li>
+                    {% endfor %}
+
+                    <li class="d-flex align-items-center justify-content-between">
+                      <strong class="text-uppercase small font-weight-light">Subtotal</strong><span><strong
+                          class="text-uppercase small font-weight-light"><i class="fa fa-jpy" aria-hidden="true"></i>
+                          {{subtotal|intcomma}}</span></strong>
+                    </li>
+                    <li class="d-flex align-items-center justify-content-between">
+                      <strong class="text-uppercase small font-weight-light">Shipping</strong><strong
+                        class="text-uppercase small font-weight-light"><span>{% if shipping_fee != 'Free'%}<i
+                            class="fa fa-jpy" aria-hidden="true"></i>{% endif %}
+                          {{shipping_fee|intcomma}}</span></strong>
+                    </li>
+                    <li class="border-bottom my-2"></li>
+                    <li class="d-flex align-items-center justify-content-between">
+                      <strong class="text-uppercase small font-weight-bold">Total</strong><span><i class="fa fa-jpy"
+                          aria-hidden="true"></i>
+                        {{total_price|intcomma}}</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Payment method -->
+          <div class="form-group row">
+            <div class="col-lg-12">
+              <div class="card border-0 rounded-0 p-lg-4">
+                <div class="card-body">
+                  <h5 class="text-uppercase mb-4">Payment Method</h5>
+                  <div class="row">
+                    <div class="col-sm-4">
+                      <div class="custom-control custom-radio">
+                        <input class="custom-control-input payment" id="card" type="radio" name="payment" checked />
+                        <label class="custom-control-label" for="card"><strong
+                            class="text-uppercase small font-weight-bold"><i class="fa fa-credit-card"
+                              aria-hidden="true"></i> Credit Card</strong></label>
+                      </div>
+                    </div>
+                    <div class="col-sm-4">
+                      <div class="custom-control custom-radio">
+                        <input class=" custom-control-input payment" id="alipay" type="radio" name="payment" />
+                        <label class="custom-control-label" for="alipay"><strong
+                            class="text-uppercase small font-weight-bold"><i class="fab fa-alipay fa-sm"></i>
+                            Alipay</strong></label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-group row">
+            <div class="col-sm-12 text-right">
+              <button class="btn btn-primary" id='place-order' type="submit">Place Order</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock content %}
+<!-- BOTTOM -->
+{% block bottom %}
+<script src="{% static 'js/country-autocomplete.js' %}" defer></script>
+<script src="{% static 'js/address-crud.js' %}" defer></script>
+<script>
+  // Create an instance of the Stripe object with your publishable API key
+  $(function () {
+
+    var stripe = Stripe("{{ stripe_api_key }}");
+
+    $('#place-order').click(async function (event) {
+      event.preventDefault();
+      const csrftoken = Cookies.get("csrftoken");
+      let paymentMethod = $('.payment:checked').prop('id');
+      let addrId = $('.address:checked').prop('id');
+      const res = await fetch("/order/process/", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrftoken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          payment_method: paymentMethod,
+          addr_id: addrId
+        })
+      })
+
+      let data = await res.json();
+      console.log(data)
+
+      /*if (data.session.payment_status === 'paid') {
+        await fetch('/order/complete/', {
+          method: 'POST',
+          headers: {
+            "X-CSRFToken": csrftoken,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            payment_intent: data.session.payment_intent,
+          })
+        })
+      }*/
+
+      const paymentSession = await stripe.redirectToCheckout({
+        sessionId: data.session.id
+      });
+
+      if (paymentSession.error) {
+        showErrMsg(paymentSession.error.message);
+      }
+    });
+  })
+
+</script>
+{% endblock bottom %}

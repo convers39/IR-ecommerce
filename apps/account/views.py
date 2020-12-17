@@ -3,10 +3,9 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import query
 from django.http import HttpResponseRedirect
 from django.http.response import JsonResponse
-from django.shortcuts import get_object_or_404, render, redirect
+from django.shortcuts import render, redirect
 from django.urls import reverse_lazy, reverse
 from django.views.generic import View, CreateView
 from django.views.generic.detail import DetailView
@@ -24,7 +23,7 @@ from order.models import Order, OrderProduct, Review
 from shop.models import ProductSKU
 from order.views import create_checkout_session
 
-from .forms import RegisterForm, UserInfoForm, AddressForm
+from .forms import RegisterForm, UserInfoForm, AddressForm, create_address_formset
 from .models import User, Address
 from .tasks import send_activation_email
 
@@ -129,79 +128,6 @@ class OrderListView(LoginRequiredMixin, ListView):
         return context
 
 
-class PaymentRenewView(LoginRequiredMixin, View):
-    def post(self, request, *args, **kwargs):
-        user = request.user
-        try:
-            data = json.loads(request.body.decode())
-        except:
-            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
-        print(data)
-
-        order_id = data.get('order_id')
-        order = Order.objects.select_related('payment').get(id=order_id)
-        payment = order.payment
-        method = payment.method
-        name = f'Retry payment for order# {order.number}'
-        amount = payment.amount
-        try:
-            session = create_checkout_session(
-                user, method, name, amount)
-        except:
-            return JsonResponse({'res': '0', 'errmsg': 'Failed to renew payment session'})
-
-        payment.renew_payment(session)
-        return JsonResponse({
-            'res': '1',
-            'session': session,
-            'msg': 'Payment session renewed'
-        })
-
-
-class OrderCancelView(LoginRequiredMixin, View):
-    def post(self, request, *args, **kwargs):
-        try:
-            data = json.loads(request.body.decode())
-        except:
-            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
-        print('cancel view', data)
-        order_id = data.get('order_id')
-        try:
-            order = Order.objects.get(id=order_id)
-        except Order.DoesNotExist:
-            return JsonResponse({'res': '0', 'errmsg': 'Order does not exist'})
-
-        status = order.status
-        if status == 'SP':
-            order.request_return()
-            order.save()
-            return JsonResponse({'res': '1', 'msg': 'Return request has been sent'})
-
-        elif status == 'CF':
-            order.request_cancel()
-            order.save()
-            return JsonResponse({'res': '1', 'msg': 'Cancel request has been sent'})
-
-        elif status == 'NW':
-            order.auto_cancel()
-            order.save()
-            order.restore_product_stock()
-            return JsonResponse({'res': '1', 'msg': 'Your order has been cancelled'})
-
-        elif status == 'CL':
-            order.stop_cancel_request()
-            order.save()
-            return JsonResponse({'res': '1', 'msg': 'Cancel request stopped'})
-
-        elif status == 'RT':
-            order.stop_return_request()
-            order.save()
-            return JsonResponse({'res': '1', 'msg': 'Return request stopped'})
-
-        else:
-            return JsonResponse({'res': '0', 'errmsg': f'Order at {order.status} cannot be cancelled'})
-
-
 class OrderDetailView(LoginRequiredMixin, DetailView):
     model = Order
     context_object_name = 'order'
@@ -254,15 +180,16 @@ class AddressView(LoginRequiredMixin, FormMixin, View):
     def get(self, request, *args, **kwargs):
         user = request.user
         addresses = user.addresses.all()
+        # formset = create_address_formset(user)
         context = {
             'user': user,
             'addresses': addresses,
-            'form': self.form_class
+            'form': self.form_class,
+            # 'formset': formset
         }
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
-        # TODO: set default address
         user = request.user
         try:
             data = json.loads(request.body.decode())
@@ -274,17 +201,15 @@ class AddressView(LoginRequiredMixin, FormMixin, View):
             operation = data.pop('operation')
         except KeyError:
             return JsonResponse({'res': '0', 'errmsg': 'Invalid Operation'})
-        # save new address
+
         if operation == 'create':
-            # try:
-            #     set_default = data.pop('setDefault')
-            # except KeyError:
-            #     pass
             form = AddressForm(data)
             if form.is_valid():
                 new_addr = form.save(commit=False)
                 new_addr.user = user
                 new_addr.save()
+                if data.get('setDefault') == 'on':
+                    new_addr.set_default_address(request.user)
                 new_id = new_addr.id
                 return JsonResponse({'res': '1', 'msg': 'New address added', 'new_id': new_id})
             else:
@@ -294,7 +219,7 @@ class AddressView(LoginRequiredMixin, FormMixin, View):
             try:
                 addr_id = data.pop('addr_id')
             except KeyError:
-                return JsonResponse({'res': '0', 'errmsg': 'Address id missing'})
+                return JsonResponse({'res': '0', 'errmsg': 'Address id is missing'})
 
             try:
                 address = Address.objects.get(id=addr_id)
@@ -305,16 +230,17 @@ class AddressView(LoginRequiredMixin, FormMixin, View):
             if form.is_valid():
                 updated_addr = form.save()
                 updated_id = updated_addr.id
+                if data.get('setDefault') == 'on':
+                    updated_addr.set_default_address(request.user)
                 return JsonResponse({'res': '1', 'msg': 'Address updated', 'updated_id': updated_id})
             else:
                 return JsonResponse({'res': '0', 'errmsg': 'Invalid form data'})
 
-        # delete existed address
         if operation == 'delete':
             try:
                 addr_id = data['addr_id']
             except KeyError:
-                return JsonResponse({'res': '0', 'errmsg': 'Address id missing'})
+                return JsonResponse({'res': '0', 'errmsg': 'Address id is missing'})
 
             try:
                 Address.objects.filter(id=addr_id).delete()

@@ -15,8 +15,13 @@ class SKUAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'spu', 'category',
                     'origin', 'stock', 'price', 'sales')
     search_fields = ('id', 'name', 'summary', 'detail',)
-    list_filter = ('id', 'status', 'spu', 'category', 'origin',)
-
+    list_filter = ('status', 'spu', 'category', 'origin')
+    # autocomplete_fields = ('spu', 'category', 'origin')
+    list_editable = ('stock', 'price', )
+    list_select_related = ('category', 'spu', 'origin',)
+    list_per_page = 10
+    list_max_show_all = 50
+    save_as = True
     fieldsets = (
         ('Basic Information', {
             "fields": (
@@ -42,7 +47,10 @@ class CategoryAdmin(DraggableMPTTAdmin):
     mptt_indent_field = "name"
     list_display = ('id', 'tree_actions', 'indented_title',
                     'related_products_count', 'related_products_cumulative_count')
-    list_display_links = ('indented_title',)
+    list_display_links = ('indented_title', )
+    list_display = ('indented_title', 'name', )
+    list_editable = ('name',)
+    search_fields = ('name',)
     # list_filter = (('Category', TreeRelatedFieldListFilter),)
 
     def get_queryset(self, request):
@@ -74,13 +82,25 @@ class HomeBannerAdmin(admin.ModelAdmin):
 @admin.register(ProductSPU)
 class SPUAdmin(admin.ModelAdmin):
     readonly_fields = ('is_deleted',)
+    search_fields = ('name',)
+    # list_editable = ('name',)
+    list_display = ('name',)
+    list_display_links = ('name',)
 
 
 @admin.register(Image)
 class ImageAdmin(admin.ModelAdmin):
     readonly_fields = ('is_deleted',)
+    list_editable = ('name',)
+    list_display = ('name', 'image')
+    list_display_links = None
+    list_select_related = ('sku',)
 
 
 @admin.register(Origin)
 class OriginAdmin(admin.ModelAdmin):
     readonly_fields = ('is_deleted',)
+    search_fields = ('name',)
+    list_editable = ('name',)
+    list_display = ('name',)
+    list_display_links = None
