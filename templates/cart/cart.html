@@ -204,6 +204,10 @@
                       class="fas fa-trash-alt small text-muted"></i></a>
                 </td>
               </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" class="text-muted text-small text-uppercase text-center">Cart is empty</td>
+              </tr>
               {% endfor %}
             </tbody>
           </table>

@@ -18,7 +18,7 @@ class User(PermissionsMixin, AbstractBaseUser):
 
     username = models.CharField(_("user name"), max_length=50, validators=[
         username_validator], help_text=_('Required. 50 characters or fewer. Letters, digits and @/./+/-/_ only.'))
-    email = models.EmailField(_("email"), unique=True, max_length=254)
+    email = models.EmailField(_("email"),  max_length=254)
     first_name = models.CharField(_("first name"), max_length=50, blank=True)
     last_name = models.CharField(_("last name"), max_length=50, blank=True)
     phone_no = models.CharField(_("phone no."), max_length=50, blank=True, help_text=(
@@ -39,8 +39,6 @@ class User(PermissionsMixin, AbstractBaseUser):
 
 
 class Address(BaseModel):
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='addresses')
     recipient = models.CharField(_("recipient"), max_length=50)
     phone_no = models.CharField(_("phone number"), max_length=50)
     addr = models.CharField(_("address"), max_length=250)
@@ -50,6 +48,9 @@ class Address(BaseModel):
     zip_code = models.CharField(_("zip code"), max_length=20,
                                 validators=[RegexValidator(r'^[0-9]+')])
     is_default = models.BooleanField(_("default address"), default=False)
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='addresses', null=True)
 
     objects = AddressManager()
 
@@ -68,7 +69,6 @@ class Address(BaseModel):
         return f'{self.addr}, {self.city} City, {self.province}, {self.country}'
 
     def set_default_address(self, user):
-        # TODO:add to admin page
         if not self.is_default:
             current = Address.objects.get_default_address(user)
             current.is_default = False

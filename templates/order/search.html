@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+<!-- TAGS -->
+{% load humanize %} {% load qs_url_tag %}
+{% load mathfilters %}{% load mptt_tags %}
+<!-- TITLE -->
+{% block title %}Thank You{% endblock title %}
+<!-- EXTRA_HEAD -->
+{% block extra_head %}
+<script src="https://js.stripe.com/v3/"></script>
+{% endblock extra_head %}
+<!-- CONTENT -->
+{% block content %}
+
+<!-- HERO SECTION-->
+<section class="py-5 bg-light">
+  <div class="container">
+    <div class="row px-4 px-lg-5 py-lg-4 align-items-center">
+      <div class="col-lg-6">
+        <h1 class="h2 text-uppercase mb-0">Checkout</h1>
+      </div>
+      <div class="col-lg-6 text-lg-right">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-lg-end mb-0 px-0">
+            <li class="breadcrumb-item">
+              <a href="{url 'shop:index' }">Home</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Find Order</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="py-5">
+  <!-- Search Form -->
+  <div class="container">
+    <h2 class="h5 text-uppercase mb-4">Enter your email and order number</h2>
+    <form method="GET" id="orderSearch">
+      <div class="row">
+        <div class="form-group col-md-12 col-lg-6">
+          <!-- <label for="email">Email address</label> -->
+          <input class="form-control" id="email" name="email" type="text" placeholder="Enter email">
+        </div>
+        <div class="form-group col-md-12 col-lg-6">
+          <!-- <label for="orderNumber">Order Number</label> -->
+          <input class="form-control" id="orderNumber" name="order_number" type="text" placeholder="Enter order number">
+        </div>
+      </div>
+      <div class="row">
+        <div class="form-group col-sm-12 text-left">
+          <button class="btn btn-primary" type="submit">Submit</button>
+          <button class="btn btn-secondary" type="reset">Clear</button>
+        </div>
+      </div>
+    </form>
+  </div>
+  <!-- Modal -->
+  {% for order in orders %}
+  <div class="modal fade" id="orderModal-{{order.id}}" tabindex="-1" aria-labelledby="orderModal-{{order.id}}-label"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="orderModal-{{order.id}}-label">Order Detail</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div>
+            <table class="table" width='100%'>
+              <thead class="bg-light">
+                <tr>
+                  <th class="border-0" scope="col"> <strong class="text-small text-uppercase">Product</strong>
+                  </th>
+                  <th class="border-0 text-center" scope="col"> <strong
+                      class="text-small text-uppercase ">Price</strong></th>
+                  <th class="border-0 text-center" scope="col"> <strong
+                      class="text-small text-uppercase ">Count</strong></th>
+                  <th class="border-0 text-center" scope="col"> <strong
+                      class="text-small text-uppercase ">Total</strong></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for order_product in order.order_products.all %}
+                <tr>
+                  <th class="pl-0 border-0" scope="row">
+                    <div class="media align-items-center">
+                      <a class="reset-anchor d-block animsition-link"
+                        href="{{ order_product.product.get_absolute_url }}"><img
+                          src="{{ order_product.product.cover_img.url }}" alt="{{product.name}}" width="70" /></a>
+                      <div class="media-body ml-3">
+                        <strong class="h6"><a class="reset-anchor animsition-link"
+                            href="{{ order_product.product.get_absolute_url }}">{{ order_product.product.name }}</a></strong>
+                      </div>
+                    </div>
+                  </th>
+                  <td class="align-middle border-0 text-center">
+                    <p class="mb-0 small">
+                      <i class="fa fa-jpy text-muted" aria-hidden="true"></i><span
+                        id="price-{{order_product.product.id}}">{{order_product.unit_price|intcomma}}</span>
+                    </p>
+                  </td>
+                  <td class="align-middle border-0 text-center">
+                    <p class="mb-0 small"> {{order_product.count}} </p>
+                  </td>
+                  <td class="align-middle border-0 text-center">
+                    <p class="mb-0 small"><i class="fa fa-jpy text-muted"
+                        aria-hidden="true"></i>{{order_product.total_price|intcomma}} </p>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer pr-3">
+          <div class="text-right">
+            <strong class="text-uppercase small">Subtotal: <i class="fa fa-jpy text-muted"
+                aria-hidden="true"></i>{{order.subtotal|intcomma}} + </strong>
+          </div>
+          <div class="text-right">
+            <strong class="text-uppercase small">Shipping: <i class="fa fa-jpy text-muted"
+                aria-hidden="true"></i>{{order.shipping_fee|intcomma}} = </strong>
+          </div>
+          <div class="text-right">
+            <strong class="text-uppercase font-weight-bold"> <i class="fa fa-jpy text-muted" aria-hidden="true"></i>
+              {{order.total_amount|intcomma}}</strong>
+          </div>
+          <!-- <button type="button" class="btn btn-secondary close-modal" data-dismiss="modal">Close</button> -->
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  <!-- Search Result -->
+  <div class="container">
+    <hr>
+    {% for order in orders %}
+    <div class="table-responsive mb-4">
+      <table class="table" id="orderTable">
+        <thead class="bg-light text-center">
+          <tr>
+            <th class="border-0"> <strong class="text-small text-uppercase">Order#</strong>
+            </th>
+            <th class="border-0"> <strong class="text-small text-uppercase">Status</strong>
+            </th>
+            <th class="border-0"> <strong class="text-small text-uppercase">Total</strong>
+            </th>
+            <th class="border-0"> <strong class="text-small text-uppercase">Detail</strong>
+            </th>
+            <th class="border-0"> <strong class="text-small text-uppercase">Action</strong>
+            </th>
+          </tr>
+        </thead>
+        <tbody class="text-center">
+          <tr>
+            <th class="pl-0 border-0" scope="row">
+              <strong class="h6">{{ order.number }}</strong>
+            </th>
+            <td class="align-middle border-0">
+              <p class="mb-0 small">{{ order.status }}</p>
+            </td>
+            <td class="align-middle border-0">
+              <p class="mb-0 small"><i class="fa fa-jpy text-muted" aria-hidden="true"></i>
+                {{ order.total_amount|intcomma }}
+              </p>
+            </td>
+            <td class="align-middle border-0">
+              <a type="button" class="btn btn-sm btn-outline-dark" data-toggle="modal"
+                data-target="#orderModal-{{order.id}}"><i class="fas fas fa-ellipsis-h"></i></a>
+            </td>
+            <td class="align-middle border-0"><a class="reset-anchor payment btn btn-sm btn-outline-dark" href="#"
+                session={{order.payment.session_id}} orderId={{order.id}}>Pay</a></td>
+          </tr>
+          {% empty %}
+          <!-- <tr>
+            <td colspan="5" class="text-muted text-small text-uppercase text-center">No order found!</td>
+          </tr> -->
+          {% endfor %}
+        </tbody>
+        <tfoot class="text-left">
+          <td colspan="4"><small><span class="text-primary text-uppercase">Unpaid order will be expired after
+                48hrs.</span></small>
+          </td>
+        </tfoot>
+      </table>
+    </div>
+</section>
+{% endblock content %}
+<!-- BOTTOM -->
+{% block bottom %}
+<script>
+  $(function () {
+    const csrftoken = Cookies.get("csrftoken");
+    // redirect to checkout
+    var stripe = Stripe("{{ stripe_key }}");
+    $('.payment').click(async function (event) {
+      event.preventDefault();
+      let sessionId = $(this).attr('session');
+      // retrieve new session id if payment session expired, 
+      // which will set session id to empty string
+      if (!sessionId) {
+        let orderId = $(this).attr('orderId');
+        const res = await fetch('/order/paymentrenew/', {
+          method: 'POST',
+          headers: {
+            "X-CSRFToken": csrftoken,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            order_id: orderId,
+          }),
+        })
+        const data = await res.json()
+        if (data.res == '1') {
+          const sessionId = data.session.id
+        } else {
+          showMsg(data.errmsg, 0)
+          return;
+        }
+      }
+      console.log(sessionId)
+      const paymentSession = await stripe.redirectToCheckout({
+        sessionId: sessionId
+      });
+      if (paymentSession.error) {
+        showErrMsg(paymentSession.error.message);
+      }
+    })
+
+  })
+
+</script>
+{% endblock bottom%}

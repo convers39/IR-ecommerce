@@ -7,7 +7,7 @@ from django.shortcuts import render, redirect
 from django.urls.base import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.views.generic import View, TemplateView
+from django.views.generic import View, TemplateView, ListView
 
 import stripe
 import json
@@ -15,9 +15,9 @@ from datetime import datetime, timedelta, timezone
 
 from django_redis import get_redis_connection
 
-from account.models import Address
+from account.models import User
 from shop.models import ProductSKU
-from cart.cart import cal_total_count_subtotal, cal_shipping_fee, cal_cart_count
+from cart.cart import cal_shipping_fee, get_user_id
 
 from .models import Order, Payment, OrderProduct
 from .mixins import OrderDataCheckMixin, OrderManagementMixin
@@ -31,7 +31,7 @@ class OrderProcessView(OrderDataCheckMixin, View):
     Customer click place order to send an ajax request,
     recieve address and payment method only from request data,
     retrieve shopping cart data from redis and calculate price,
-    add lock when retrieve product data from DB (using pessimistic lock here), 
+    add lock when retrieve product data from DB (using pessimistic lock here),
     create a stripe checkout session, response a json containing sessionId,
     and in the fronend use the sessionId to redirect customer to stripe checkout
     """
@@ -39,16 +39,14 @@ class OrderProcessView(OrderDataCheckMixin, View):
     @transaction.atomic
     def post(self, request):
         # retreive data from request
-        user = request.user
         data = json.loads(request.body.decode())
-        addr_id = data.get('addr_id')
+        user, address = self.get_user_and_address()
         payment_method = data.get('payment_method')
 
         # make transaction savepoint before changing any data in database
         save_id = transaction.savepoint()
         try:
             # create an Order instance
-            address = Address.objects.get(id=addr_id)
             order = Order.objects.create(
                 subtotal=0,
                 user=user,
@@ -57,15 +55,16 @@ class OrderProcessView(OrderDataCheckMixin, View):
             print('order created')
 
             # create OrderProduct instance for earch product
+            user_id = get_user_id(request)
             conn = get_redis_connection('cart')
-            cart_dict = conn.hgetall(f'cart_{user.id}')
+            cart_dict = conn.hgetall(f'cart_{user_id}')
 
             products = []
             total_count = subtotal = 0
             for sku_id, count in cart_dict.items():
                 try:
                     # add lock when retrieve product data
-                    product = ProductSKU.objects.select_for_update().get(id=sku_id)
+                    product = ProductSKU.objects.select_for_update().filter(id=sku_id).first()
                 except ProductSKU.DoesNotExist:
                     transaction.savepoint_rollback(save_id)
                     return JsonResponse({'res': 0, 'errmsg': 'Item does not exist'})
@@ -123,13 +122,19 @@ class OrderProcessView(OrderDataCheckMixin, View):
         transaction.savepoint_commit(save_id)
 
         # clear shopping cart in the end
-        conn.hdel(f'cart_{user.id}', *[product.id for product in products])
+        conn.hdel(f'cart_{user_id}', *[product.id for product in products])
         print('shopping cart cleared')
 
         return JsonResponse({'res': 1, 'msg': 'Order created', 'session': session})
 
 
 def create_checkout_session(user, payment_method, item_name, amount):
+    domain = 'http://127.0.0.1:8080/'
+    cancel_url = domain + reverse('shop:index')
+    success_url = domain + reverse('order:success') + \
+        '?session_id={CHECKOUT_SESSION_ID}'
+    if user.is_active:
+        cancel_url = reverse('account:order-list')
     session = stripe.checkout.Session.create(
         payment_method_types=[payment_method],
         customer_email=user.email,
@@ -145,19 +150,25 @@ def create_checkout_session(user, payment_method, item_name, amount):
         }],
         mode='payment',
         # TODO: add order number into url
-        success_url='http://127.0.0.1:8080/order/success/?session_id={CHECKOUT_SESSION_ID}',
-        cancel_url='http://127.0.0.1:8080/account/order/',
-        # success_url=reverse('order:success'),
-        # cancel_url=reverse('account:center'),
+        success_url=success_url,
+        cancel_url=cancel_url,
     )
     return session
+
+# TODO: guest user retrieve payment session from email
 
 
 class PaymentSuccessView(TemplateView):
     template_name = 'order/success.html'
 
     def get(self, request):
-        user = request.user
+        user_id = get_user_id(request)
+        if request.user.is_active:
+            user = User.objects.get(id=user_id)
+        else:
+            guest_name = f'guest_{user_id}'
+            user = User.objects.get(name=guest_name)
+
         payment = user.payments.first()
         orders = payment.orders.all()
         context = {'payment_number': payment.number, 'orders': orders}
@@ -272,11 +283,52 @@ class OrderCancelView(OrderManagementMixin, View):
         else:
             return JsonResponse({'res': '0', 'errmsg': f'Order at {order.status} cannot be cancelled'})
 
-
-class OrderDeleteView(OrderManagementMixin, View):
-    def post(self, request, *args, **kwargs):
+    def delete(self, request, *args, **kwargs):
         data = json.loads(request.body.decode())
         order = Order.objects.get(id=data['order_id'])
         order.is_deleted = True  # similar as 'hided by user', still available in database
         order.save()
         return JsonResponse({'res': '1', 'msg': 'Order deleted'})
+
+# class OrderDeleteView(OrderManagementMixin, View):
+#     def post(self, request, *args, **kwargs):
+
+
+class OrderSearchView(ListView):
+    model = Order
+    template_name = 'order/search.html'
+    context_object_name = 'orders'
+
+    def get_queryset(self):
+        email = self.request.GET.get('email')
+        order_number = self.request.GET.get('order_number')
+
+        if email == order_number == None:
+            return None
+
+        if not all([email, order_number]):
+            messages.error(
+                self.request, 'Both email and order number are required')
+            return None
+
+        queryset = Order.objects.prefetch_related('order_products').prefetch_related(
+            'order_products__product').select_related('payment').filter(number=order_number)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            messages.error(self.request, 'Incorrect email')
+            return None
+
+        if queryset.count() == 0:
+            messages.error(self.request, 'order number does not exist')
+        elif queryset[0].user != user:
+            queryset = queryset.none()
+            messages.error(self.request, 'Order and email does not match')
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['stripe_key'] = settings.STRIPE_PUBLIC_KEY
+        return context

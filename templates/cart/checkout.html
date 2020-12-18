@@ -33,6 +33,7 @@
       </div>
     </div>
   </section>
+  {% if request.user.is_authenticated %}
   <!-- New Address Modal -->
   <div class="row">
     <div class="modal fade" id="newAddrModal" tabindex="-1" aria-labelledby="newAddrModalLabel" aria-hidden="true">
@@ -187,16 +188,18 @@
     </div>
     {% endfor%}
   </div>
+  {% endif %}
   <section class="py-5">
     <!-- BILLING ADDRESS-->
     <!-- <h2 class="h5 text-uppercase mb-4">Billing details</h2> -->
     <div class="row">
       <div class="col-lg-12">
-        <form> {% csrf_token %}
+        <form method="POST" id="orderForm"> {% csrf_token %}
           <div class="form-group row">
             <div class="card border-0 rounded-0 p-lg-4">
               <div class="card-body">
                 <h5 class="text-uppercase mb-4">Shipping Address</h5>
+                {% if request.user.is_authenticated %}
                 <div class="row">
                   {% for addr in addrs %}
                   <div class="col-lg-12">
@@ -239,6 +242,46 @@
                     </a>
                   </div>
                 </div>
+                {% else %}
+                <div class="row">
+                  <div class="col-lg-6 form-group">
+                    <label class="text-small text-uppercase" for="first_name">First Name</label>
+                    {{form.first_name}}
+                  </div>
+                  <div class="col-lg-6 form-group">
+                    <label class="text-small text-uppercase" for="last_name">Last Name</label>
+                    {{form.last_name}}
+                  </div>
+                  <div class="col-lg-6 form-group">
+                    <label class="text-small text-uppercase" for="phone_no">Phone</label>
+                    {{form.phone_no}}
+                  </div>
+                  <div class="col-lg-6 form-group">
+                    <label class="text-small text-uppercase" for="email">Email</label>
+                    {{form.email}}
+                  </div>
+                  <div class="col-lg-12 form-group">
+                    <label class="text-small text-uppercase" for="addr">Address</label>
+                    {{form.addr}}
+                  </div>
+                  <div class="col-lg-6 form-group">
+                    <label class="text-small text-uppercase" for="city">Town/City</label>
+                    {{form.city }}
+                  </div>
+                  <div class="col-lg-6 form-group">
+                    <label class="text-small text-uppercase" for="province">State/Province</label>
+                    {{form.province }}
+                  </div>
+                  <div class="col-lg-6 form-group">
+                    <label class="text-small text-uppercase" for="country">Country</label>
+                    {{form.country }}
+                  </div>
+                  <div class="col-lg-6 form-group">
+                    <label class="text-small text-uppercase" for="zip_code">Zip code</label>
+                    {{form.zip_code }}
+                  </div>
+                </div>
+                {% endif %}
               </div>
             </div>
           </div>
@@ -330,46 +373,35 @@
   $(function () {
 
     var stripe = Stripe("{{ stripe_api_key }}");
+    const csrftoken = Cookies.get("csrftoken");
 
-    $('#place-order').click(async function (event) {
+    $('#orderForm').submit(async function (event) {
       event.preventDefault();
-      const csrftoken = Cookies.get("csrftoken");
+      const formData = new FormData(event.currentTarget);
+      const plainData = Object.fromEntries(formData.entries());
       let paymentMethod = $('.payment:checked').prop('id');
       let addrId = $('.address:checked').prop('id');
+      const postData = Object.assign(plainData, {
+        payment_method: paymentMethod,
+        addr_id: addrId
+      })
       const res = await fetch("/order/process/", {
         method: "POST",
         headers: {
           "X-CSRFToken": csrftoken,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          payment_method: paymentMethod,
-          addr_id: addrId
-        })
+        body: JSON.stringify(postData)
       })
-
-      let data = await res.json();
+      const data = await res.json();
       console.log(data)
-
-      /*if (data.session.payment_status === 'paid') {
-        await fetch('/order/complete/', {
-          method: 'POST',
-          headers: {
-            "X-CSRFToken": csrftoken,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            payment_intent: data.session.payment_intent,
-          })
-        })
-      }*/
 
       const paymentSession = await stripe.redirectToCheckout({
         sessionId: data.session.id
       });
 
       if (paymentSession.error) {
-        showErrMsg(paymentSession.error.message);
+        showErrMsg(paymentSession.error.message, 0);
       }
     });
   })

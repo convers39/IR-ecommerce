@@ -168,10 +168,11 @@ class ProductSKU(BaseModel):
     #     calculate the discounted price with price and discount rate
     #     """
     #     pass
+    # TODO: find a better way to calculate average salse to avoid duplicate queries
     # @property
     # def avg_sales(self):
     #     avg_sales = ProductSKU.objects.aggregate(Avg('sales'))
-    #     return avg_sales
+    #     return avg_sales['sales__avg']
 
     def get_product_label(self):
         """
@@ -181,7 +182,7 @@ class ProductSKU(BaseModel):
 
         if datetime.now(timezone.utc) - self.created_at < timedelta(days=14):
             label = 'new'
-        if self.sales >= self.avg_sales:
+        if self.sales >= 1:
             label = 'hot'
         if self.stock == 0:
             label = 'sold'

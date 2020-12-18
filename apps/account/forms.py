@@ -95,14 +95,71 @@ class UserInfoForm(forms.ModelForm):
             }),
             'phone_no': forms.TextInput(attrs={
                 'class': 'form-control form-control-lg',
-                'id': 'phone_number',
-                'placeholder': 'e.g.'
+                'id': 'phone_no',
+                'placeholder': 'e.g. +82 66778899'
             }),
         }
 
 
 class ContryForm(forms.Form):
     country = CountryField().formfield()
+
+
+class GuestAddressForm(forms.Form):
+    first_name = forms.CharField(widget=forms.TextInput(attrs={
+        'class': 'form-control form-control-lg',
+        'name': 'first_name',
+        'id': 'first_name',
+        'placeholder': 'e.g. John'
+    }))
+    last_name = forms.CharField(widget=forms.TextInput(attrs={
+        'class': 'form-control form-control-lg',
+        'name': 'last_name',
+        'id': 'last_name',
+        'placeholder': 'e.g. Doe'
+    }))
+    phone_no = forms.CharField(widget=forms.TextInput(attrs={
+        'class': 'form-control form-control-lg',
+        'name': 'phone_no',
+        'id': 'phone_no',
+        'placeholder': 'e.g. +82 66778899'
+    }))
+    email = forms.EmailField(widget=forms.EmailInput(attrs={
+        'class': 'form-control form-control-lg',
+        'name': 'email',
+        'id': 'email',
+        'placeholder': 'e.g. Doe'
+    }))
+    addr = forms.CharField(widget=forms.TextInput(attrs={
+        'class': 'form-control form-control-lg',
+        'name': 'addr',
+        'id': 'addr',
+        'placeholder': 'Address after city'
+    }))
+    city = forms.CharField(widget=forms.TextInput(attrs={
+        'class': 'form-control form-control-lg',
+        'name': 'city',
+        'id': 'city',
+        'placeholder': 'Town or city'
+    }))
+    province = forms.CharField(widget=forms.TextInput(attrs={
+        'class': 'form-control form-control-lg',
+        'name': 'province',
+        'id': 'province',
+        'placeholder': 'state or province'
+    }))
+    country = CountryField(blank_label='(Select country)').\
+        formfield(widget=CountrySelectWidget(attrs={
+            'class': 'form-control form-control-lg',
+            'name': 'country',
+            'id': 'country',
+        }, layout='{widget}'))
+    zip_code = forms.CharField(widget=forms.TextInput(attrs={
+        'class': 'form-control form-control-lg',
+        'name': 'zip_code',
+        'id': 'zip_code',
+        'placeholder': 'e.g. 555000'
+    }))
 
 
 class AddressForm(forms.ModelForm):

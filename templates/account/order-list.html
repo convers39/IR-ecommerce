@@ -310,8 +310,8 @@
     $('.order-del').click(async function (event) {
       event.preventDefault();
       let orderId = $(this).attr('orderId');
-      const res = await fetch('/order/delete/', {
-        method: 'POST',
+      const res = await fetch('/order/cancel/', {
+        method: 'DELETE',
         headers: {
           "X-CSRFToken": csrftoken,
           "Content-Type": "application/json",

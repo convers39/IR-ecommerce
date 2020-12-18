@@ -11,11 +11,9 @@ from django.db.models import Avg
 class SKUManager(models.Manager):
     def get_queryset(self):
         """
-        Only return products on the shelf, prefetch all images, 
-        and annotate average sales to avoid duplicate queries.
+        Only return products on the shelf, prefetch all images,to avoid duplicate queries.
         """
-        return super().get_queryset().filter(status='ON').\
-            prefetch_related('images').annotate(avg_sales=Avg('sales'))
+        return super().get_queryset().filter(status='ON').prefetch_related('images')
 
     def get_related_products(self, obj):
         """

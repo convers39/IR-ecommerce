@@ -1,19 +1,19 @@
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.views.generic import View
 from django.urls.base import reverse
 
 import json
-from django.views.generic.edit import FormMixin
+import uuid
 from django_redis import get_redis_connection
 
 from shop.models import ProductSKU
 from account.models import Address
-from account.forms import AddressForm, create_address_formset
-from .cart import cal_cart_count, cal_total_count_subtotal, delete_cart_item, cal_shipping_fee
+from account.forms import GuestAddressForm
+from .cart import (cal_cart_count, cal_total_count_subtotal,
+                   delete_cart_item, cal_shipping_fee, get_user_id, is_first_time_guest)
 from .mixins import DataIntegrityCheckMixin
 
 # Create your views here.
@@ -28,14 +28,14 @@ class CartAddView(DataIntegrityCheckMixin, View):
 
     def post(self, request):
 
-        user = request.user
+        user_id = get_user_id(request)
 
         data = json.loads(request.body.decode())
         sku_id = data.get('sku_id')
         count = int(data.get('count'))
 
         conn = get_redis_connection('cart')
-        cart_key = f'cart_{user.id}'
+        cart_key = f'cart_{user_id}'
         cart_count = conn.hget(cart_key, sku_id)
         if cart_count:
             count += int(cart_count)
@@ -48,21 +48,26 @@ class CartAddView(DataIntegrityCheckMixin, View):
         cart_count = conn.hlen(cart_key)
         print('add', cart_count)
 
-        return JsonResponse({
+        response = JsonResponse({
             'res': 1,
             'msg': 'Added to cart',
             'cart_count': cart_count,
         })
+        # set uuid cookie for guest user
+        if is_first_time_guest(request):
+            response.set_cookie('uuid', user_id, max_age=3600*24*7)
+        return response
 
 
-class CartInfoView(LoginRequiredMixin, View):
+class CartInfoView(View):
     """
     Retrieve data from redis and render current shopping cart page,
     """
 
     def get(self, request, *args, **kwargs):
-        user = request.user
-        products, total_count, subtotal = cal_total_count_subtotal(user.id)
+        user_id = get_user_id(request)
+        print('user_id', user_id)
+        products, total_count, subtotal = cal_total_count_subtotal(user_id)
 
         context = {
             'total_count': total_count,
@@ -82,7 +87,8 @@ class CartUpdateView(DataIntegrityCheckMixin, View):
 
     def post(self, request):
 
-        user = request.user
+        # user = request.user
+        user_id = get_user_id(request)
 
         data = json.loads(request.body.decode())
         sku_id = data.get('sku_id')
@@ -90,7 +96,7 @@ class CartUpdateView(DataIntegrityCheckMixin, View):
 
         # connect redis, reset product count
         conn = get_redis_connection('cart')
-        cart_key = f'cart_{user.id}'
+        cart_key = f'cart_{user_id}'
 
         conn.hset(cart_key, sku_id, count)
 
@@ -103,15 +109,16 @@ class CartUpdateView(DataIntegrityCheckMixin, View):
 
 
 class CartDeleteView(DataIntegrityCheckMixin, View):
+
     def post(self, request):
 
-        user = request.user
+        user_id = get_user_id(request)
 
         data = json.loads(request.body.decode())
         sku_id = data.get('sku_id')
 
-        delete_cart_item(user.id, sku_id)
-        cart_count = cal_cart_count(user.id)
+        delete_cart_item(user_id, sku_id)
+        cart_count = cal_cart_count(user_id)
 
         return JsonResponse({
             'res': 1,
@@ -120,22 +127,24 @@ class CartDeleteView(DataIntegrityCheckMixin, View):
         })
 
 
-class CheckoutView(LoginRequiredMixin, View):
+class CheckoutView(View):
     """
     Retrieve data from redis and render a checkout confirmation page
     """
 
     def get(self, request):
-        user = request.user
-        form = AddressForm()
+        # user = request.user
+        user_id = get_user_id(request)
+
+        form = GuestAddressForm()
         # formset = create_address_formset(user)
 
-        cart_count = cal_cart_count(user.id)
+        cart_count = cal_cart_count(user_id)
         if cart_count == 0:
             messages.error(request, 'Cart is empty')
             return redirect(reverse('cart:info'))
 
-        products, total_count, subtotal = cal_total_count_subtotal(user.id)
+        products, total_count, subtotal = cal_total_count_subtotal(user_id)
 
         # shipping should be an independant module in a more complex project
         shipping_fee = cal_shipping_fee(subtotal, total_count)
@@ -144,7 +153,9 @@ class CheckoutView(LoginRequiredMixin, View):
         if shipping_fee == 0:
             shipping_fee = 'Free'
 
-        addrs = Address.objects.filter(user=user)
+        addrs = []
+        if request.user.is_authenticated:
+            addrs = Address.objects.filter(user=request.user)
 
         stripe_api_key = settings.STRIPE_PUBLIC_KEY
 

@@ -1,3 +1,4 @@
+import uuid
 from django_redis import get_redis_connection
 from shop.models import ProductSKU
 
@@ -61,3 +62,19 @@ def cal_shipping_fee(subtotal, total_count):
     else:
         shipping_fee = total_count * 500
     return shipping_fee
+
+
+def get_user_id(request):
+    if request.user.is_authenticated:
+        user_id = request.user.id
+    else:
+        # get cookie uuid else create new
+        try:
+            user_id = request.COOKIES['uuid']
+        except KeyError:
+            user_id = str(uuid.uuid4())
+    return user_id
+
+
+def is_first_time_guest(request):
+    return (not request.user.is_authenticated) and (not request.COOKIES.get('uuid'))

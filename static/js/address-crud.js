@@ -1,7 +1,7 @@
 $(function () {
   const csrftoken = Cookies.get("csrftoken");
   const searchCountry = async (inputCountry) => {
-    const res = await fetch("/static/js/countries.json");
+    const res = await fetch("/db/countries.json");
     const countries = await res.json();
     let fits = countries.filter((country) => {
       const regex = new RegExp(`^${inputCountry}`, "gi");
