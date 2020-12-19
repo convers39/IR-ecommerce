@@ -16,7 +16,7 @@
   <div class="container">
     <div class="row px-4 px-lg-5 py-lg-4 align-items-center">
       <div class="col-lg-6">
-        <h1 class="h2 text-uppercase mb-0">Checkout</h1>
+        <h1 class="h2 text-uppercase mb-0">Order</h1>
       </div>
       <div class="col-lg-6 text-lg-right">
         <nav aria-label="breadcrumb">
@@ -83,22 +83,22 @@
               </thead>
               <tbody>
                 {% for order_product in order.order_products.all %}
+                {% with product=order_product.product %}
                 <tr>
                   <th class="pl-0 border-0" scope="row">
                     <div class="media align-items-center">
-                      <a class="reset-anchor d-block animsition-link"
-                        href="{{ order_product.product.get_absolute_url }}"><img
-                          src="{{ order_product.product.cover_img.url }}" alt="{{product.name}}" width="70" /></a>
+                      <a class="reset-anchor d-block animsition-link" href="{{ product.get_absolute_url }}"><img
+                          src="{{ product.cover_img.url }}" alt="{{product.name}}" width="70" /></a>
                       <div class="media-body ml-3">
                         <strong class="h6"><a class="reset-anchor animsition-link"
-                            href="{{ order_product.product.get_absolute_url }}">{{ order_product.product.name }}</a></strong>
+                            href="{{ product.get_absolute_url }}">{{ product.name }}</a></strong>
                       </div>
                     </div>
                   </th>
                   <td class="align-middle border-0 text-center">
                     <p class="mb-0 small">
                       <i class="fa fa-jpy text-muted" aria-hidden="true"></i><span
-                        id="price-{{order_product.product.id}}">{{order_product.unit_price|intcomma}}</span>
+                        id="price-{{product.id}}">{{order_product.unit_price|intcomma}}</span>
                     </p>
                   </td>
                   <td class="align-middle border-0 text-center">
@@ -109,6 +109,7 @@
                         aria-hidden="true"></i>{{order_product.total_price|intcomma}} </p>
                   </td>
                 </tr>
+                {% endwith %}
                 {% endfor %}
               </tbody>
             </table>
@@ -120,8 +121,12 @@
                 aria-hidden="true"></i>{{order.subtotal|intcomma}} + </strong>
           </div>
           <div class="text-right">
-            <strong class="text-uppercase small">Shipping: <i class="fa fa-jpy text-muted"
-                aria-hidden="true"></i>{{order.shipping_fee|intcomma}} = </strong>
+            <strong class="text-uppercase small">Shipping:
+              {% if order.shipping_fee == 0 %}
+              0 =
+              {% else %}
+              <i class="fa fa-jpy text-muted" aria-hidden="true"></i>{{order.shipping_fee|intcomma}} = </strong>
+            {% endif %}
           </div>
           <div class="text-right">
             <strong class="text-uppercase font-weight-bold"> <i class="fa fa-jpy text-muted" aria-hidden="true"></i>
@@ -159,7 +164,25 @@
               <strong class="h6">{{ order.number }}</strong>
             </th>
             <td class="align-middle border-0">
-              <p class="mb-0 small">{{ order.status }}</p>
+              <p class="mb-0 small">
+                {% if order.status == 'NW' %}
+                <i class="fas fa-spinner text-muted pr-1"></i> <small class="text-muted">NEW</small>
+                {% elif order.status == 'CF' %}
+                <i class="fas fa-check-square text-muted pr-1"></i><small class="text-muted">Confirmed</small>
+                {% elif order.status == 'CL' %}
+                <i class="fa fa-exclamation text-muted pr-1" aria-hidden="true"></i> <small
+                  class="text-muted">Cancelling</small>
+                {% elif order.status == 'SP' %}
+                <i class="fas fa-shipping-fast fa-sm text-muted pr-1"></i><small class="text-muted">Shipped</small>
+                {% elif order.status == 'RT' %}
+                <i class="fas fa-reply text-muted pr-1"></i><small class="text-muted">Returning</small>
+                {% elif order.status == 'CX' %}
+                <i class="fa fa-window-close text-muted pr-1" aria-hidden="true"></i><small
+                  class="text-muted">Cancelled</small>
+                {% else %}
+                <i class="fas fa-check-circle text-muted pr-1"></i><small class="text-muted">Completed</small>
+                {% endif %}
+              </p>
             </td>
             <td class="align-middle border-0">
               <p class="mb-0 small"><i class="fa fa-jpy text-muted" aria-hidden="true"></i>
@@ -170,8 +193,34 @@
               <a type="button" class="btn btn-sm btn-outline-dark" data-toggle="modal"
                 data-target="#orderModal-{{order.id}}"><i class="fas fas fa-ellipsis-h"></i></a>
             </td>
-            <td class="align-middle border-0"><a class="reset-anchor payment btn btn-sm btn-outline-dark" href="#"
-                session={{order.payment.session_id}} orderId={{order.id}}>Pay</a></td>
+            <td class="align-middle border-0">
+              {% if request.user.is_active %}
+              <a class="reset-anchor btn btn-sm btn-outline-dark" href="{% url 'account:order' %}">Check</a>
+              {% elif order.status == 'NW' %}
+              <a class="reset-anchor payment btn btn-sm btn-outline-dark" href="#" session={{order.payment.session_id}}
+                orderId={{order.id}}>Pay</a>
+              {% elif order.status == 'CF' %}
+              <a class="reset-anchor px-2 cancel" href="#" orderId='{{order.id}}'><i
+                  class="fas fa-hand-holding-usd pr-1"></i> Refund</a>
+              {% elif order.status == 'SP' %}
+              <a class="reset-anchor pr-2" href="#"><i class="fas fa-shipping-fast fa-sm pr-1"></i> Check
+                Shipment</a>
+              <a class="reset-anchor pr-2 cancel" href="#" orderId='{{order.id}}'><i
+                  class="fas fa-hand-holding-usd pr-1"></i> Return</a>
+              <!-- <a class="reset-anchor pr-2" href="{{order.get_absolute_url}}"><i class="far fa-comment-dots pr-1"></i>
+                Review</a> -->
+              {% elif order.status == 'RT' %}
+              <a class="reset-anchor pr-2 cancel" href="#" orderId='{{order.id}}'><i class="fas fa-ban pr-1"></i>Stop
+                Return
+              </a>
+              {% else %}
+              <span class="d-inline-block" tabindex="0" data-toggle="tooltip"
+                title="Completed or cancelled orders will be removed after 30 days">
+                <button class="btn btn-sm btn-outline-dark" style="pointer-events: none;" type="button" disabled><i
+                    class="fa fa-ban text-muted" aria-hidden="true"></i></button>
+              </span>
+              {% endif %}
+            </td>
           </tr>
           {% empty %}
           <!-- <tr>
@@ -180,7 +229,7 @@
           {% endfor %}
         </tbody>
         <tfoot class="text-left">
-          <td colspan="4"><small><span class="text-primary text-uppercase">Unpaid order will be expired after
+          <td colspan="4"><small><span class="text-primary text-uppercase">Unpaid orders will be cancelled after
                 48hrs.</span></small>
           </td>
         </tfoot>

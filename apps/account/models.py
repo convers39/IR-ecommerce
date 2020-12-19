@@ -18,7 +18,7 @@ class User(PermissionsMixin, AbstractBaseUser):
 
     username = models.CharField(_("user name"), max_length=50, validators=[
         username_validator], help_text=_('Required. 50 characters or fewer. Letters, digits and @/./+/-/_ only.'))
-    email = models.EmailField(_("email"),  max_length=254)
+    email = models.EmailField(_("email"),  max_length=254, unique=True)
     first_name = models.CharField(_("first name"), max_length=50, blank=True)
     last_name = models.CharField(_("last name"), max_length=50, blank=True)
     phone_no = models.CharField(_("phone no."), max_length=50, blank=True, help_text=(

@@ -60,12 +60,19 @@ class RegisterForm(forms.ModelForm):
         email = self.cleaned_data.get('email')
 
         try:
-            User.objects.get(email=email)
+            user = User.objects.get(email=email)
         except User.DoesNotExist:
             return email
 
-        raise forms.ValidationError(
-            'This email address is already registered.')
+        # NOTE: avoid unique restriction on email
+        # for guest user who register an account
+        if user.username[:6] == 'guest_':
+            user.email = 'guest_' + email
+            user.save()
+            return email
+        else:
+            raise forms.ValidationError(
+                'This email address is already registered.')
 
 
 class UserInfoForm(forms.ModelForm):

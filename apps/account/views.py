@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db.models import Q, Case, When
 from django.http import HttpResponseRedirect
 from django.http.response import JsonResponse
 from django.shortcuts import render, redirect
@@ -21,11 +22,12 @@ import stripe
 
 from order.models import Order, OrderProduct, Review
 from shop.models import ProductSKU
-from order.views import create_checkout_session
+from cart.cart import get_watch_history_products
 
 from .forms import RegisterForm, UserInfoForm, AddressForm, create_address_formset
 from .models import User, Address
 from .tasks import send_activation_email
+from .mixins import AddressManagementMixin
 
 
 class AccountCenterView(LoginRequiredMixin, FormMixin, View):
@@ -37,15 +39,7 @@ class AccountCenterView(LoginRequiredMixin, FormMixin, View):
         user = request.user
         form = UserInfoForm(instance=user)
         # get recent watch history
-        conn = get_redis_connection('cart')
-        sku_ids = conn.lrange(f'history_{user.id}', 0, 7)
-
-        # NOTE: use filter will break the order of recent products
-        # recent_products = ProductSKU.objects.filter(id__in=sku_ids)
-        recent_products = []
-        for sku_id in sku_ids:
-            sku = ProductSKU.objects.prefetch_related('images').get(id=sku_id)
-            recent_products.append(sku)
+        recent_products = get_watch_history_products(user.id)
 
         context = {
             'user': user,
@@ -118,7 +112,7 @@ class OrderListView(LoginRequiredMixin, ListView):
 
         SELECT * FROM "shop_productsku" WHERE "shop_productsku"."id" IN (1, 3, 6, 7, 8)
         """
-        queryset = super().get_queryset().filter(is_deleted=False).select_related(
+        queryset = super().get_queryset().filter(Q(user=self.request.user), is_deleted=False).select_related(
             'address').prefetch_related('order_products').prefetch_related('order_products__product')
         return queryset
 
@@ -172,7 +166,7 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
         return JsonResponse({'res': '1', 'msg': 'Comment submitted'})
 
 
-class AddressView(LoginRequiredMixin, FormMixin, View):
+class AddressView(AddressManagementMixin, FormMixin, View):
     model = Address
     form_class = AddressForm
     template_name = 'account/address.html'
@@ -191,64 +185,39 @@ class AddressView(LoginRequiredMixin, FormMixin, View):
 
     def post(self, request, *args, **kwargs):
         user = request.user
-        try:
-            data = json.loads(request.body.decode())
-        except:
-            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
-        print('address data ', data)
+        data = json.loads(request.body.decode())
 
-        try:
-            operation = data.pop('operation')
-        except KeyError:
-            return JsonResponse({'res': '0', 'errmsg': 'Invalid Operation'})
+        form = AddressForm(data)
+        if form.is_valid():
+            new_addr = form.save(commit=False)
+            new_addr.user = user
+            new_addr.save()
+            if data.get('setDefault') == 'on':
+                new_addr.set_default_address(request.user)
+            new_id = new_addr.id
+            return JsonResponse({'res': '1', 'msg': 'New address added', 'new_id': new_id})
+        else:
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid form data'})
 
-        if operation == 'create':
-            form = AddressForm(data)
-            if form.is_valid():
-                new_addr = form.save(commit=False)
-                new_addr.user = user
-                new_addr.save()
-                if data.get('setDefault') == 'on':
-                    new_addr.set_default_address(request.user)
-                new_id = new_addr.id
-                return JsonResponse({'res': '1', 'msg': 'New address added', 'new_id': new_id})
-            else:
-                return JsonResponse({'res': '0', 'errmsg': 'Invalid form data'})
+    def put(self, request, *args, **kwargs):
+        data = json.loads(request.body.decode())
+        address = Address.objects.get(id=data.pop('addr_id'))
 
-        if operation == 'update':
-            try:
-                addr_id = data.pop('addr_id')
-            except KeyError:
-                return JsonResponse({'res': '0', 'errmsg': 'Address id is missing'})
+        form = AddressForm(instance=address, data=data)
+        if form.is_valid():
+            updated_addr = form.save()
+            updated_id = updated_addr.id
+            if data.get('setDefault') == 'on':
+                updated_addr.set_default_address(request.user)
+            return JsonResponse({'res': '1', 'msg': 'Address updated', 'updated_id': updated_id})
+        else:
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid form data'})
 
-            try:
-                address = Address.objects.get(id=addr_id)
-            except Address.DoesNotExist:
-                return JsonResponse({'res': '0', 'errmsg': 'Address does not exist'})
+    def delete(self, request, *args, **kwargs):
+        data = json.loads(request.body.decode())
 
-            form = AddressForm(instance=address, data=data)
-            if form.is_valid():
-                updated_addr = form.save()
-                updated_id = updated_addr.id
-                if data.get('setDefault') == 'on':
-                    updated_addr.set_default_address(request.user)
-                return JsonResponse({'res': '1', 'msg': 'Address updated', 'updated_id': updated_id})
-            else:
-                return JsonResponse({'res': '0', 'errmsg': 'Invalid form data'})
-
-        if operation == 'delete':
-            try:
-                addr_id = data['addr_id']
-            except KeyError:
-                return JsonResponse({'res': '0', 'errmsg': 'Address id is missing'})
-
-            try:
-                Address.objects.filter(id=addr_id).delete()
-                return JsonResponse({'res': '1', 'msg': 'Address deleted'})
-            except Address.DoesNotExist:
-                return JsonResponse({'res': '0', 'errmsg': 'Address does not exist'})
-
-        return JsonResponse({'res': '0', 'errmsg': 'Invalid operation!'})
+        Address.objects.filter(id=data['addr_id']).delete()
+        return JsonResponse({'res': '1', 'msg': 'Address deleted'})
 
 
 class WishlistView(LoginRequiredMixin, ListView):
@@ -309,6 +278,7 @@ class LoginView(SuccessMessageMixin, View):
 
     def get(self, request, *args, **kwargs):
         # TODO: check cookie setting logic
+        print('login view user', request.user)
         if 'email' in request.COOKIES:
             email = request.COOKIES.get('email')
             remember = 'on'
@@ -355,6 +325,10 @@ class LogoutView(View):
 
 
 class RegisterView(SuccessMessageMixin, CreateView):
+    """
+    If new created user has ordered with the same email address as guest,
+    transfer guest account data to new created user.
+    """
     form_class = RegisterForm
     template_name = 'account/register.html'
     success_url = reverse_lazy('shop:index')
@@ -364,15 +338,18 @@ class RegisterView(SuccessMessageMixin, CreateView):
         username = form.cleaned_data['username']
         email = form.cleaned_data['email']
         password = form.cleaned_data['password']
-
         user = User.objects.create_user(username, email, password)
 
-        serializer = Serializer(settings.SECRET_KEY, 3600*24)
-        info = {'activate_user': user.id}
-        token = serializer.dumps(info)  # bytes
-        token = token.decode()
+        # NOTE: merge guest account, update date joined info
+        guest_email = 'guest_'+email
+        guest_user = User.objects.filter(email=guest_email).first()
+        if guest_user:
+            user.payments.set(guest_user.payments.all())
+            user.orders.set(guest_user.orders.all())
+            user.addresses.set(guest_user.addresses.all())
+            guest_user.delete()
 
-        send_activation_email.delay(email, username, token)
+        send_activation_email.delay(email, username, user.id)
         messages.success(
             self.request, f'{self.success_message}')
 

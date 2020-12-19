@@ -10,8 +10,6 @@ from .models import ProductSKU, Category, HomeBanner
 class IndexView(ListView):
     template_name = 'index.html'
     context_object_name = 'products'
-    # NOTE: By only using queryset attribute will lead error on testing, use get_queryset method intead
-    # queryset = ProductSKU.objects.get_trending_products().order_by('?')[:8]
 
     def get_queryset(self):
         try:
@@ -133,5 +131,5 @@ class ProductDetailView(DetailView):
             product)[:4]
 
         context['reviews'] = [
-            op.review for op in product.orderproducts.all() if op.is_reviewed]
+            op.review for op in product.order_products.all() if op.is_reviewed]
         return context

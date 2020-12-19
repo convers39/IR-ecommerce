@@ -111,10 +111,11 @@
         <div class="collapse" id="collapse-{{order.id}}">
           <div class="card-body ">
             {% for order_product in order.order_products.all %}
+            {% with product=order_product.product %}
             <div class="row text-center">
               <div class='col col-6'>
                 <p class="card-text"><small>{{forloop.counter}}- <a class="reset-anchor"
-                      href="{{order_product.product.get_absolute_url}}">{{order_product.product}}</a></small>
+                      href="{{product.get_absolute_url}}">{{product}}</a></small>
                 </p>
               </div>
               <div class='col col-3'>
@@ -127,7 +128,7 @@
                 </p>
               </div>
             </div>
-
+            {% endwith %}
             {% endfor %}
             <hr>
             <div class="row text-right m-1">

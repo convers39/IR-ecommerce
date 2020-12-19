@@ -1,7 +1,7 @@
 $(function () {
   const csrftoken = Cookies.get("csrftoken");
   const searchCountry = async (inputCountry) => {
-    const res = await fetch("/db/countries.json");
+    const res = await fetch("/static/js/countries.json");
     const countries = await res.json();
     let fits = countries.filter((country) => {
       const regex = new RegExp(`^${inputCountry}`, "gi");
@@ -23,11 +23,10 @@ $(function () {
     plainData.country = await searchCountry(plainData.country);
     console.log("updated country", plainData.country);
     const postData = Object.assign(plainData, {
-      operation: "update",
       addr_id: $(this).attr("addrId"),
     });
     const res = await fetch("/account/address/", {
-      method: "POST",
+      method: "PUT",
       headers: {
         "X-CSRFToken": csrftoken,
         "Content-Type": "application/json",
@@ -52,16 +51,14 @@ $(function () {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const plainData = Object.fromEntries(formData.entries());
-    const postData = Object.assign(plainData, {
-      operation: "create",
-    });
+
     const res = await fetch("/account/address/", {
       method: "POST",
       headers: {
         "X-CSRFToken": csrftoken,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(postData),
+      body: JSON.stringify(plainData),
     });
     const data = await res.json();
     $(this).parents(".modal").modal("toggle");
@@ -85,13 +82,12 @@ $(function () {
     event.preventDefault();
     let addrId = $(this).attr("addr-id");
     const res = await fetch("/account/address/", {
-      method: "POST",
+      method: "DELETE",
       headers: {
         "X-CSRFToken": csrftoken,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        operation: "delete",
         addr_id: addrId,
       }),
     });

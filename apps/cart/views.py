@@ -6,7 +6,6 @@ from django.views.generic import View
 from django.urls.base import reverse
 
 import json
-import uuid
 from django_redis import get_redis_connection
 
 from shop.models import ProductSKU

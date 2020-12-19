@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
+from django.db.models import Case, When
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from django.urls.base import reverse
@@ -16,8 +17,9 @@ from datetime import datetime, timedelta, timezone
 from django_redis import get_redis_connection
 
 from account.models import User
+from account.tasks import send_order_email
 from shop.models import ProductSKU
-from cart.cart import cal_shipping_fee, get_user_id
+from cart.cart import cal_shipping_fee, get_user_id, get_cart_all_in_order
 
 from .models import Order, Payment, OrderProduct
 from .mixins import OrderDataCheckMixin, OrderManagementMixin
@@ -40,55 +42,52 @@ class OrderProcessView(OrderDataCheckMixin, View):
     def post(self, request):
         # retreive data from request
         data = json.loads(request.body.decode())
-        user, address = self.get_user_and_address()
         payment_method = data.get('payment_method')
+        user, address = self.get_user_and_address()
 
         # make transaction savepoint before changing any data in database
         save_id = transaction.savepoint()
         try:
             # create an Order instance
             order = Order.objects.create(
-                subtotal=0,
-                user=user,
-                address=address
-            )
+                subtotal=0, user=user, address=address)
             print('order created')
 
-            # create OrderProduct instance for earch product
+            # get shopping cart cart data
             user_id = get_user_id(request)
             conn = get_redis_connection('cart')
-            cart_dict = conn.hgetall(f'cart_{user_id}')
+            sku_ids, counts, ordering = get_cart_all_in_order(user_id)
 
-            products = []
-            total_count = subtotal = 0
-            for sku_id, count in cart_dict.items():
-                try:
-                    # add lock when retrieve product data
-                    product = ProductSKU.objects.select_for_update().filter(id=sku_id).first()
-                except ProductSKU.DoesNotExist:
-                    transaction.savepoint_rollback(save_id)
-                    return JsonResponse({'res': 0, 'errmsg': 'Item does not exist'})
+            # add lock when retrieve product data
+            try:
+                products = ProductSKU.objects.select_for_update().filter(
+                    id__in=sku_ids).order_by(ordering)
+            except ProductSKU.DoesNotExist:
+                transaction.savepoint_rollback(save_id)
+                return JsonResponse({'res': 0, 'errmsg': 'Item does not exist'})
 
-                if int(count) > product.stock:
+            for product, count in zip(products, counts):
+                if count > product.stock:
                     transaction.savepoint_rollback(save_id)
                     return JsonResponse({'res': 0, 'errmsg': f'Item {product.name} understocked'})
+                product.stock -= count
+                product.sales += count
+            # update products stock and sales
+            ProductSKU.objects.bulk_update(products, ['stock', 'sales'])
+            print('product stock, sales updated')
 
-                OrderProduct.objects.create(
-                    order=order,
-                    product=product,
-                    count=int(count),
-                    unit_price=product.price
-                )
-                product.stock -= int(count)
-                product.sales += int(count)
-                product.save()
-
-                products.append(product)
-                total_count += int(count)
-                subtotal += product.price * int(count)
+            # create OrderProduct instance for earch product
+            OrderProduct.objects.bulk_create([
+                OrderProduct(order=order, product=product,
+                             count=count, unit_price=product.price)
+                for product, count in zip(products, counts)
+            ])
             print('orderproducts created')
 
             # update shipping fee and subtotal in order object
+            subtotal = sum([product.price*count for product,
+                            count in zip(products, counts)])
+            total_count = sum(counts)
             shipping_fee = cal_shipping_fee(subtotal, total_count)
             order.shipping_fee = shipping_fee
             order.subtotal = subtotal
@@ -122,14 +121,18 @@ class OrderProcessView(OrderDataCheckMixin, View):
         transaction.savepoint_commit(save_id)
 
         # clear shopping cart in the end
-        conn.hdel(f'cart_{user_id}', *[product.id for product in products])
+        conn.hdel(f'cart_{user_id}', *sku_ids)
         print('shopping cart cleared')
+
+        # send email to user
+        send_order_email.delay(user.email, user.username,
+                               order.number, order.status)
 
         return JsonResponse({'res': 1, 'msg': 'Order created', 'session': session})
 
 
 def create_checkout_session(user, payment_method, item_name, amount):
-    domain = 'http://127.0.0.1:8080/'
+    domain = 'http://127.0.0.1:8080'
     cancel_url = domain + reverse('shop:index')
     success_url = domain + reverse('order:success') + \
         '?session_id={CHECKOUT_SESSION_ID}'
@@ -165,53 +168,64 @@ class PaymentSuccessView(TemplateView):
         user_id = get_user_id(request)
         if request.user.is_active:
             user = User.objects.get(id=user_id)
+            url = reverse('account:order-list')
         else:
             guest_name = f'guest_{user_id}'
-            user = User.objects.get(name=guest_name)
+            user = User.objects.get(username=guest_name)
+            url = reverse('order:search')
 
-        payment = user.payments.first()
-        orders = payment.orders.all()
-        context = {'payment_number': payment.number, 'orders': orders}
+        session_id = request.GET.get('session_id')
+        try:
+            payment = user.payments.get(session_id=session_id)
+        except:
+            messages.error(request, 'Payment not found')
+            return redirect(url)
 
         time_delta = datetime.now(tz=timezone.utc) - payment.created_at
-        if payment.status != 'SC' or time_delta > timedelta(minutes=5):
+        if payment.status != 'SC' or time_delta > timedelta(minutes=10):
             messages.error(request, 'Invalid access')
-            return redirect(reverse('account:order-list'))
+            return redirect(url)
 
+        orders = payment.orders.all()
+        context = {'payment_number': payment.number, 'orders': orders}
         return render(request, self.template_name, context)
 
 
 @require_POST
 @csrf_exempt
 def checkout_webhook(request):
+    print('event received, processing...')
     endpoint_secret = settings.WEBHOOK_SECRET
     payload = request.body
     sig_header = request.META['HTTP_STRIPE_SIGNATURE']
     event = None
-
+    # print('webhook', payload, sig_header, endpoint_secret)
     try:
         event = stripe.Webhook.construct_event(
             payload, sig_header, endpoint_secret
         )
+        print(event['type'])
     except ValueError as e:
         # Invalid payload
+        print('invalid payload')
         return HttpResponse(status=400)
     except stripe.error.SignatureVerificationError as e:
         # Invalid signature
+        print('invalid signature')
         return HttpResponse(status=400)
 
     # Handle the checkout.session.completed event
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
-        fulfill_order(session)
+        fulfill_order(session.payment_intent)
     # Passed signature verification
     return HttpResponse(status=200)
 
 
-def fulfill_order(session):
+def fulfill_order(intent_id):
     # change payment status to succeeded, order status to confirmed
-    payment = Payment.objects.get(
-        number=session.payment_intent).prefetch_related('orders')
+    payment = Payment.objects.prefetch_related('orders').get(
+        number=intent_id)
     payment.pay()
     payment.save()
     for order in payment.orders.all():
@@ -289,9 +303,6 @@ class OrderCancelView(OrderManagementMixin, View):
         order.is_deleted = True  # similar as 'hided by user', still available in database
         order.save()
         return JsonResponse({'res': '1', 'msg': 'Order deleted'})
-
-# class OrderDeleteView(OrderManagementMixin, View):
-#     def post(self, request, *args, **kwargs):
 
 
 class OrderSearchView(ListView):

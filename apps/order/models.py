@@ -209,6 +209,7 @@ class Order(BaseModel):
             raise Exception(
                 'This method can only be applied to cancelled orders')
 
+    # TODO: change mail sending logic, status does not change during fsm transition
     @transition(field=status, source='NW', target='CF', conditions=[is_confirmed])
     def confirm(self):
         subject = f'Order# {self.number} Confirmed'
@@ -249,6 +250,7 @@ class Order(BaseModel):
         possible to request cancellation from new and confirmed orders,
         send email to admin for cancel operation
         """
+        print(self.status)
         subject = f'Order# {self.number} Cancellation Request'
         message = f'Cancellation request from customer {self.user.username}'
         from_email = settings.EMAIL_FROM

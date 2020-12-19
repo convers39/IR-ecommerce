@@ -11,7 +11,7 @@ def base_template_data_processor(request):
     conn = get_redis_connection('cart')
     cart_count = conn.hlen(f'cart_{user_id}')
     wishlist_count = 0
-    if request.user.is_authenticated:
+    if request.user.is_active:
         wishlist_count = conn.scard(f'wish_{user_id}')
 
     return {

@@ -8,7 +8,6 @@ urlpatterns = [
     path('success/', PaymentSuccessView.as_view(), name='success'),
     path('cancel/', OrderCancelView.as_view(), name='cancel'),
     path('search/', OrderSearchView.as_view(), name='search'),
-    # path('delete/', OrderDeleteView.as_view(), name='delete'),
     path('paymentrenew/', PaymentRenewView.as_view(), name='payment-renew'),
     path('webhook/', checkout_webhook, name='webhook'),
 ]
