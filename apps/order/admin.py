@@ -4,6 +4,7 @@ from django.http.response import JsonResponse
 
 from simpleui.admin import AjaxAdmin
 
+from account.tasks import send_order_email, send_refund_email
 from .models import OrderProduct, Order, Payment, Review
 # from .actions import create_refund
 
@@ -53,6 +54,14 @@ class OrderAdmin(AjaxAdmin):
     inlines = [OrderProductInline]
     actions = ['ship_order', 'cancel_order', ]
 
+    def has_ship_order_permission(self, request):
+        opts = self.opts
+        return request.user.has_perm(f'{opts.app_label}.ship_order')
+
+    def has_cancel_order_permission(self, request):
+        opts = self.opts
+        return request.user.has_perm(f'{opts.app_label}.cancel_order')
+
     def ship_order(self, request, queryset):
         post = request.POST
         order_id = post.get('_selected')
@@ -63,7 +72,8 @@ class OrderAdmin(AjaxAdmin):
             })
 
         ids = order_id.split(',')
-        orders = Order.objects.filter(Q(id__in=ids), status='CF')
+        orders = Order.objects.select_related(
+            'user').filter(Q(id__in=ids), status='CF')
         # print('qs', queryset, request.POST)
         if not orders:
             return JsonResponse(data={
@@ -74,6 +84,8 @@ class OrderAdmin(AjaxAdmin):
         for order in orders:
             order.ship()
             order.save()
+            send_order_email.delay(
+                order.user.email, order.user.username, order.number, order.status)
 
         return JsonResponse(data={
             'status': 'success',
@@ -81,6 +93,7 @@ class OrderAdmin(AjaxAdmin):
         })
 
     ship_order.short_description = ' Ship'
+    ship_order.allowed_permissions = ('ship_order',)
     ship_order.type = 'secondary'
     ship_order.icon = 'fas fa-shipping-fast'
     ship_order.layer = {
@@ -139,7 +152,7 @@ class OrderAdmin(AjaxAdmin):
                 })
 
         orders = Order.objects.filter(
-            Q(id__in=ids), status='CL').select_related('payment').prefetch_related('order_products')
+            Q(id__in=ids), status='CL').select_related('payment')
         # print('qs', queryset, request.POST)
         if not orders:
             return JsonResponse(data={
@@ -150,6 +163,8 @@ class OrderAdmin(AjaxAdmin):
         for order in orders:
             order.confirm_cancel()
             order.save()
+            send_order_email.delay(
+                order.user.email, order.user.username, order.number, order.status)
             order.restore_product_stock()
 
             if refund == 'YES':
@@ -157,6 +172,9 @@ class OrderAdmin(AjaxAdmin):
                 refund_amount = order.subtotal if not amount else amount
                 payment.refund(refund_amount)
                 payment.save()
+                # send refund email
+                send_refund_email(
+                    order.user.email, order.user.username, order.number, refund_amount)
 
         return JsonResponse(data={
             'status': 'success',
@@ -224,11 +242,15 @@ class PaymentAdmin(AjaxAdmin):
     inlines = [OrderInline]
     actions = ['create_refund', ]
 
+    def has_refund_permission(self, request):
+        opts = self.opts
+        return request.user.has_perm(f'{opts.app_label}.refund')
+
     def create_refund(self, request, queryset):
         """
         Retrieve payment instances with the sum of related orders subtotal,
         orders must be in the status of cancelling or returning.
-        Cannot use queryset directly, will contain all objects if no instance was selected.
+        Use this action only when refunding multiple orders in a same Payment instance.
         NOTE: the SUM amount of all related orders will be the total refund amount,
         in some rare cases (e.g. 2 related orders under cancelling, while only 1 is OK to cancel)
         this will lead to trouble on refunding, to make sure cancel only 1 singel order, 
@@ -275,13 +297,18 @@ class PaymentAdmin(AjaxAdmin):
             amount = payment.refund_amount
             payment.refund(amount)
             payment.save()
-            for order in payment.orders.filter(status__in=['CL', 'RT']):
+            # send refund email
+            for order in payment.orders.select_related('user').filter(status__in=['CL', 'RT']):
                 order.comfirm_cancel()
                 order.save()
+                send_order_email.delay(
+                    order.user.email, order.user.username, order.number, order.status)
                 order.restore_product_stock()
-
-                # listen to failed event in webhook
-                # create a cancellation record
+            number = payment.orders.first().number  # pick one order number
+            send_refund_email(
+                payment.user.email, payment.user.username, number, amount)
+            # listen to failed event in webhook
+            # create a cancellation record
         return JsonResponse(data={
             'status': 'success',
             'msg': 'Refund created'

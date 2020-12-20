@@ -27,7 +27,7 @@ class OrderDataCheckMixin:
             except Address.DoesNotExist:
                 return JsonResponse({'res': 0, 'errmsg': 'Address does not exist'})
             try:
-                user = User.objects.get(user=self.request.user)
+                user = User.objects.get(id=self.request.user.id)
             except User.DoesNotExist:
                 return JsonResponse({'res': 0, 'errmsg': 'User does not exist'})
         else:

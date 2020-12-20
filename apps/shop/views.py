@@ -4,7 +4,11 @@ from django.views.generic import ListView, DetailView
 
 from django_redis import get_redis_connection
 
+import logging
+
 from .models import ProductSKU, Category, HomeBanner
+
+logger = logging.getLogger(__name__)
 
 
 class IndexView(ListView):
@@ -15,6 +19,7 @@ class IndexView(ListView):
         try:
             queryset = ProductSKU.objects.get_trending_products().\
                 order_by('?')[:8]
+            # logger.info('fetch database for index page')
         except ValueError:
             queryset = []
         return queryset
@@ -72,7 +77,7 @@ class ProductListView(ListView):
         for product in queryset:
             if product.id in wishlisted:
                 product.wishlist = True
-
+        # logger.info('fetch database for shop page')
         return queryset
 
     def get_context_data(self, **kwargs):

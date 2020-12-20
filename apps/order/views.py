@@ -23,6 +23,7 @@ from cart.cart import cal_shipping_fee, get_user_id, get_cart_all_in_order
 
 from .models import Order, Payment, OrderProduct
 from .mixins import OrderDataCheckMixin, OrderManagementMixin
+# from .tasks import create_one_time_task
 
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -127,6 +128,8 @@ class OrderProcessView(OrderDataCheckMixin, View):
         # send email to user
         send_order_email.delay(user.email, user.username,
                                order.number, order.status)
+        # start a periodic task for 24/48 hrs later to check the payment status
+        # create_one_time_task()
 
         return JsonResponse({'res': 1, 'msg': 'Order created', 'session': session})
 
@@ -137,7 +140,7 @@ def create_checkout_session(user, payment_method, item_name, amount):
     success_url = domain + reverse('order:success') + \
         '?session_id={CHECKOUT_SESSION_ID}'
     if user.is_active:
-        cancel_url = reverse('account:order-list')
+        cancel_url = domain + reverse('account:order-list')
     session = stripe.checkout.Session.create(
         payment_method_types=[payment_method],
         customer_email=user.email,
@@ -224,13 +227,16 @@ def checkout_webhook(request):
 
 def fulfill_order(intent_id):
     # change payment status to succeeded, order status to confirmed
-    payment = Payment.objects.prefetch_related('orders').get(
+    payment = Payment.objects.prefetch_related('orders').select_related('user').get(
         number=intent_id)
+    user = payment.user
     payment.pay()
     payment.save()
     for order in payment.orders.all():
         order.confirm()
-        order.save()
+        order.save()  # status New to Confirmed
+        send_order_email.delay(user.email, user.username,
+                               order.number, order.status)
 
 
 class PaymentRenewView(LoginRequiredMixin, View):

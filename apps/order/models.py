@@ -50,6 +50,9 @@ class Payment(BaseModel):
 
     class Meta:
         ordering = ('-created_at',)
+        permissions = [
+            ('refund', 'can create a refund'),
+        ]
 
     def __str__(self):
         return f'Payment {self.number} for {self.user}'
@@ -158,6 +161,10 @@ class Order(BaseModel):
 
     class Meta:
         ordering = ('-created_at',)
+        permissions = [
+            ('ship_order', 'can ship orders'),
+            ('cancel_order', 'can cancel orders'),
+        ]
 
     def __str__(self):
         return f'Order {self.number} for {self.user}'
@@ -212,23 +219,14 @@ class Order(BaseModel):
     # TODO: change mail sending logic, status does not change during fsm transition
     @transition(field=status, source='NW', target='CF', conditions=[is_confirmed])
     def confirm(self):
-        subject = f'Order# {self.number} Confirmed'
-        message = f'Hi! {self.user.username}, your order has been confirmed, will be shipped in 48hrs.'
-        from_email = settings.EMAIL_FROM
-        recipient_list = [self.user.email, ]
-        async_send_email.delay(subject, message, from_email, recipient_list)
+        return True
 
     @transition(field=status, source='CF', target='SP')
     def ship(self):
         """
         This method is only called in admin page to ship a order.
-        TODO: add permissions to admin only methods
         """
-        subject = f'Order# {self.number} Shipping'
-        message = f'Your order has been shipped, tracking number is xxx'
-        from_email = settings.EMAIL_FROM
-        recipient_list = [self.user.email, ]
-        async_send_email.delay(subject, message, from_email, recipient_list)
+        return True
 
     @transition(field=status, source='SP', target='RT', conditions=[in_return_deadline])
     def request_return(self):

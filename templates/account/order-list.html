@@ -131,10 +131,11 @@
             {% endwith %}
             {% endfor %}
             <hr>
-            <div class="row text-right m-1">
-              <p class="m-0 text-muted"><small> Created at: {{order.created_at|date:"DATETIME_FORMAT"}}</small>
+            <div class="row m-1">
+              <p class="m-0 text-muted col-sm-6 text-left"><small> Created at:
+                  {{order.created_at|date:"DATETIME_FORMAT"}}</small>
               </p>
-              <p class="m-0 text-muted"><small> Ship to: {{order.address.get_full_address}}</small></p>
+              <p class="m-0 text-muted col-sm-6 text-right"><small> Ship to: {{order.address.full_address}}</small></p>
             </div>
           </div>
         </div>

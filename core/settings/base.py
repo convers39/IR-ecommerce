@@ -4,7 +4,6 @@ from pathlib import Path
 import sys
 import os
 
-from django.conf.global_settings import EMAIL_HOST_PASSWORD, MEDIA_ROOT, STATIC_ROOT
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
@@ -15,7 +14,7 @@ sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 ALLOWED_HOSTS = ['*']
 
@@ -41,6 +40,7 @@ INSTALLED_APPS = [
     'mptt',
     'taggit',
     'celery',
+    'django_celery_beat',
     'django_extensions',
     'ckeditor',
     'storages',
@@ -48,9 +48,11 @@ INSTALLED_APPS = [
     'rangefilter',
     'mathfilters',
     'django_fsm',
+    'django_ses',
     'import_export',
 ]
 
+# add UpdateCacheMiddleware and FetchFromCacheMiddleware to cache site page with default cache backend
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -85,23 +87,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = os.environ.get('EMAIL_HOST')
-EMAIL_PORT = os.environ.get('EMAIL_PORT')
-EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS')
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
-EMAIL_FROM = os.environ.get('EMAIL_FROM')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
-
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME'),
-        'USER': os.environ.get('DB_USER'),
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),
-        'PORT': os.environ.get('DB_PORT'),
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
     }
 }
 
@@ -123,12 +117,34 @@ CACHES = {
     }
 }
 
+
 # set session engine to cache, pointing to redis server
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER', 'redis://redis:6379/0')
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_BROKER', 'redis://redis:6379/0')
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER', 'redis://redis:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_BROKER', 'redis://redis:6379/0')
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+    },
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
@@ -184,15 +200,14 @@ LOGIN_REDIRECT_URL = '/account/'
 TAGGIT_CASE_INSENSITIVE = True
 
 # AWS setting
-AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
 
-
-AWS_S3_REGION_NAME = os.environ.get(
-    'AWS_S3_REGION_NAME')  # change to your region
-AWS_S3_SIGNATURE_VERSION = os.environ.get('AWS_S3_SIGNATURE_VERSION')
+AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
+AWS_S3_SIGNATURE_VERSION = os.getenv('AWS_S3_SIGNATURE_VERSION')
 AWS_S3_FILE_OVERWRITE = True
+
 
 # CKEDITOR
 CKEDITOR_CONFIGS = {
@@ -210,11 +225,11 @@ CKEDITOR_CONFIGS = {
 }
 
 # stripe key
-STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
-STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY')
-WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET')
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
+STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY')
+WEBHOOK_SECRET = os.getenv('WEBHOOK_SECRET')
 
-# admin UI
+# admin UI icons
 SIMPLEUI_ICON = {
     'Account': 'fas fa-user-circle',
     'Shop': 'fas fa-store-alt',
@@ -225,5 +240,11 @@ SIMPLEUI_ICON = {
     'Addresses': 'far fa-address-card',
     'Origins': 'fas fa-map-marker-alt',
     'SKU': 'fas fa-box',
-    'SPU': 'fas fa-boxes'
+    'SPU': 'fas fa-boxes',
+    'Clocked': 'far fa-clock',
+    'Crontabs': 'far fa-calendar-alt',
+    'Intervals': 'fas fa-stopwatch',
+    'Solar events': 'fas fa-sun',
+    'Django SES': 'far fa-envelope',
+    'SES Stats': 'fas fa-mail-bulk',
 }

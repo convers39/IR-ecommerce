@@ -20,7 +20,7 @@ class UserAdmin(UserAdmin):
                     'is_staff', 'date_joined', 'last_login')
     search_fields = ('username', 'phone_no', 'email')
     list_filter = ('date_joined', 'username',
-                   'is_active', 'is_staff', 'is_superuser')
+                   'is_active', 'is_staff', 'is_superuser', 'groups')
 
     fieldsets = (
         ('Information', {
@@ -30,7 +30,7 @@ class UserAdmin(UserAdmin):
         }),
         ('Permissions', {
             'fields': (
-                'is_active', 'is_staff', 'is_superuser',
+                'is_active', 'is_staff', 'is_superuser', 'groups'
             )
         })
     )

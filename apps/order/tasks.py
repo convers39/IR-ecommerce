@@ -1,10 +1,17 @@
 
 from core.celery import app
+from django_celery_beat.models import CrontabSchedule, PeriodicTask
+from datetime import timezone
 
 from order.models import Payment, Order
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 # @app.task(name='order.mark_expired_payments')
+
+
 @app.task
 def expire_payments():
     payments = Payment.objects.filter(status='PD').all()
@@ -33,3 +40,22 @@ def auto_complete_orders():
         if order.is_completed():
             order.complete()
             order.save()
+
+
+def create_one_time_task():
+    schedule, _ = CrontabSchedule.objects.get_or_create(
+        minute='30',
+        hour='*',
+        day_of_week='*',
+        day_of_month='*',
+        month_of_year='*',
+        timezone=timezone.utc
+    )
+    PeriodicTask.objects.create(
+        crontab=schedule,
+        name='Order expiration task',
+        task='order.tasks.expire_payments',
+        one_off=True,
+    )
+    logger.info('one time task created')
+    print('one time task created')
