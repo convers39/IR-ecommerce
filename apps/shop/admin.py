@@ -4,7 +4,7 @@ from easy_select2 import select2_modelform
 from mptt.admin import DraggableMPTTAdmin, TreeRelatedFieldListFilter
 from .models import ProductSPU, ProductSKU, Origin, HomeBanner, Category, Image
 
-SKUForm = select2_modelform(ProductSKU, attrs={'width': '100%'})
+SKUForm = select2_modelform(ProductSKU, attrs={'width': '50%'})
 
 
 class ImageInline(admin.TabularInline):
@@ -16,11 +16,13 @@ class ImageInline(admin.TabularInline):
 @admin.register(ProductSKU)
 class SKUAdmin(admin.ModelAdmin):
     form = SKUForm
+    model = ProductSKU
     ordering = ('name', 'category',)
     list_display = ('id', 'name', 'spu', 'category',
                     'origin', 'stock', 'price', 'sales')
     search_fields = ('id', 'name', 'summary', 'detail',)
-    list_filter = ('status', 'spu', 'category', 'origin')
+    list_filter = ('status', 'spu', 'origin',
+                   ('category_id', TreeRelatedFieldListFilter),)
     autocomplete_fields = ('spu_id', 'category_id', 'origin_id')
     list_editable = ('stock', 'price', )
     list_select_related = ('category', 'spu', 'origin',)
@@ -56,7 +58,6 @@ class CategoryAdmin(DraggableMPTTAdmin):
     list_display = ('indented_title', 'name', )
     list_editable = ('name',)
     search_fields = ('name',)
-    list_filter = (('Category', TreeRelatedFieldListFilter),)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

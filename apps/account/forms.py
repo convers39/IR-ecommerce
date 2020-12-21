@@ -66,8 +66,8 @@ class RegisterForm(forms.ModelForm):
 
         # NOTE: avoid unique restriction on email
         # for guest user who register an account
-        if user.username[:6] == 'guest_':
-            user.email = 'guest_' + email
+        if user.is_guest:
+            user.email = user._guest_prefix + email
             user.save()
             return email
         else:

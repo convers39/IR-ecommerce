@@ -56,10 +56,18 @@ class AccountCenterView(LoginRequiredMixin, FormMixin, View):
             return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
         print(data)
 
+        msg = 'Data updated'
+        if data['email'] != user.email:
+            # send activate email
+            new_email = data['email']
+            send_activation_email.delay(new_email, user.username, user.id)
+            data['email'] = user.email
+            msg = 'Email address will be updated after your verification'
         form = UserInfoForm(data, instance=user)
+
         if form.is_valid():
             form.save()
-            return JsonResponse({'res': '1', 'msg': 'Data updated'})
+            return JsonResponse({'res': '1', 'msg': msg})
 
         return JsonResponse({'res': '0', 'errmsg': 'Invalid form data'})
 
@@ -100,70 +108,15 @@ class OrderListView(LoginRequiredMixin, ListView):
     paginate_by = 5
 
     def get_queryset(self):
-        """Optimize SQL from over 20 queries to only 3 queries:
-
-        SELECT * FROM "order_order" LEFT OUTER JOIN "account_address" ON 
-        ("order_order"."address_id" = "account_address"."id") 
-        WHERE NOT "order_order"."is_deleted" ORDER BY "order_order"."created_at" DESC LIMIT 5
-
-        SELECT * FROM "order_orderproduct" WHERE 
-        "order_orderproduct"."order_id" IN (17, 16, 15, 13, 12) 
-        ORDER BY "order_orderproduct"."created_at" DESC
-
-        SELECT * FROM "shop_productsku" WHERE "shop_productsku"."id" IN (1, 3, 6, 7, 8)
-        """
-        queryset = super().get_queryset().filter(Q(user=self.request.user), is_deleted=False).select_related(
-            'address').prefetch_related('order_products').prefetch_related('order_products__product')
+        queryset = super().get_queryset().filter(Q(user=self.request.user), is_deleted=False)\
+            .select_related('address').select_related('payment').prefetch_related('order_products')\
+            .prefetch_related('order_products__product').prefetch_related('order_products__review')
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['stripe_key'] = settings.STRIPE_PUBLIC_KEY
         return context
-
-
-class OrderDetailView(LoginRequiredMixin, DetailView):
-    model = Order
-    context_object_name = 'order'
-    template_name = 'account/order-detail.html'
-    slug_url_kwarg = 'number'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["order_products"] = self.object.order_products.all(
-        ).select_related('product')
-        payment = self.object.payment
-        payment_intent = stripe.PaymentIntent.retrieve(
-            payment.number)
-        context['stripe_key'] = settings.STRIPE_PUBLIC_KEY
-        if payment.status != 'SC':
-            context['payment_detail'] = None
-        else:
-            context['payment_detail'] = payment_intent.charges.data[0].payment_method_details
-        return context
-
-    def post(self, request, *args, **kwargs):
-        try:
-            data = json.loads(request.body.decode())
-        except:
-            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
-        print('detail view', data)
-
-        order_product_id = data.get('order_product_id')
-        star = data.get('star')
-        comment = data.get('comment')
-
-        try:
-            order_product = OrderProduct.objects.get(id=order_product_id)
-        except OrderProduct.DoesNotExist:
-            return JsonResponse({'res': '0', 'errmsg': 'Item does not exist'})
-
-        Review.objects.create(
-            order_product=order_product,
-            star=star,
-            comment=comment
-        )
-        return JsonResponse({'res': '1', 'msg': 'Comment submitted'})
 
 
 class AddressView(AddressManagementMixin, FormMixin, View):
@@ -340,7 +293,7 @@ class RegisterView(SuccessMessageMixin, CreateView):
         password = form.cleaned_data['password']
         user = User.objects.create_user(username, email, password)
 
-        # NOTE: merge guest account, update date joined info
+        # NOTE: merge guest account
         guest_email = 'guest_'+email
         guest_user = User.objects.filter(email=guest_email).first()
         if guest_user:
@@ -362,11 +315,22 @@ class ActivateView(View):
 
         try:
             param = serializer.loads(token)
+            print(param)
             user_id = param['activate_user']
+            email = param['email']
             user = User.objects.get(id=user_id)
-            user.is_active = 1
-            user.save()
-            messages.success(request, 'Your account has been activated!')
+            if user.is_active:
+                # change email for user
+                user.email = email
+                user.save()
+                logout(request)
+                messages.success(
+                    request, 'Your email address has been changed!')
+            else:
+                user.is_active = 1
+                user.save()
+                messages.success(request, 'Your account has been activated!')
+
             return redirect(reverse('account:login'))
 
         except SignatureExpired:

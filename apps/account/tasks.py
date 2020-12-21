@@ -2,21 +2,40 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.template import loader
 
+from datetime import datetime, timedelta, timezone
 import logging
 
 from celery import shared_task
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from core.celery import app
+from account.models import User
 # app = Celery('apps.account.tasks', broker=settings.CELERY_BROKER_URL)
 domain = 'http://127.0.0.1:8080'
 
 logger = logging.getLogger(__name__)
 
 
+@app.task
+def close_inactive_account():
+    """
+    delete user registered but not activated, guest account need to
+    persist until the order completed or guest register an account.
+    If guest register an account but did not activate, the guest account
+    will not change. Only if the guest activate the account, guest account
+    will be removed. 
+    """
+    inactive_users = User.objects.filter(is_active=False)
+    for user in inactive_users:
+        elapsed = datetime.now(timezone.utc) - user.date_joined
+        if not user.is_guest and elapsed > timedelta(hours=24):
+            user.delete()
+
+
 @shared_task
 def send_activation_email(to_email, username, user_id):
 
     serializer = Serializer(settings.SECRET_KEY, 3600*24)
-    info = {'activate_user': user_id}
+    info = {'activate_user': user_id, 'email': to_email}
     token = serializer.dumps(info)  # bytes
     token = token.decode()
 

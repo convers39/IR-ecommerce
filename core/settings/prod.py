@@ -5,6 +5,8 @@ DEBUG = False
 MIDDLEWARE.insert(2, 'django.middleware.cache.UpdateCacheMiddleware')
 MIDDLEWARE.insert(4, 'django.middleware.cache.FetchFromCacheMiddleware')
 
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
 # set website cache time and use redis default backend for caching
 CACHE_MIDDLEWARE_SECONDS = 1200
 CACHE_MIDDLEWARE_ALIAS = 'default'

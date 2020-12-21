@@ -3,7 +3,8 @@
 from pathlib import Path
 import sys
 import os
-
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
@@ -50,6 +51,7 @@ INSTALLED_APPS = [
     'django_fsm',
     'django_ses',
     'import_export',
+    'easy_select2',
 ]
 
 # add UpdateCacheMiddleware and FetchFromCacheMiddleware to cache site page with default cache backend
@@ -183,8 +185,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
-# STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static'), ]
-STATIC_ROOT = os.path.join(BASE_DIR, '/static/')
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static'), ]
 
 
 MEDIA_URL = '/media/'
@@ -247,3 +248,16 @@ SIMPLEUI_ICON = {
     'Django SES': 'far fa-envelope',
     'SES Stats': 'fas fa-mail-bulk',
 }
+
+
+# sentry setting
+sentry_sdk.init(
+    dsn=f"https://d4d0c2bbee3f4c199cb26ebd1238c6aa@o494559.ingest.sentry.io/5565850",
+    # dsn=f"https://{os.getenv('SENTRY_DSN')}",
+    integrations=[DjangoIntegration()],
+    traces_sample_rate=1.0,
+
+    # If you wish to associate users to errors (assuming you are using
+    # django.contrib.auth) you may enable sending PII data.
+    send_default_pii=True
+)

@@ -21,7 +21,7 @@ from account.tasks import send_order_email
 from shop.models import ProductSKU
 from cart.cart import cal_shipping_fee, get_user_id, get_cart_all_in_order
 
-from .models import Order, Payment, OrderProduct
+from .models import Order, Payment, OrderProduct, Review
 from .mixins import OrderDataCheckMixin, OrderManagementMixin
 # from .tasks import create_one_time_task
 
@@ -139,7 +139,7 @@ def create_checkout_session(user, payment_method, item_name, amount):
     cancel_url = domain + reverse('shop:index')
     success_url = domain + reverse('order:success') + \
         '?session_id={CHECKOUT_SESSION_ID}'
-    if user.is_active:
+    if user.is_authenticated:
         cancel_url = domain + reverse('account:order-list')
     session = stripe.checkout.Session.create(
         payment_method_types=[payment_method],
@@ -169,7 +169,7 @@ class PaymentSuccessView(TemplateView):
 
     def get(self, request):
         user_id = get_user_id(request)
-        if request.user.is_active:
+        if request.user.is_authenticated:
             user = User.objects.get(id=user_id)
             url = reverse('account:order-list')
         else:
@@ -349,3 +349,35 @@ class OrderSearchView(ListView):
         context = super().get_context_data(**kwargs)
         context['stripe_key'] = settings.STRIPE_PUBLIC_KEY
         return context
+
+
+class OrderCommentView(LoginRequiredMixin, View):
+
+    def update(self, request, *args, **kwargs):
+        pass
+
+    def delete(self, request, *args, **kwargs):
+        pass
+
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body.decode())
+        except:
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
+        print('detail view', data)
+
+        order_product_id = data.get('order_product_id')
+        star = data.get('star')
+        comment = data.get('comment')
+
+        try:
+            order_product = OrderProduct.objects.get(id=order_product_id)
+        except OrderProduct.DoesNotExist:
+            return JsonResponse({'res': '0', 'errmsg': 'Item does not exist'})
+
+        Review.objects.create(
+            order_product=order_product,
+            star=star,
+            comment=comment
+        )
+        return JsonResponse({'res': '1', 'msg': 'Comment submitted'})

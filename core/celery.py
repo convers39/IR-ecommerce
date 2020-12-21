@@ -27,6 +27,10 @@ app.conf.beat_schedule = {
         'task': 'order.tasks.auto_complete_orders',
         'schedule': crontab(minute='0', hour='0')
     },
+    'close-inactive-account': {
+        'task': 'account.tasks.close_inactive_account',
+        'schedule': crontab(minute='0', hour='*')
+    }
 }
 # or every 30mins? crontab(minute='*/30')
 app.conf.timezone = 'UTC'

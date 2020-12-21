@@ -1,13 +1,17 @@
 {% extends 'account/account-base.html' %}
-
+{% load static %}
 <!-- EXTRA HEAD -->
 {% block extra_head %}
 <script src="https://js.stripe.com/v3/"></script>
+<!--  -->
+<link href="{% static 'css/star-rating.css' %}" rel="stylesheet">
+<script src="{% static 'js/star-rating.min.js' %}"></script>
 {% endblock extra_head %}
+
 <!-- TAGS -->
 {% load humanize %} {% load qs_url_tag %}
 {% load mathfilters %}{% load mptt_tags %}
-
+{% load num_range_tag %}
 
 <!-- HERO SECTION-->
 {% block hero %}
@@ -103,8 +107,7 @@
             </div>
             <div class="col col-3"><span class="text-muted"><i class="fas fa-calculator"></i>
                 <small> {{order.total_amount|intcomma}}</small></span></div>
-            <div class="col col-1"><a href="{{order.get_absolute_url}}"><i class="fa fa-info-circle"
-                  aria-hidden="true"></i></i></a>
+            <div class="col col-1"><a href="#"><i class="fa fa-info-circle" aria-hidden="true"></i></i></a>
             </div>
           </div>
         </div>
@@ -112,7 +115,82 @@
           <div class="card-body ">
             {% for order_product in order.order_products.all %}
             {% with product=order_product.product %}
-            <div class="row text-center">
+            <div class="card mb-0">
+              <div class="row no-gutters">
+                <div class="col-md-4">
+                  <a href="{{product.get_absolute_url}}">
+                    <img src="{{product.cover_img.url}}" class="card-img" alt="{{product.name}}"></a>
+                </div>
+                <div class="col-md-8">
+                  <div class="card-body">
+                    <h5 class="card-title"><a class="text-muted"
+                        href="{{product.get_absolute_url}}">{{product.name}}</a> </h5>
+                    <p class="card-text"><small>{{product.summary}}</small></p>
+                    <p class="card-text"><span class="text-muted"><i class="fa fa-jpy px-1"
+                          aria-hidden="true"></i>{{order_product.unit_price|intcomma}}<i class="fa fa-times px-1"
+                          aria-hidden="true"></i>
+                        {{order_product.count}}</span></p>
+                    <!-- payment detail FIXME: too slow on API request -->
+                    {# #}
+
+                    <!-- TODO: add share product -->
+                    {% if order.status == 'SP' %}
+                    {% if order_product.is_reviewed %}
+                    <a class="btn btn-sm btn-secondary" type="button" data-toggle="collapse"
+                      href="#collapse-{{order_product.id}}" role="button" aria-expanded="false"
+                      aria-controls="collapse-{{order_product.id}}">My Review</a>
+                    <div class="collapse" id="collapse-{{order_product.id}}">
+                      <div class="card card-body">
+                        <p class="small text-muted mb-0 text-uppercase">
+                          {{order_product.review.created_at|date:"DATE_FORMAT"}}</p>
+                        <ul class="list-inline mb-1 text-xs">
+                          {% for star in order_product.review.star|num_range %}
+                          <li class="list-inline-item m-0">
+                            <i class="fas fa-star text-warning"></i>
+                          </li>
+                          {% endfor %}
+                        </ul>
+                        <p class="text-small mb-0 text-muted">
+                          {{order_product.review.comment}}
+                        </p>
+                      </div>
+                    </div>
+                    {% else %}
+                    <a class="btn btn-sm btn-secondary" type="button" data-toggle="collapse"
+                      href="#collapse-{{order_product.id}}" role="button" aria-expanded="false"
+                      aria-controls="collapse-{{order_product.id}}">Review
+                      item</a>
+                    <div class="collapse" id="collapse-{{order_product.id}}">
+                      <div class="card card-body">
+                        <form class="card-form review" id="{{order_product.id}}">
+                          <fieldset>
+                            <div class="form-group">
+                              <select class="star-rating" id="star-{{order_product.id}}">
+                                <option value="">Select a rating</option>
+                                <option value="5">Excellent</option>
+                                <option value="4">Very Good</option>
+                                <option value="3">Average</option>
+                                <option value="2">Poor</option>
+                                <option value="1">Terrible</option>
+                              </select>
+                            </div>
+                            <div class="form-group">
+                              <textarea name="comment-{{order_product.id}}" id="comment-{{order_product.id}}"
+                                style="width:100%; border-color:lightgray" rows="10"></textarea>
+                            </div>
+                            <button class="btn btn-primary" type="submit">Submit</button>
+                          </fieldset>
+                        </form>
+
+                      </div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- <div class="row text-center">
               <div class='col col-6'>
                 <p class="card-text"><small>{{forloop.counter}}- <a class="reset-anchor"
                       href="{{product.get_absolute_url}}">{{product}}</a></small>
@@ -127,7 +205,7 @@
                     <i class="fa fa-jpy" aria-hidden="true"></i> {{order_product.unit_price|intcomma}}</small>
                 </p>
               </div>
-            </div>
+            </div> -->
             {% endwith %}
             {% endfor %}
             <hr>
@@ -156,8 +234,6 @@
             Shipment</a>
           <a class="reset-anchor pr-2 cancel" href="#" orderId='{{order.id}}'><i
               class="fas fa-hand-holding-usd pr-1"></i> Return</a>
-          <a class="reset-anchor pr-2" href="{{order.get_absolute_url}}"><i class="far fa-comment-dots pr-1"></i>
-            Review</a>
           {% elif order.status == 'RT' %}
           <a class="reset-anchor pr-2 cancel" href="#" orderId='{{order.id}}'><i class="fas fa-ban pr-1"></i>Stop Return
           </a>
@@ -244,6 +320,11 @@
 
     //countDownTimer();
     //setInterval(countdownTimer, 1000);
+    // start rating system
+    var starRatingControls = new StarRating(".star-rating", {
+      maxStars: 5
+    });
+
     const csrftoken = Cookies.get("csrftoken");
     // redirect to checkout
     var stripe = Stripe("{{ stripe_key }}");
@@ -334,6 +415,41 @@
         return;
       }
     })
+    // backend error when check if an OrderProduct obj has review
+    $('.review').submit(async function (event) {
+      event.preventDefault();
+      let star = parseInt($(this).find('select').val());
+      if (!(star in [1, 2, 3, 4, 5])) {
+        showMsg('Please select a rating star')
+        return
+      }
+      let orderProductId = $(this).prop('id');
+      let comment = $(this).find('textarea').val();
+      console.log(comment, star, orderProductId)
+      const res = await fetch('/order/comment/', {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrftoken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          order_product_id: orderProductId,
+          star: star,
+          comment: comment
+        }),
+      });
+      let data = await res.json();
+      if (data.res == "1") {
+        $(this).find('textarea').prop('disabled');
+        $(this).find('button').prop('disabled');
+        showMsg(data.msg, 1);
+      } else {
+        showMsg(data.errmsg, 0);
+        // location.reload();
+      }
+
+    })
+
   })
 
 </script>

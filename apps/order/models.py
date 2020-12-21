@@ -61,6 +61,10 @@ class Payment(BaseModel):
     #     intent = stripe.PaymentIntent.retrieve(self.number)
     #     charges = intent.charges.data  # list or charges
 
+    def get_payment_method_detail(self):
+        intent = stripe.PaymentIntent.retrieve(self.number)
+        return intent.charges.data[0].payment_method_details
+
     def is_expired(self):
         """
         check if payment session expired, stripe checkout session will expire after 24hrs

@@ -37,6 +37,15 @@ class User(PermissionsMixin, AbstractBaseUser):
     def __str__(self):
         return self.username
 
+    @classmethod
+    def _guest_prefix(cls):
+        return 'guest_'
+
+    @property
+    def is_guest(self):
+        length = len(self._guest_prefix())
+        return self.username[:length] == self._guest_prefix()
+
 
 class Address(BaseModel):
     recipient = models.CharField(_("recipient"), max_length=50)
