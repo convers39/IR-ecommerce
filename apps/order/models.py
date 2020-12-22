@@ -61,7 +61,7 @@ class Payment(BaseModel):
     #     intent = stripe.PaymentIntent.retrieve(self.number)
     #     charges = intent.charges.data  # list or charges
 
-    # NOTE: slow on first time request, need to use with caching
+        # NOTE: slow on first time request, need to use with caching
     def get_payment_method_detail(self):
         intent = stripe.PaymentIntent.retrieve(self.number)
         return intent.charges.data[0].payment_method_details
@@ -148,7 +148,6 @@ class Order(BaseModel):
 
     number = models.CharField(
         _("order number"), max_length=100, default='', unique=True)
-    slug = models.SlugField(_("slug"), null=True)
     status = FSMField(_("order status"),
                       choices=Status.choices, default=Status.NEW, protected=True)
     subtotal = models.DecimalField(
@@ -177,11 +176,11 @@ class Order(BaseModel):
     def save(self, *args, **kwargs):
         if not self.number:
             self.number = generate_order_number()
-            self.slug = self.number
         return super(Order, self).save(*args, **kwargs)
 
-    def get_absolute_url(self):
-        return reverse("account:order-detail", kwargs={"number": self.number})
+    # NOTE: detail page merged with list page
+    # def get_absolute_url(self):
+    #     return reverse("account:order-detail", kwargs={"number": self.number})
 
     @property
     def total_amount(self):
@@ -205,6 +204,8 @@ class Order(BaseModel):
         elif self.status == 'RT':
             time_elapsed = (datetime.now(timezone.utc) - self.return_at)
             return time_elapsed >= timedelta(days=30)
+        else:
+            return False
 
     def restore_product_stock(self):
         """
@@ -282,11 +283,7 @@ class Order(BaseModel):
         This method is used for automatic cancellation in cron jobs, 
         also for NEW orders before payment confirmed, which does not require admin operations.
         """
-        subject = f'Order# {self.number} Cancellation'
-        message = f'Your order has been canceled due to the expiration of payment'
-        from_email = settings.EMAIL_FROM
-        recipient_list = [self.user.email, ]
-        async_send_email.delay(subject, message, from_email, recipient_list)
+        return True
 
     @transition(field=status, source=['CL'], target='CX')
     def comfirm_cancel(self):

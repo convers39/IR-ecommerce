@@ -145,7 +145,7 @@ def create_checkout_session(user, payment_method, item_name, amount):
     success_url = domain + reverse('order:success') + \
         '?session_id={CHECKOUT_SESSION_ID}'
     if user.is_authenticated:
-        cancel_url = domain + reverse('account:order-list')
+        cancel_url = domain + reverse('account:order')
 
     session = stripe.checkout.Session.create(
         payment_method_types=[payment_method],
@@ -174,7 +174,7 @@ class PaymentSuccessView(TemplateView):
         user_id = get_user_id(request)
         if request.user.is_authenticated:
             user = User.objects.get(id=user_id)
-            url = reverse('account:order-list')
+            url = reverse('account:order')
         else:
             guest_name = f'guest_{user_id}'
             user = User.objects.get(username=guest_name)
@@ -328,7 +328,7 @@ class OrderSearchView(ListView):
 
     def get(self, request, *args, **kwargs) -> HttpResponse:
         if self.request.user.is_authenticated:
-            return redirect(reverse('account:order-list'))
+            return redirect(reverse('account:order'))
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):

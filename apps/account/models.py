@@ -70,7 +70,7 @@ class Address(BaseModel):
 
     @property
     def recipient_with_contact(self):
-        return f'Recipient: {self.recipient} -- Contact: {self.phone_no}'
+        return f'Recipient: {self.recipient} - Contact: {self.phone_no}'
 
     @property
     def full_address(self):

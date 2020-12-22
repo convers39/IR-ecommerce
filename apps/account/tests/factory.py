@@ -25,3 +25,4 @@ class AddressFactory(DjangoModelFactory):
     province = factory.Faker('city')  # do not have province/state provider
     country = factory.Faker('country_code')
     zip_code = factory.Faker('postcode')
+    is_default = False

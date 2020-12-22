@@ -1,3 +1,4 @@
+from django import utils
 from django.test import TestCase
 from datetime import datetime, timezone, timedelta
 from django.db.models.signals import post_save
@@ -8,6 +9,7 @@ from shop.tests.factory import SkuFactory
 from order.models import Order, Payment, OrderProduct, Review
 from account.tests.factory import UserFactory
 
+from ..utils import generate_order_number
 from .factory import OrderFactory, OrderProductFactory, PaymentFactory, ReviewFactory
 
 
@@ -22,26 +24,18 @@ class TestOrderModel(TestCase):
                 sku = SkuFactory()
                 skus.append(sku)
 
-    def test_create_order(self):
-        count = Order.objects.count()
-        new_order = OrderFactory()
-        self.assertIsInstance(new_order, Order)
-        self.assertEqual(count+1, Order.objects.count())
-
     def test_str_representation(self):
+        order = OrderFactory()
         self.assertEqual(
-            str(self.order), f'Order {self.order.number} for {self.order.user}')
+            str(order), f'Order {order.number} for {order.user}')
 
-    def test_get_absolute_url(self):
-        url = self.order.get_absolute_url()
-        # self.order.number = '12345'
-        self.assertEqual(url, f'/account/order/{self.order.slug}/')
-
-    def test_create_number_and_slug_on_save(self):
+    def test_create_number_on_save(self):
         start = datetime.now().strftime('%Y%m%d%H%M')
+        generator = generate_order_number()
         new_order = OrderFactory()
         self.assertEqual(new_order.number[:12], start)
-        self.assertEqual(new_order.number, new_order.slug)
+        self.assertEqual(len(new_order.number), len(new_order.number))
+        self.assertEqual(start, generator[:12])
 
     def test_total_amount(self):
         self.order.subtotal = 2000
@@ -55,8 +49,16 @@ class TestOrderModel(TestCase):
         self.order.payment = PaymentFactory(status='SC')
         self.assertTrue(self.order.is_confirmed())
 
-        self.order.confirm_payment()
+        self.order.confirm()
         self.assertEqual(self.order.status, 'CF')
+
+    def test_is_completed(self):
+        order1 = OrderFactory(status='SP', created_at=datetime(1990, 10, 10))
+        order2 = OrderFactory(status='RT')
+
+        self.assertTrue(order1.is_completed())
+        self.assertFalse(order2.is_completed())
+        self.assertFalse(self.order.is_complete())
 
 
 class TestPaymentModel(TestCase):

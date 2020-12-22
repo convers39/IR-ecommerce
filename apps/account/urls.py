@@ -5,7 +5,7 @@ from .views import (LoginView, LogoutView, RegisterView, ActivateView, PasswordR
 app_name = 'account'
 urlpatterns = [
     path('', AccountCenterView.as_view(), name='center'),
-    path('order/', OrderListView.as_view(), name='order-list'),
+    path('order/', OrderListView.as_view(), name='order'),
     path('address/', AddressView.as_view(), name='address'),
     path('wishlist/', WishlistView.as_view(), name='wishlist'),
     path('register/', RegisterView.as_view(), name='register'),

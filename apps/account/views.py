@@ -102,7 +102,7 @@ class PasswordResetView(LoginRequiredMixin, View):
 class OrderListView(LoginRequiredMixin, ListView):
     model = Order
     context_object_name = 'orders'
-    template_name = 'account/order-list.html'
+    template_name = 'account/order.html'
     paginate_by = 4
 
     def get_queryset(self):

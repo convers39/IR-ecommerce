@@ -220,9 +220,7 @@ class TestAccountOrderView(TestCase):
     def setUpTestData(cls) -> None:
         cls.user = UserFactory()
         cls.order = OrderFactory()
-        cls.list_url = reverse('account:order-list')
-        cls.detail_url = reverse(
-            'account:order-detail', kwargs={'number': cls.order.number})
+        cls.list_url = reverse('account:order')
 
     def test_order_list_view(self):
         pass

@@ -59,7 +59,7 @@
     <hr>
     <p class="text-muted">
       {% if user.is_authenticated %}
-      <a href="{% url 'account:order-list' %}">Please click here to account center if page does not refresh</a>
+      <a href="{% url 'account:order' %}">Please click here to account center if page does not refresh</a>
       {% else %}
       <a href="{% url 'shop:index' %}">Please click here to homepage if page does not refresh</a>
       {% endif %}
@@ -72,7 +72,7 @@
 {% block bottom %}
 <script>
   setTimeout(function () {
-    window.location.href = "{% url 'account:order-list' %}";
+    window.location.href = "{% url 'account:order' %}";
   }, 5000);
 
 </script>
