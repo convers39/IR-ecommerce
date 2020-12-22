@@ -4,6 +4,7 @@ from django_celery_beat.models import CrontabSchedule, PeriodicTask
 from datetime import timezone
 
 from order.models import Payment, Order
+from account.tasks import send_order_email
 
 import logging
 
@@ -31,6 +32,8 @@ def auto_cancel_orders():
             order.auto_cancel()
             order.save()
             order.restore_product_stock()
+            send_order_email.delay(
+                order.user.email, order.user.username, order.number, order.status)
 
 
 @app.task
@@ -40,6 +43,8 @@ def auto_complete_orders():
         if order.is_completed():
             order.complete()
             order.save()
+            send_order_email.delay(
+                order.user.email, order.user.username, order.number, order.status)
 
 
 def create_one_time_task():

@@ -2,7 +2,6 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
-from django.db.models import Case, When
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from django.urls.base import reverse
@@ -10,23 +9,25 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.views.generic import View, TemplateView, ListView
 
-import stripe
 import json
+import logging
 from datetime import datetime, timedelta, timezone
 
+import stripe
 from django_redis import get_redis_connection
 
 from account.models import User
 from account.tasks import send_order_email
-from shop.models import ProductSKU
 from cart.cart import cal_shipping_fee, get_user_id, get_cart_all_in_order
+from shop.models import ProductSKU
 
-from .models import Order, Payment, OrderProduct, Review
 from .mixins import OrderDataCheckMixin, OrderManagementMixin
+from .models import Order, Payment, OrderProduct, Review
 # from .tasks import create_one_time_task
 
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
+logger = logging.getLogger(__name__)
 
 
 class OrderProcessView(OrderDataCheckMixin, View):
@@ -52,7 +53,7 @@ class OrderProcessView(OrderDataCheckMixin, View):
             # create an Order instance
             order = Order.objects.create(
                 subtotal=0, user=user, address=address)
-            print('order created')
+            logger.info(f'order# {order.number} created')
 
             # get shopping cart cart data
             user_id = get_user_id(request)
@@ -75,7 +76,7 @@ class OrderProcessView(OrderDataCheckMixin, View):
                 product.sales += count
             # update products stock and sales
             ProductSKU.objects.bulk_update(products, ['stock', 'sales'])
-            print('product stock, sales updated')
+            logger.info(f'order# {order.number} product stock, sales updated')
 
             # create OrderProduct instance for earch product
             OrderProduct.objects.bulk_create([
@@ -83,7 +84,7 @@ class OrderProcessView(OrderDataCheckMixin, View):
                              count=count, unit_price=product.price)
                 for product, count in zip(products, counts)
             ])
-            print('orderproducts created')
+            logger.info(f'order# {order.number} orderproducts created')
 
             # update shipping fee and subtotal in order object
             subtotal = sum([product.price*count for product,
@@ -92,15 +93,17 @@ class OrderProcessView(OrderDataCheckMixin, View):
             shipping_fee = cal_shipping_fee(subtotal, total_count)
             order.shipping_fee = shipping_fee
             order.subtotal = subtotal
-            print('order updated')
+            logger.info(
+                f'order# {order.number} subtotal, shipping fee updated ')
 
             # create stripe checkout session, keep 1 item only
             amount = order.total_amount
-            item_name = f'{products[0].name} and other {len(products)-1} items' \
-                if len(products) > 2 else f'{products[0].name},{products[1].name}'
+            item_name = f'{products[0].name} ({len(products)} items in total)' \
+                if len(products) > 1 else f'{products[0].name}'
+
             session = create_checkout_session(
                 user, payment_method, item_name, amount)
-            print('checkout session created')
+            logger.info(f'order# {order.number} checkout session created')
 
             # create Payment instance
             payment = Payment.objects.create(
@@ -112,7 +115,8 @@ class OrderProcessView(OrderDataCheckMixin, View):
             )
             order.payment = payment
             order.save()
-            print('payment created')
+            logger.info(
+                f'order# {order.number} payment instance {payment.number} created')
 
         except:
             transaction.savepoint_rollback(save_id)
@@ -123,7 +127,8 @@ class OrderProcessView(OrderDataCheckMixin, View):
 
         # clear shopping cart in the end
         conn.hdel(f'cart_{user_id}', *sku_ids)
-        print('shopping cart cleared')
+        logger.info(
+            f'order# {order.number} processed, user {user.username} cart cleared')
 
         # send email to user
         send_order_email.delay(user.email, user.username,
@@ -141,6 +146,7 @@ def create_checkout_session(user, payment_method, item_name, amount):
         '?session_id={CHECKOUT_SESSION_ID}'
     if user.is_authenticated:
         cancel_url = domain + reverse('account:order-list')
+
     session = stripe.checkout.Session.create(
         payment_method_types=[payment_method],
         customer_email=user.email,
@@ -155,13 +161,10 @@ def create_checkout_session(user, payment_method, item_name, amount):
             'quantity': 1,
         }],
         mode='payment',
-        # TODO: add order number into url
         success_url=success_url,
         cancel_url=cancel_url,
     )
     return session
-
-# TODO: guest user retrieve payment session from email
 
 
 class PaymentSuccessView(TemplateView):
@@ -287,6 +290,8 @@ class OrderCancelView(OrderManagementMixin, View):
         elif status == 'NW':
             order.auto_cancel()
             order.save()
+            send_order_email.delay(
+                order.user.email, order.user.username, order.number, order.status)
             order.restore_product_stock()
             return JsonResponse({'res': '1', 'msg': 'Your order has been cancelled'})
 
@@ -312,11 +317,22 @@ class OrderCancelView(OrderManagementMixin, View):
 
 
 class OrderSearchView(ListView):
+    """
+    This view only use for guests to check their order status,
+    a login user will not see the link in nav bar and will be 
+    redirected to account center if visited.
+    """
     model = Order
     template_name = 'order/search.html'
     context_object_name = 'orders'
 
+    def get(self, request, *args, **kwargs) -> HttpResponse:
+        if self.request.user.is_authenticated:
+            return redirect(reverse('account:order-list'))
+        return super().get(request, *args, **kwargs)
+
     def get_queryset(self):
+
         email = self.request.GET.get('email')
         order_number = self.request.GET.get('order_number')
 
@@ -328,8 +344,8 @@ class OrderSearchView(ListView):
                 self.request, 'Both email and order number are required')
             return None
 
-        queryset = Order.objects.prefetch_related('order_products').prefetch_related(
-            'order_products__product').select_related('payment').filter(number=order_number)
+        queryset = super().get_queryset().prefetch_related('order_products__product')\
+            .select_related(*['payment', 'user']).filter(number=order_number)
 
         try:
             user = User.objects.get(email=email)
@@ -337,11 +353,11 @@ class OrderSearchView(ListView):
             messages.error(self.request, 'Incorrect email')
             return None
 
-        if queryset.count() == 0:
+        if len(queryset) == 0:
             messages.error(self.request, 'order number does not exist')
         elif queryset[0].user != user:
             queryset = queryset.none()
-            messages.error(self.request, 'Order and email does not match')
+            messages.error(self.request, 'order and email does not match')
 
         return queryset
 

@@ -9,9 +9,9 @@ from django.utils.translation import gettext_lazy as _
 
 from datetime import datetime, timedelta, timezone
 
-from taggit.managers import TaggableManager
 from ckeditor.fields import RichTextField
 from mptt.models import MPTTModel, TreeForeignKey
+from taggit.managers import TaggableManager
 
 from db.base_model import BaseModel
 from .managers import SKUManager

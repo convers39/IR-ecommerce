@@ -8,14 +8,13 @@ from django.urls.base import reverse
 import json
 from django_redis import get_redis_connection
 
-from shop.models import ProductSKU
 from account.models import Address
-from account.forms import GuestAddressForm
+from account.forms import GuestAddressForm, AddressForm
+from shop.models import ProductSKU
+
 from .cart import (cal_cart_count, cal_total_count_subtotal,
                    delete_cart_item, cal_shipping_fee, get_user_id, is_first_time_guest)
 from .mixins import DataIntegrityCheckMixin
-
-# Create your views here.
 
 
 class CartAddView(DataIntegrityCheckMixin, View):
@@ -154,6 +153,7 @@ class CheckoutView(View):
 
         addrs = []
         if request.user.is_authenticated:
+            form = AddressForm()
             addrs = Address.objects.filter(user=request.user)
 
         stripe_api_key = settings.STRIPE_PUBLIC_KEY

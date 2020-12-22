@@ -2,9 +2,9 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404
 from django.views.generic import ListView, DetailView
 
-from django_redis import get_redis_connection
-
 import logging
+
+from django_redis import get_redis_connection
 
 from .models import ProductSKU, Category, HomeBanner
 
@@ -18,7 +18,7 @@ class IndexView(ListView):
     def get_queryset(self):
         try:
             queryset = ProductSKU.objects.get_trending_products().\
-                order_by('?')[:8]
+                order_by('?')[:7]
             # logger.info('fetch database for index page')
         except ValueError:
             queryset = []
@@ -47,7 +47,7 @@ class ProductListView(ListView):
         return ordering
 
     def get_queryset(self):
-        queryset = ProductSKU.objects.get_queryset()
+        queryset = super().get_queryset()
 
         # check if user input a search text, consider to asign seperate route for search
         search_term = self.request.GET.get('search')
@@ -71,29 +71,21 @@ class ProductListView(ListView):
 
         # check if item is wishlisted
         user = self.request.user
-        conn = get_redis_connection('cart')
-        wishlisted = conn.smembers(f'wish_{user.id}')
-        wishlisted = [int(i) for i in wishlisted]
-        for product in queryset:
-            if product.id in wishlisted:
-                product.wishlist = True
-        # logger.info('fetch database for shop page')
+        if user.is_authenticated:
+            queryset = ProductSKU.objects.filter_wishlisted_products(
+                user.id, queryset)
+
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # TODO: duplicate with get_queryset, figure out a better solution to reduce duplicate query
+
         category_slug = self.kwargs.get('category_slug')
         if category_slug:
-            category = get_object_or_404(Category, slug=category_slug)
+            category = category_slug.replace('-', ' ')
+            if 'and' in category:
+                category = category.replace('and', '&')
             context['category'] = category
-
-        # NOTE:when query set is paginated, use paginator to return total results count,
-        # otherwise use queryset count, including 0 item case
-        try:
-            context['count'] = context['paginator'].count
-        except AttributeError:
-            context['count'] = context['object_list'].count()
 
         return context
 
@@ -126,7 +118,8 @@ class ProductDetailView(DetailView):
         return self.render_to_response(context)
 
     def get_queryset(self):
-        return super().get_queryset().prefetch_related('order_products__review')
+        return super().get_queryset().select_related('category')\
+            .prefetch_related('order_products__review')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -65,9 +65,11 @@
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'shop:product-list' %}">Shop</a>
               </li>
+              {% if not request.user.is_authenticated %}
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'order:search' %}">Find Order</a>
               </li>
+              {% endif %}
               <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" id="pagesDropdown" href="#" data-toggle="dropdown"
                   aria-haspopup="true" aria-expanded="false">Category</a>

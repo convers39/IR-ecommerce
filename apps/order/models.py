@@ -1,20 +1,20 @@
-from django.core.checks.messages import Error
 from django.core.mail import send_mail
 from django.conf import settings
 from django.db import models
-from django.db.models import F, Q
+from django.db.models import F
 from django.shortcuts import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from datetime import datetime, timedelta, timezone
 
-from django_fsm import FSMField, transition, GET_STATE, RETURN_VALUE
 import stripe
+from django_fsm import FSMField, transition, RETURN_VALUE
 
-from db.base_model import BaseModel
-from shop.models import ProductSKU
 from account.models import User, Address
 from account.tasks import async_send_email
+from db.base_model import BaseModel
+from shop.models import ProductSKU
+
 from .utils import generate_order_number
 
 
@@ -61,6 +61,7 @@ class Payment(BaseModel):
     #     intent = stripe.PaymentIntent.retrieve(self.number)
     #     charges = intent.charges.data  # list or charges
 
+    # NOTE: slow on first time request, need to use with caching
     def get_payment_method_detail(self):
         intent = stripe.PaymentIntent.retrieve(self.number)
         return intent.charges.data[0].payment_method_details
@@ -105,10 +106,10 @@ class Payment(BaseModel):
         refund = stripe.Refund.create(
             amount=amount, payment_intent=self.number)
         if refund.status == 'succeeded':
-            subject = f'Payment {self.number} Refunded'
-            message = f'Payment has been refunded, this will take few days to refund to your account or card.'
+            subject = f'Payment Refunded'
+            message = f'Payment {self.number} has been successfully refunded.'
             from_email = settings.EMAIL_FROM
-            recipient_list = [self.user.email, ]
+            recipient_list = [settings.EMAIL_HOST_USER, ]
             async_send_email.delay(
                 subject, message, from_email, recipient_list)
         else:
@@ -292,11 +293,7 @@ class Order(BaseModel):
         """
         This method will only be called in the admin page to confirm a cancellation request from the customer
         """
-        subject = f'Order# {self.number} Cancellation'
-        message = f'Your order has been canceled'
-        from_email = settings.EMAIL_FROM
-        recipient_list = [self.user.email, ]
-        async_send_email.delay(subject, message, from_email, recipient_list)
+        return True
 
     @transition(field=status, source=['SP', 'RT'], target='CP')
     def complete(self):
@@ -304,12 +301,7 @@ class Order(BaseModel):
         This method is used in cron job or manully operated by an admin.
         """
         # send email with coupon and asking for review
-        subject = f'Order# {self.number} Cancellation'
-        message = f'Your order is completed, please tell us your thoughts.\
-            \nWrite a review: link\nContact us'
-        from_email = settings.EMAIL_FROM
-        recipient_list = [self.user.email, ]
-        async_send_email.delay(subject, message, from_email, recipient_list)
+        return True
 
 
 #  TODO: create cancel record when a cancel/refund request is launched

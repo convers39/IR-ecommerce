@@ -2,6 +2,7 @@
 <!-- TAGS -->
 {% load humanize %} {% load qs_url_tag %}
 {% load mathfilters %}{% load mptt_tags %}
+{% load static %}
 <!-- TITLE -->
 {% block title %}Thank You{% endblock title %}
 <!-- EXTRA_HEAD -->
@@ -141,7 +142,7 @@
   <!-- Search Result -->
   <div class="container">
     <hr>
-    {% for order in orders %}
+
     <div class="table-responsive mb-4">
       <table class="table" id="orderTable">
         <thead class="bg-light text-center">
@@ -159,6 +160,7 @@
           </tr>
         </thead>
         <tbody class="text-center">
+          {% for order in orders %}
           <tr>
             <th class="pl-0 border-0" scope="row">
               <strong class="h6">{{ order.number }}</strong>
@@ -194,9 +196,7 @@
                 data-target="#orderModal-{{order.id}}"><i class="fas fas fa-ellipsis-h"></i></a>
             </td>
             <td class="align-middle border-0">
-              {% if request.user.is_active %}
-              <a class="reset-anchor btn btn-sm btn-outline-dark" href="{% url 'account:order' %}">Check</a>
-              {% elif order.status == 'NW' %}
+              {% if order.status == 'NW' %}
               <a class="reset-anchor payment btn btn-sm btn-outline-dark" href="#" session={{order.payment.session_id}}
                 orderId={{order.id}}>Pay</a>
               {% elif order.status == 'CF' %}
@@ -207,8 +207,6 @@
                 Shipment</a>
               <a class="reset-anchor pr-2 cancel" href="#" orderId='{{order.id}}'><i
                   class="fas fa-hand-holding-usd pr-1"></i> Return</a>
-              <!-- <a class="reset-anchor pr-2" href="{{order.get_absolute_url}}"><i class="far fa-comment-dots pr-1"></i>
-                Review</a> -->
               {% elif order.status == 'RT' %}
               <a class="reset-anchor pr-2 cancel" href="#" orderId='{{order.id}}'><i class="fas fa-ban pr-1"></i>Stop
                 Return
@@ -239,46 +237,5 @@
 {% endblock content %}
 <!-- BOTTOM -->
 {% block bottom %}
-<script>
-  $(function () {
-    const csrftoken = Cookies.get("csrftoken");
-    // redirect to checkout
-    var stripe = Stripe("{{ stripe_key }}");
-    $('.payment').click(async function (event) {
-      event.preventDefault();
-      let sessionId = $(this).attr('session');
-      // retrieve new session id if payment session expired, 
-      // which will set session id to empty string
-      if (!sessionId) {
-        let orderId = $(this).attr('orderId');
-        const res = await fetch('/order/paymentrenew/', {
-          method: 'POST',
-          headers: {
-            "X-CSRFToken": csrftoken,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            order_id: orderId,
-          }),
-        })
-        const data = await res.json()
-        if (data.res == '1') {
-          const sessionId = data.session.id
-        } else {
-          showMsg(data.errmsg, 0)
-          return;
-        }
-      }
-      console.log(sessionId)
-      const paymentSession = await stripe.redirectToCheckout({
-        sessionId: sessionId
-      });
-      if (paymentSession.error) {
-        showErrMsg(paymentSession.error.message);
-      }
-    })
-
-  })
-
-</script>
+<script src="{% static 'js/order-manage.js' %}" defer> </script>
 {% endblock bottom%}

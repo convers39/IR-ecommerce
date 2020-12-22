@@ -252,8 +252,7 @@ SIMPLEUI_ICON = {
 
 # sentry setting
 sentry_sdk.init(
-    dsn=f"https://d4d0c2bbee3f4c199cb26ebd1238c6aa@o494559.ingest.sentry.io/5565850",
-    # dsn=f"https://{os.getenv('SENTRY_DSN')}",
+    dsn=f"https://{os.getenv('SENTRY_DSN')}",
     integrations=[DjangoIntegration()],
     traces_sample_rate=1.0,
 

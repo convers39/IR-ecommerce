@@ -18,11 +18,10 @@ logger = logging.getLogger(__name__)
 @app.task
 def close_inactive_account():
     """
-    delete user registered but not activated, guest account need to
+    Delete user registered but not activated, guest account need to
     persist until the order completed or guest register an account.
-    If guest register an account but did not activate, the guest account
-    will not change. Only if the guest activate the account, guest account
-    will be removed. 
+    If a guest registered an account B but did not activate, his/her guest account A will not change. 
+    Only if the guest activate the registered account B, the old guest account A will be removed. 
     """
     inactive_users = User.objects.filter(is_active=False)
     for user in inactive_users:
@@ -103,7 +102,7 @@ def send_order_email(to_email, username, order_number, order_status):
 
     send_mail(subject, message, sender, receiver, html_message=html_message)
     logger.info(
-        f'Order at {order_status} email has been sent to {receiver[0]}')
+        f'Order at {order_status} email has been sent to {username} ({receiver[0]})')
 
 
 @shared_task
@@ -129,7 +128,7 @@ def send_refund_email(to_email, username, order_number, refund_amount):
     sender = settings.EMAIL_FROM
     send_mail(subject, message, sender, receiver, html_message=html_message)
     logger.info(
-        f'Order {order_number} refund email has been sent to {receiver[0]}')
+        f'Order {order_number} refund email has been sent to {username} ({receiver[0]})')
 
 
 @shared_task

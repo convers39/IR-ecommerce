@@ -173,7 +173,7 @@ class OrderAdmin(AjaxAdmin):
                 payment.refund(refund_amount)
                 payment.save()
                 # send refund email
-                send_refund_email(
+                send_refund_email.delay(
                     order.user.email, order.user.username, order.number, refund_amount)
 
         return JsonResponse(data={

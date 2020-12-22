@@ -41,10 +41,12 @@
   <div class="row mb-3 align-items-center">
     <div class="col-lg-6 mb-2 mb-lg-0">
       <p class="text-small text-muted mb-0">
+        {% with count=orders.count %}
         {% if count == 0 %} No results found.
-        {% elif count == 1 %} Showing 1 result. {% else %} Showing
-        {{page_obj.start_index}}–{{page_obj.end_index}} of {{order.count}}
-        results {% endif %}
+        {% elif count == 1 %} Showing 1 result.
+        {% else %} Showing {{page_obj.start_index}}–{{page_obj.end_index}} of {{paginator.count}} results
+        {% endif %}
+        {% endwith %}
       </p>
     </div>
     <div class="col-lg-6">
@@ -84,8 +86,7 @@
         <div class="card-header">
           <div class="row text-center">
             <div class="col col-6">
-              <a data-toggle="collapse" href="#collapse-{{order.id}}" role="button" aria-expanded="false"
-                aria-controls="collapse-{{order.id}}">Order# {{order.number}}</a> </div>
+              <strong class="text-muted">Order# {{order.number}}</strong> </div>
             <div class="col col-2">
               {% if order.status == 'NW' %}
               <i class="fas fa-ellipsis-h text-muted pr-1"></i> <small class="text-muted">NEW</small>
@@ -107,7 +108,9 @@
             </div>
             <div class="col col-3"><span class="text-muted"><i class="fas fa-calculator"></i>
                 <small> {{order.total_amount|intcomma}}</small></span></div>
-            <div class="col col-1"><a href="#"><i class="fa fa-info-circle" aria-hidden="true"></i></i></a>
+            <div class="col col-1"><a data-toggle="collapse" href="#collapse-{{order.id}}" role="button"
+                aria-expanded="false" aria-controls="collapse-{{order.id}}"><i class="fa fa-info-circle"
+                  aria-hidden="true"></i></i></a>
             </div>
           </div>
         </div>
@@ -130,9 +133,8 @@
                           aria-hidden="true"></i>{{order_product.unit_price|intcomma}}<i class="fa fa-times px-1"
                           aria-hidden="true"></i>
                         {{order_product.count}}</span></p>
-                    <!-- payment detail FIXME: too slow on API request -->
+                    <!-- payment detail FIXME: too slow on stripe API request -->
                     {# #}
-
                     <!-- TODO: add share product -->
                     {% if order.status == 'SP' %}
                     {% if order_product.is_reviewed %}
@@ -158,8 +160,7 @@
                     {% else %}
                     <a class="btn btn-sm btn-secondary" type="button" data-toggle="collapse"
                       href="#collapse-{{order_product.id}}" role="button" aria-expanded="false"
-                      aria-controls="collapse-{{order_product.id}}">Review
-                      item</a>
+                      aria-controls="collapse-{{order_product.id}}">Review item</a>
                     <div class="collapse" id="collapse-{{order_product.id}}">
                       <div class="card card-body">
                         <form class="card-form review" id="{{order_product.id}}">
@@ -190,22 +191,6 @@
                 </div>
               </div>
             </div>
-            <!-- <div class="row text-center">
-              <div class='col col-6'>
-                <p class="card-text"><small>{{forloop.counter}}- <a class="reset-anchor"
-                      href="{{product.get_absolute_url}}">{{product}}</a></small>
-                </p>
-              </div>
-              <div class='col col-3'>
-                <p class="card-text"><small><i class="fas fa-times"></i> {{order_product.count}}</small>
-                </p>
-              </div>
-              <div class='col col-3'>
-                <p class="card-text"><small>
-                    <i class="fa fa-jpy" aria-hidden="true"></i> {{order_product.unit_price|intcomma}}</small>
-                </p>
-              </div>
-            </div> -->
             {% endwith %}
             {% endfor %}
             <hr>
@@ -292,164 +277,13 @@
 
 <!-- BOTTOM -->
 {% block bottom %}
-<script>
+<script src="{% static 'js/order-manage.js' %}" defer> </script>
+<script defer>
   $(function () {
-    let remaining = $('#countdown').text();
-
-    function countdownTimer() {
-      //const difference = +new Date("2020-01-01") - +new Date();
-      const difference = 1000 * 60 * 60 * 24 - 10;
-      let remaining = "Expired";
-
-      if (difference > 0) {
-        const parts = {
-          //days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((difference / 1000 / 60) % 60),
-          //seconds: Math.floor((difference / 1000) % 60),
-        };
-        remaining = Object.keys(parts)
-          .map((part) => {
-            return `${parts[part]} ${part}`;
-          })
-          .join(" ");
-      }
-
-      document.getElementById("countdown").innerHTML = remaining;
-    }
-
-    //countDownTimer();
-    //setInterval(countdownTimer, 1000);
     // start rating system
     var starRatingControls = new StarRating(".star-rating", {
-      maxStars: 5
+      maxStars: 5,
     });
-
-    const csrftoken = Cookies.get("csrftoken");
-    // redirect to checkout
-    var stripe = Stripe("{{ stripe_key }}");
-    $('.payment').click(async function (event) {
-      event.preventDefault();
-      let sessionId = $(this).attr('session');
-      // retrieve new session id if payment session expired, 
-      // which will set session id to empty string
-      if (!sessionId) {
-        let orderId = $(this).attr('orderId');
-        const res = await fetch('/order/paymentrenew/', {
-          method: 'POST',
-          headers: {
-            "X-CSRFToken": csrftoken,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            order_id: orderId,
-          }),
-        })
-        const data = await res.json()
-        if (data.res == '1') {
-          const sessionId = data.session.id
-        } else {
-          showMsg(data.errmsg, 0)
-          return;
-        }
-      }
-      console.log(sessionId)
-      const paymentSession = await stripe.redirectToCheckout({
-        sessionId: sessionId
-      });
-      if (paymentSession.error) {
-        showErrMsg(paymentSession.error.message);
-      }
-    })
-
-    // request a cancellation
-    $('.cancel').click(async function (event) {
-      event.preventDefault();
-      let orderId = $(this).attr('orderId');
-      const res = await fetch('/order/cancel/', {
-        method: 'POST',
-        headers: {
-          "X-CSRFToken": csrftoken,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          order_id: orderId,
-        }),
-      })
-      const data = await res.json()
-      console.log(data)
-      if (data.res == '1') {
-        showMsg(data.msg, 1)
-        setTimeout(function () {
-          location.reload()
-        }, 3000);
-      } else {
-        showMsg(data.errmsg, 0)
-        return;
-      }
-    })
-
-    // delete an order
-    $('.order-del').click(async function (event) {
-      event.preventDefault();
-      let orderId = $(this).attr('orderId');
-      const res = await fetch('/order/cancel/', {
-        method: 'DELETE',
-        headers: {
-          "X-CSRFToken": csrftoken,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          order_id: orderId,
-        }),
-      })
-      const data = await res.json()
-      console.log(data)
-      if (data.res == '1') {
-        showMsg(data.msg, 1)
-        setTimeout(function () {
-          location.reload()
-        }, 3000);
-      } else {
-        showMsg(data.errmsg, 0)
-        return;
-      }
-    })
-    // backend error when check if an OrderProduct obj has review
-    $('.review').submit(async function (event) {
-      event.preventDefault();
-      let star = parseInt($(this).find('select').val());
-      if (!(star in [1, 2, 3, 4, 5])) {
-        showMsg('Please select a rating star')
-        return
-      }
-      let orderProductId = $(this).prop('id');
-      let comment = $(this).find('textarea').val();
-      console.log(comment, star, orderProductId)
-      const res = await fetch('/order/comment/', {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": csrftoken,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          order_product_id: orderProductId,
-          star: star,
-          comment: comment
-        }),
-      });
-      let data = await res.json();
-      if (data.res == "1") {
-        $(this).find('textarea').prop('disabled');
-        $(this).find('button').prop('disabled');
-        showMsg(data.msg, 1);
-      } else {
-        showMsg(data.errmsg, 0);
-        // location.reload();
-      }
-
-    })
-
   })
 
 </script>

@@ -3,31 +3,29 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Q, Case, When
+from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.http.response import JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy, reverse
 from django.views.generic import View, CreateView
-from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormMixin
 from django.views.generic.list import ListView
 
 import json
-from django_redis import get_redis_connection
 
+from django_redis import get_redis_connection
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from itsdangerous import SignatureExpired, BadData
-import stripe
 
-from order.models import Order, OrderProduct, Review
-from shop.models import ProductSKU
 from cart.cart import get_watch_history_products
+from order.models import Order
+from shop.models import ProductSKU
 
 from .forms import RegisterForm, UserInfoForm, AddressForm, create_address_formset
 from .models import User, Address
-from .tasks import send_activation_email
 from .mixins import AddressManagementMixin
+from .tasks import send_activation_email
 
 
 class AccountCenterView(LoginRequiredMixin, FormMixin, View):
@@ -105,12 +103,13 @@ class OrderListView(LoginRequiredMixin, ListView):
     model = Order
     context_object_name = 'orders'
     template_name = 'account/order-list.html'
-    paginate_by = 5
+    paginate_by = 4
 
     def get_queryset(self):
         queryset = super().get_queryset().filter(Q(user=self.request.user), is_deleted=False)\
-            .select_related('address').select_related('payment').prefetch_related('order_products')\
-            .prefetch_related('order_products__product').prefetch_related('order_products__review')
+            .select_related(*['address', 'payment'])\
+            .prefetch_related(*['order_products__product', 'order_products__review'])
+
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -183,7 +182,8 @@ class WishlistView(LoginRequiredMixin, ListView):
         user = self.request.user
         conn = get_redis_connection('cart')
         wishlisted = conn.smembers(f'wish_{user.id}')
-        queryset = ProductSKU.objects.filter(id__in=wishlisted)
+        queryset = ProductSKU.objects.prefetch_related(
+            'tags').filter(id__in=wishlisted)
         return queryset
 
     def get_context_data(self, **kwargs):

@@ -8,7 +8,6 @@ from django.utils.translation import gettext_lazy as _
 from django_countries.fields import CountryField
 
 from db.base_model import BaseModel
-
 from .managers import AccountManager, AddressManager
 
 
