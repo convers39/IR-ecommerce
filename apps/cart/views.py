@@ -44,7 +44,6 @@ class CartAddView(DataIntegrityCheckMixin, View):
 
         conn.hset(cart_key, sku_id, count)
         cart_count = conn.hlen(cart_key)
-        print('add', cart_count)
 
         response = JsonResponse({
             'res': 1,
@@ -64,7 +63,6 @@ class CartInfoView(View):
 
     def get(self, request, *args, **kwargs):
         user_id = get_user_id(request)
-        print('user_id', user_id)
         products, total_count, subtotal = cal_total_count_subtotal(user_id)
 
         context = {
@@ -84,7 +82,6 @@ class CartUpdateView(DataIntegrityCheckMixin, View):
     """
 
     def post(self, request):
-
         # user = request.user
         user_id = get_user_id(request)
 

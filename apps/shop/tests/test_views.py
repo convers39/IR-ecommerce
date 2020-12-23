@@ -1,12 +1,13 @@
+from apps.account.tests.factory import UserFactory
 from django.core.paginator import InvalidPage
 from django.test import TestCase, Client, override_settings
-from django.urls import resolve, reverse
+from django.urls import reverse
 from django.contrib.messages import get_messages
 
+import tempfile
 from PIL import Image
 
-import tempfile
-from shop.models import ProductSKU
+from django_redis import get_redis_connection
 from shop.views import ProductListView
 from .factory import BannerFactory, SkuFactory, CategoryFactory
 
@@ -25,15 +26,19 @@ class TestShopListView(TestCase):
     def setUp(self) -> None:
         self.client = Client()
 
+    def tearDown(self):
+        get_redis_connection("cart").flushdb()
+        get_redis_connection("default").flushdb()
+
     @classmethod
     def setUpTestData(cls) -> None:
         cls.category = CategoryFactory()
         cls.url = reverse('shop:product-list')
+        cls.sku_ids = []
         for _ in range(10):
             dummy = SkuFactory()
-            # temp_file = tempfile.NamedTemporaryFile()
+            cls.sku_ids.append(dummy.id)
             dummy.category = cls.category
-            # dummy.cover_img = get_temporary_image(temp_file.name)
             dummy.save()
 
     def test_view_url_reverse(self):
@@ -53,24 +58,12 @@ class TestShopListView(TestCase):
         self.assertEqual(res.resolver_match.func.__name__,
                          ProductListView.as_view().__name__)
 
-    def test_shop_list_view_pagination(self):
-        res = self.client.get(self.url)
-        paginator = res.context['paginator']
-        object_per_page = len(res.context['object_list'])
-        paginate_by = paginator.per_page
-        orphan = paginator.orphans
-        last_page = paginator.get_page(paginator.num_pages)
-
-        self.assertEqual(res.status_code, 200)
-        self.assertTrue(res.context['is_paginated'])
-        self.assertEqual(object_per_page, paginate_by)
-        self.assertEqual(orphan+paginate_by, len(last_page))
-
-    def test_bad_page_request(self):
+    def test_invalid_page_request(self):
         res = self.client.get(self.url+'?page=100')
 
         self.assertRaises(InvalidPage)
         self.assertEqual(res.status_code, 404)
+        self.assertTemplateUsed(res, '404.html')
 
     def test_category_list_view(self):
         res = self.client.get(f'/shop/{self.category.slug}/')
@@ -87,12 +80,19 @@ class TestShopListView(TestCase):
         res = self.client.get('/shop/random_slug/')
 
         self.assertEqual(res.status_code, 404)
+        self.assertTemplateUsed(res, '404.html')
 
     def test_shop_list_view_search(self):
-        res = self.client.get(self.url+'?search=awesome')
+        kw = 'crapy'
+        SkuFactory(name=kw)
+        SkuFactory(summary=f'{kw} item')
+        SkuFactory(detail=f'realy {kw} item')
+        res = self.client.get(self.url+f'?search={kw}')
+        results = res.context['products']
 
+        self.assertEqual(len(results), 3)
         self.assertEqual(res.status_code, 200)
-        self.assertTrue(res.context['is_paginated'])
+        self.assertFalse(res.context['is_paginated'])
         self.assertTemplateUsed(res, 'shop/product-list.html')
 
     def test_shop_list_no_result_found(self):
@@ -125,6 +125,34 @@ class TestShopListView(TestCase):
         self.assertTrue(res.context['is_paginated'])
         self.assertTemplateUsed(res, 'shop/product-list.html')
 
+    def test_wish_listed_products(self):
+        user = UserFactory()
+        self.client.force_login(user)
+        conn = get_redis_connection('cart')
+        for skuid in self.sku_ids:
+            conn.sadd(f'wish_{user.id}', skuid)
+        res = self.client.get(self.url)
+        wl_count = res.context['wishlist_count']
+        self.assertEqual(int(wl_count), 10)
+
+    def test_recursive_category_set_in_context(self):
+        parent = CategoryFactory(name='parent')
+        child = CategoryFactory(
+            parent=parent, name='awesome and super')
+        SkuFactory(category=parent)
+        SkuFactory(category=child)
+        res1 = self.client.get(f'{self.url}awesome-and-super/')
+        res2 = self.client.get(reverse('shop:category-list', kwargs={
+            'category_slug': 'parent'}))
+        context1 = res1.context
+        context2 = res2.context
+        cat_name = context1['category']
+        parent_results = context2['products']
+
+        self.assertEqual(len(parent_results), 2)
+        self.assertIn('category', context1)
+        self.assertEqual(cat_name, 'awesome & super')
+
 
 class TestShopDetailView(TestCase):
     def setUp(self) -> None:
@@ -151,7 +179,6 @@ class TestShopDetailView(TestCase):
         for _ in range(3):
             new_sku = SkuFactory()
             temp_file = tempfile.NamedTemporaryFile()
-            new_sku.cover_img = get_temporary_image(temp_file.name)
             new_sku.category = self.sku.category
             new_sku.save()
         res = self.client.get(reverse(
@@ -195,10 +222,11 @@ class TestShopIndexView(TestCase):
         cls.url = reverse('shop:index')
 
     def test_index_view_GET(self):
-        res = self.client.get(self.url)
         for _ in range(5):
-            sku = SkuFactory()
-        context = res.resolve_context('banner')
-
+            sku = SkuFactory(sales=2)
+        res = self.client.get(self.url)
+        print(res.context)
+        products = res.context['products']
+        self.assertEqual(len(products), 5)
         self.assertEqual(res.status_code, 200)
         self.assertTemplateUsed(res, 'index.html')

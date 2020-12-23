@@ -15,8 +15,10 @@ class SKUManager(Manager):
     def get_queryset(self):
         """
         Only return products on the shelf, prefetch all images,to avoid duplicate queries.
+        TODO: find a better way to deal with avg sales
         """
-        return super().get_queryset().filter(status='ON').prefetch_related('images')
+        return super().get_queryset().filter(status='ON')\
+            .prefetch_related('images')
 
     def get_related_products(self, obj):
         """
@@ -31,15 +33,23 @@ class SKUManager(Manager):
 
     def filter_category_products(self, category, queryset):
         """
-        Filter a queryset with a category, category can be parent category.
+        Filter a queryset with a category, if the category has descendants,
+        all of the items in descendant catogories will be return.
+        NOTE: in this project a parent category will not have direct items,
+        therefore the second Q condition is not necessary
         """
         if category.get_descendant_count() > 0:
-            queryset = queryset.filter(category__in=category.get_descendants())
+            queryset = queryset.filter(
+                Q(category__in=category.get_descendants()) | Q(category=category))
         else:
             queryset = queryset.filter(category=category)
         return queryset
 
     def filter_wishlisted_products(self, user_id, queryset):
+        """
+        Filter a queryset and dynamically add a boolean property 'wishlist' to
+        all items.
+        """
         conn = get_redis_connection('cart')
         wishlisted = conn.smembers(f'wish_{user_id}')
         wishlisted = [int(i) for i in wishlisted]
@@ -48,20 +58,21 @@ class SKUManager(Manager):
             Q(id__in=wishlisted),
             output_field=BooleanField(),
         ),)
+        return queryset
+
         # NOTE: alternative solution:
         # queryset = queryset.annotate(wishlist=Case(
         #     When(id__in=wishlisted, then=Value(True)),
         #     default=Value(False),
         #     output_field=BooleanField(),
         # ))
-        return queryset
 
     def get_products_with_review(self):
         """
         Return a LIST of products sku which has a customer review.
         """
-        products = self.get_queryset().prefetch_related(*
-                                                        ['order_products', 'order_products__review'])
+        products = self.get_queryset()\
+            .prefetch_related(* ['order_products', 'order_products__review'])
         order_products = []
         for product in products:
             order_products = order_products.extend(

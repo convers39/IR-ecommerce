@@ -1,7 +1,9 @@
+from core.settings.base import DATABASES
 from django import utils
 from django.test import TestCase
 from datetime import datetime, timezone, timedelta
 from django.db.models.signals import post_save
+from django.test.utils import override_settings
 
 import factory
 
@@ -18,11 +20,11 @@ class TestOrderModel(TestCase):
     @classmethod
     def setUpTestData(cls) -> None:
         cls.order = OrderFactory()
-        skus = []
+        cls.skus = []
         with factory.django.mute_signals(post_save):
             for _ in range(5):
-                sku = SkuFactory()
-                skus.append(sku)
+                sku = SkuFactory(stock=5, sales=1)
+                cls.skus.append(sku)
 
     def test_str_representation(self):
         order = OrderFactory()
@@ -42,6 +44,9 @@ class TestOrderModel(TestCase):
         self.order.shipping_fee = 500
         self.assertEqual(self.order.total_amount, 2500)
 
+    @override_settings(CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
+                       CELERY_ALWAYS_EAGER=True,
+                       BROKER_BACKEND='memory')
     def test_is_confirmed_and_confirm_payment(self):
         self.assertEqual(self.order.status, 'NW')
         self.assertFalse(self.order.is_confirmed())
@@ -52,13 +57,38 @@ class TestOrderModel(TestCase):
         self.order.confirm()
         self.assertEqual(self.order.status, 'CF')
 
-    def test_is_completed(self):
-        order1 = OrderFactory(status='SP', created_at=datetime(1990, 10, 10))
-        order2 = OrderFactory(status='RT')
+    def test_is_refundable(self):
+        order = OrderFactory(status='CL')
+        self.assertTrue(order.is_refundable())
+        self.assertFalse(self.order.is_refundable())
+
+    def test_is_completed_and_return_deadline(self):
+        created = datetime(2020, 10, 10, tzinfo=timezone.utc)
+        order1 = OrderFactory(status='SP')
+        order1.created_at = created
+        order1.save()
+        order2 = OrderFactory(
+            status='RT', return_at=datetime.now(tz=timezone.utc))
+        order3 = OrderFactory(status='SP')
 
         self.assertTrue(order1.is_completed())
+        self.assertFalse(order1.in_return_deadline())
         self.assertFalse(order2.is_completed())
-        self.assertFalse(self.order.is_complete())
+        self.assertTrue(order3.in_return_deadline())
+        self.assertFalse(self.order.is_completed())
+
+    def test_cancel_restore_product_stock(self):
+        order = OrderFactory(status='CL')
+        sku = self.skus[0]
+        op = OrderProductFactory(product=sku)
+        op.order = order
+        op.save()
+        order.confirm_cancel()
+        order.restore_product_stock()
+        sku.refresh_from_db()
+        self.assertEqual(order.status, 'CX')
+        self.assertEqual(sku.stock, 6)
+        self.assertEqual(sku.sales, 0)
 
 
 class TestPaymentModel(TestCase):
@@ -139,7 +169,7 @@ class TestReviewModel(TestCase):
     def test_str_representation(self):
         self.review.order_product = OrderProductFactory(
             product=SkuFactory(name='awesome item'),
-            order=OrderFactory(user=UserFactory(username='awesomeguy'))
         )
+        self.review.user = UserFactory(username='awesomeguy')
         self.assertEqual(str(self.review),
                          'review for awesome item by awesomeguy')

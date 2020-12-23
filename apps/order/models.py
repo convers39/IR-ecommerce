@@ -1,8 +1,6 @@
-from django.core.mail import send_mail
 from django.conf import settings
 from django.db import models
 from django.db.models import F
-from django.shortcuts import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from datetime import datetime, timedelta, timezone
@@ -198,11 +196,12 @@ class Order(BaseModel):
         return time_elapsed < timedelta(days=32) and self.status == 'SP'
 
     def is_completed(self):
+        now = datetime.now(timezone.utc)
         if self.status == 'SP':
-            time_elapsed = (datetime.now(timezone.utc) - self.created_at)
+            time_elapsed = (now - self.created_at)
             return time_elapsed >= timedelta(days=32)
         elif self.status == 'RT':
-            time_elapsed = (datetime.now(timezone.utc) - self.return_at)
+            time_elapsed = (now - self.return_at)
             return time_elapsed >= timedelta(days=30)
         else:
             return False
@@ -248,7 +247,6 @@ class Order(BaseModel):
 
     @transition(field=status, source=['NW', 'CF'], target='CL')
     def request_cancel(self):
-        # TODO: add frontend logic and cancelation view
         """
         Only use when customer ask for cancellation, 
         possible to request cancellation from new and confirmed orders,
@@ -286,7 +284,7 @@ class Order(BaseModel):
         return True
 
     @transition(field=status, source=['CL'], target='CX')
-    def comfirm_cancel(self):
+    def confirm_cancel(self):
         """
         This method will only be called in the admin page to confirm a cancellation request from the customer
         """
@@ -367,4 +365,4 @@ class Review(BaseModel):
         ordering = ('-created_at',)
 
     def __str__(self):
-        return f'review for {self.order_product.product} by {self.order_product.order.user}'
+        return f'review for {self.order_product.product} by {self.user}'

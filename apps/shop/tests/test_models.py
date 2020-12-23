@@ -1,3 +1,4 @@
+from apps.order.tests.factory import OrderProductFactory, ReviewFactory
 from django.test import TestCase
 
 import factory
@@ -46,6 +47,23 @@ class TestSkuModel(TestCase):
         self.assertAlmostEqual(self.sku.tax_in_price, price)
         self.assertIsInstance(self.sku.tax_in_price, float)
 
+    def test_review_count(self):
+        for _ in range(3):
+            op = OrderProductFactory(product=self.sku)
+            review = ReviewFactory(order_product=op)
+        self.assertEqual(self.sku.review_count, 3)
+
+    def test_get_product_label_and_badge(self):
+        sku1 = SkuFactory()
+        sku2 = SkuFactory(sales=5)
+        sku3 = SkuFactory(stock=0)
+        self.assertEqual(sku1.get_product_label(), 'new')
+        self.assertEqual(sku1.get_label_badge(), 'primary')
+        self.assertEqual(sku2.get_product_label(), 'hot')
+        self.assertEqual(sku2.get_label_badge(), 'danger')
+        self.assertEqual(sku3.get_product_label(), 'sold')
+        self.assertEqual(sku3.get_label_badge(), 'secondary')
+
 
 class TestCategoryModel(TestCase):
 
@@ -84,6 +102,13 @@ class TestCategoryModel(TestCase):
     def test_get_absolute_url(self):
         url = self.category.get_absolute_url()
         self.assertEqual(url, f'/shop/{self.category.slug}/')
+
+    def test_get_full_category_name(self):
+        cat1 = CategoryFactory(name='parent')
+        cat2 = CategoryFactory(name='child', parent=cat1)
+        cat2_full_name = cat2.get_full_category_name()
+        self.assertTrue(cat2_full_name, 'parent/child')
+        self.assertIn(cat2, cat1.children.all())
 
 
 class TestSpuModel(TestCase):

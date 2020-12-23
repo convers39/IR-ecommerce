@@ -1,5 +1,6 @@
 from .base import *
 
+DJANGO_SETTINGS_MODULE = 'core.settings.prod'
 DEBUG = False
 # be careful on the order of middlewares
 MIDDLEWARE.insert(2, 'django.middleware.cache.UpdateCacheMiddleware')

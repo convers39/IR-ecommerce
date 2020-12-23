@@ -299,7 +299,7 @@ class PaymentAdmin(AjaxAdmin):
             payment.save()
             # send refund email
             for order in payment.orders.select_related('user').filter(status__in=['CL', 'RT']):
-                order.comfirm_cancel()
+                order.confirm_cancel()
                 order.save()
                 send_order_email.delay(
                     order.user.email, order.user.username, order.number, order.status)

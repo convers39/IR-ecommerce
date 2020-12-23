@@ -252,10 +252,14 @@ class PaymentRenewView(LoginRequiredMixin, View):
         print(data)
 
         order_id = data.get('order_id')
-        order = Order.objects.select_related('payment').get(id=order_id)
+        order = Order.objects.select_related('payment')\
+            .prefetch_related('order_products__product').get(id=order_id)
         payment = order.payment
         method = payment.method
-        name = f'Retry payment for order# {order.number}'
+        # name = f'Retry payment for order# {order.number}'
+        products = [op.product.name for op in order.order_products.all()]
+        name = f'{products[0].name} ({len(products)} items in total)' \
+            if len(products) > 1 else f'{products[0].name}'
         amount = payment.amount
         try:
             session = create_checkout_session(

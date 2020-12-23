@@ -2,7 +2,7 @@ from datetime import datetime
 from apps.order.tests.factory import OrderFactory, PaymentFactory
 import json
 import pprint
-from django.test import TestCase, Client, override_settings
+from django.test import TestCase, Client, override_settings, TransactionTestCase, testcases
 from django.test.client import FakePayload
 from django.urls import resolve, reverse
 from django.contrib.messages import get_messages
@@ -13,60 +13,13 @@ import factory
 
 from account.tests.factory import UserFactory, AddressFactory
 from shop.tests.factory import SkuFactory
-from order.views import CheckoutView, OrderProcessView, PaymentSuccessView, checkout_webhook
+from order.views import (OrderProcessView, PaymentSuccessView, checkout_webhook,
+                         PaymentRenewView, OrderCancelView, OrderSearchView, OrderCommentView)
 from order.models import Order, Payment, OrderProduct
 from shop.models import ProductSKU
 
 
-class TestCheckoutView(TestCase):
-
-    def setUp(self) -> None:
-        self.client = Client()
-
-    def tearDown(self) -> None:
-        get_redis_connection('cart').flushdb()
-        get_redis_connection('default').flushdb()
-
-    @classmethod
-    def setUpTestData(cls) -> None:
-        cls.url = reverse('order:checkout')
-        cls.user = UserFactory()
-        cls.address = AddressFactory(user=cls.user)
-        cls.conn = get_redis_connection('cart')
-        cls.key = f'cart_{cls.user.id}'
-
-    def test_redirect_without_login(self):
-        res = self.client.get(self.url)
-        self.assertRedirects(
-            res, '/account/login/?next=/order/checkout/', 302, 200)
-
-    def test_checkout_view(self):
-        self.client.force_login(self.user)
-        skus = []
-        with factory.django.mute_signals(post_save):
-            for _ in range(3):
-                sku = SkuFactory(price=5000)
-                skus.append(sku)
-                self.conn.hset(self.key, sku.id, 2)
-
-        res = self.client.get(self.url)
-        # pprint.pprint(res.context[0])
-        self.assertEqual(res.status_code, 200)
-        # self.assertContains(res.context[0], self.address)
-        self.assertTemplateUsed(res, 'order/checkout.html')
-        self.assertEqual(res.resolver_match.func.__name__,
-                         CheckoutView.as_view().__name__)
-
-    def test_cart_is_empty(self):
-        self.client.force_login(self.user)
-        res = self.client.get(self.url)
-        msg = list(get_messages(res.wsgi_request))
-
-        self.assertRedirects(res, '/cart/', 302, 200)
-        self.assertEqual(str(msg[0]), 'Cart is empty')
-
-
-class TestOrderProcessView(TestCase):
+class TestOrderProcessView(TransactionTestCase):
 
     def setUp(self) -> None:
         self.client = Client()
@@ -110,14 +63,15 @@ class TestOrderProcessView(TestCase):
         self.assertEqual(OrderProduct.objects.count(), 3)
         self.assertEqual(self.conn.hlen(self.key), 0)
 
-    def test_user_not_login(self):
-        payload = FakePayload()
-        res = self.client.post(self.url, data=payload,
-                               content_type=self.content_type)
-        res_data = json.loads(res.content)
+    # TODO: test guest checkout
+    # def test_user_not_login(self):
+    #     payload = FakePayload()
+    #     res = self.client.post(self.url, data=payload,
+    #                            content_type=self.content_type)
+    #     res_data = json.loads(res.content)
 
-        self.assertEqual(res_data['res'], 0)
-        self.assertEqual(res_data['errmsg'], 'Please login')
+    #     self.assertEqual(res_data['res'], 0)
+    #     self.assertEqual(res_data['errmsg'], 'Please login')
 
     def test_invalid_payload(self):
         payload = {'addr': f'addr-{self.address.id}', 'payment_method': 'card'}
@@ -223,6 +177,8 @@ class TestPaymentSuccessView(TestCase):
         self.assertRedirects(res, '/account/order/', 302, 200)
         self.assertEqual(str(msg[0]), 'Invalid access')
 
+    # TODO: test guest checkout redirect
+
     def test_success_view(self):
         self.payment.pay()
         self.payment.save()
@@ -233,3 +189,78 @@ class TestPaymentSuccessView(TestCase):
         self.assertTemplateUsed('order/success.html')
         self.assertEqual(res.resolver_match.func.__name__,
                          PaymentSuccessView.as_view().__name__)
+
+
+class TestPaymentRenewView(TestCase):
+    pass
+
+
+class TestOrderCancelView(TestCase):
+
+    def setUp(self) -> None:
+        return super().setUp()
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        return super().setUpTestData()
+
+    def test_request_return(self):
+        pass
+
+    def test_request_cancel(self):
+        pass
+
+    def test_auto_cancel(self):
+        pass
+
+    def test_stop_cancel_request(self):
+        pass
+
+    def test_stop_return_request(self):
+        pass
+
+    def test_order_cannot_be_cancelled(self):
+        pass
+
+    def test_delete_order(self):
+        pass
+
+# TODO: figure out setting cookie
+
+
+class TestOrderSearchView(TestCase):
+
+    def setUp(self) -> None:
+        return super().setUp()
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        return super().setUpTestData()
+
+    def test_search_view_by_guest(self):
+        pass
+
+    def test_login_user_redirect(self):
+        pass
+
+    def test_submit_data_incomplete(self):
+        pass
+
+    def test_email_order_not_match(self):
+        pass
+
+
+class TestOrderCommentView(TestCase):
+
+    def setUp(self) -> None:
+        return super().setUp()
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        return super().setUpTestData()
+
+    def test_post_create_review(self):
+        pass
+
+    def test_post_item_not_exist(self):
+        pass
