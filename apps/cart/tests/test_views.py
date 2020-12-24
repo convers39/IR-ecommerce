@@ -57,7 +57,7 @@ class TestCartView(TestCase):
         self.client.force_login(self.user)
         res = self.client.post(reverse('cart:add'),
                                self.payload, content_type=self.content_type)
-        res_data = json.loads(res.content)
+        res_data = res.json()
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res_data['res'], 1)
         self.assertEqual(res_data['msg'], 'Added to cart')
@@ -70,7 +70,7 @@ class TestCartView(TestCase):
         payload = {'sku_id': '2', 'count': '100'}
         res = self.client.post(reverse('cart:add'),
                                payload, content_type=self.content_type)
-        res_data = json.loads(res.content)
+        res_data = res.json()
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res_data['res'], 0)
         self.assertEqual(res_data['errmsg'], 'Understocked')
@@ -80,7 +80,7 @@ class TestCartView(TestCase):
         payload = {'sku_id': '666', 'count': '1'}
         res = self.client.post(reverse('cart:add'),
                                payload, content_type=self.content_type)
-        res_data = json.loads(res.content)
+        res_data = res.json()
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res_data['res'], 0)
         self.assertEqual(res_data['errmsg'], 'Item does not exist')
@@ -90,7 +90,7 @@ class TestCartView(TestCase):
         payload = {'count': '1'}
         res = self.client.post(reverse('cart:add'),
                                payload, content_type=self.content_type)
-        res_data = json.loads(res.content)
+        res_data = res.json()
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res_data['res'], 0)
         self.assertEqual(res_data['errmsg'], 'Lack of data')
@@ -100,7 +100,7 @@ class TestCartView(TestCase):
         payload = {'sku_id': '1', 'count': 'c'}
         res = self.client.post(reverse('cart:add'),
                                payload, content_type=self.content_type)
-        res_data = json.loads(res.content)
+        res_data = res.json()
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res_data['res'], 0)
         self.assertEqual(res_data['errmsg'], 'Invalid item count')
@@ -110,7 +110,7 @@ class TestCartView(TestCase):
         payload = {'sku_id': '1', 'count': '0'}
         res = self.client.post(reverse('cart:add'),
                                payload, content_type=self.content_type)
-        res_data = json.loads(res.content)
+        res_data = res.json()
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res_data['res'], 0)
         self.assertEqual(res_data['errmsg'], 'At least 1 item required')
@@ -124,7 +124,7 @@ class TestCartView(TestCase):
         payload_update = {'sku_id': '3', 'count': '2'}
         res = self.client.post(reverse('cart:update'),
                                payload_update, content_type=self.content_type)
-        res_data = json.loads(res.content)
+        res_data = res.json()
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res_data['res'], 1)
         self.assertEqual(res_data['msg'], 'Cart updated')
@@ -139,7 +139,7 @@ class TestCartView(TestCase):
                          self.payload, content_type=self.content_type)
         res = self.client.post(reverse('cart:delete'),
                                self.payload, content_type=self.content_type)
-        res_data = json.loads(res.content)
+        res_data = res.json()
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res_data['res'], 1)
         self.assertEqual(res_data['msg'], 'Item deleted')

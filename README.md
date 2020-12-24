@@ -106,7 +106,7 @@ Since I am exploring the right way to impelement those features, I am pretty sur
 - order and payment
 
   - payment with Stripe Checkout
-  - status management ([django-fsm](https://github.com/viewflow/django-fsm))
+  - status management ([django-fsm](https://github.com/viewflow/django-fsm)) (NOTE: this package is going to be deprecated soon, will transit to [viewflow](https://docs-next.viewflow.io/fsm/index.html) in the future)
 
 - customized admin
 

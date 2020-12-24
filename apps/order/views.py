@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
+from django.db.models.query_utils import Q
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from django.urls.base import reverse
@@ -21,7 +22,7 @@ from account.tasks import send_order_email
 from cart.cart import cal_shipping_fee, get_user_id, get_cart_all_in_order
 from shop.models import ProductSKU
 
-from .mixins import OrderDataCheckMixin, OrderManagementMixin
+from .mixins import OrderProcessCheckMixin, OrderManagementMixin, OrderReviewDataMixin
 from .models import Order, Payment, OrderProduct, Review
 # from .tasks import create_one_time_task
 
@@ -30,7 +31,7 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 logger = logging.getLogger(__name__)
 
 
-class OrderProcessView(OrderDataCheckMixin, View):
+class OrderProcessView(OrderProcessCheckMixin, View):
     """
     Customer click place order to send an ajax request,
     recieve address and payment method only from request data,
@@ -101,8 +102,12 @@ class OrderProcessView(OrderDataCheckMixin, View):
             item_name = f'{products[0].name} ({len(products)} items in total)' \
                 if len(products) > 1 else f'{products[0].name}'
 
-            session = create_checkout_session(
-                user, payment_method, item_name, amount)
+            try:
+                session = create_checkout_session(
+                    user, payment_method, item_name, amount)
+            except:
+                transaction.savepoint_rollback(save_id)
+                return JsonResponse({'res': 0, 'errmsg': 'Failed to create payment session'})
             logger.info(f'order# {order.number} checkout session created')
 
             # create Payment instance
@@ -147,24 +152,27 @@ def create_checkout_session(user, payment_method, item_name, amount):
     if user.is_authenticated:
         cancel_url = domain + reverse('account:order')
 
-    session = stripe.checkout.Session.create(
-        payment_method_types=[payment_method],
-        customer_email=user.email,
-        line_items=[{
-            'price_data': {
-                'currency': 'jpy',
-                'product_data': {
-                    'name': item_name,
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=[payment_method],
+            customer_email=user.email,
+            line_items=[{
+                'price_data': {
+                    'currency': 'jpy',
+                    'product_data': {
+                        'name': item_name,
+                    },
+                    'unit_amount': int(amount),
                 },
-                'unit_amount': int(amount),
-            },
-            'quantity': 1,
-        }],
-        mode='payment',
-        success_url=success_url,
-        cancel_url=cancel_url,
-    )
-    return session
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=success_url,
+            cancel_url=cancel_url,
+        )
+        return session
+    except:
+        raise Exception('Error on creating payment session')
 
 
 class PaymentSuccessView(TemplateView):
@@ -323,7 +331,7 @@ class OrderCancelView(OrderManagementMixin, View):
 class OrderSearchView(ListView):
     """
     This view only use for guests to check their order status,
-    a login user will not see the link in nav bar and will be 
+    a login user will not see the link in the nav bar and will be 
     redirected to account center if visited.
     """
     model = Order
@@ -351,9 +359,10 @@ class OrderSearchView(ListView):
         queryset = super().get_queryset().prefetch_related('order_products__product')\
             .select_related(*['payment', 'user']).filter(number=order_number)
 
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
+        # in case the guest registered an account and email was changed
+        user = User.objects.filter(
+            Q(email__endswith=email) | Q(email=email)).first()
+        if not user:
             messages.error(self.request, 'Incorrect email')
             return None
 
@@ -371,7 +380,7 @@ class OrderSearchView(ListView):
         return context
 
 
-class OrderCommentView(LoginRequiredMixin, View):
+class OrderCommentView(OrderReviewDataMixin, View):
 
     def update(self, request, *args, **kwargs):
         pass
@@ -380,24 +389,13 @@ class OrderCommentView(LoginRequiredMixin, View):
         pass
 
     def post(self, request, *args, **kwargs):
-        try:
-            data = json.loads(request.body.decode())
-        except:
-            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
-        print('detail view', data)
-
-        order_product_id = data.get('order_product_id')
-        star = data.get('star')
-        comment = data.get('comment')
-
-        try:
-            order_product = OrderProduct.objects.get(id=order_product_id)
-        except OrderProduct.DoesNotExist:
-            return JsonResponse({'res': '0', 'errmsg': 'Item does not exist'})
+        data = json.loads(request.body.decode())
+        op_id = data.get('op_id')
+        order_product = OrderProduct.objects.get(id=op_id)
 
         Review.objects.create(
             order_product=order_product,
-            star=star,
-            comment=comment
+            star=data['star'],
+            comment=data['comment']
         )
         return JsonResponse({'res': '1', 'msg': 'Comment submitted'})

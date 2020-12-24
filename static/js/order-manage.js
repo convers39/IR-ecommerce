@@ -67,15 +67,24 @@ $(function () {
   $(".cancel").click(async function (event) {
     event.preventDefault();
     let orderId = $(this).attr("orderId");
+    let postData = { order_id: orderId };
+    let params = new URL(document.location).searchParams;
+    if (!params.toString() && document.location.pathname === "/order/search/") {
+      let email = params.get("email");
+      let orderNumber = params.get("order_number");
+      Object.assign(postData, {
+        email: email,
+        order_number: orderNumber,
+      });
+    }
+
     const res = await fetch("/order/cancel/", {
       method: "POST",
       headers: {
         "X-CSRFToken": csrftoken,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        order_id: orderId,
-      }),
+      body: JSON.stringify(postData),
     });
     const data = await res.json();
     console.log(data);
@@ -126,6 +135,10 @@ $(function () {
     }
     let orderProductId = $(this).prop("id");
     let comment = $(this).find("textarea").val();
+    if (comment.trim().length < 10) {
+      showMsg("Comment cannot be less than 10 characters");
+      return;
+    }
     console.log(comment, star, orderProductId);
     const res = await fetch("/order/comment/", {
       method: "POST",
@@ -134,7 +147,7 @@ $(function () {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        order_product_id: orderProductId,
+        op_id: orderProductId,
         star: star,
         comment: comment,
       }),

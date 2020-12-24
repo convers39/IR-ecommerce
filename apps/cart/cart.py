@@ -15,6 +15,13 @@ def cal_cart_count(user_id):
     return cart_count
 
 
+def get_product_id_list(user_id):
+    cart_key = f'cart_{user_id}'
+    sku_list = conn.hkeys(cart_key)
+    sku_list = [int(i) for i in sku_list]
+    return sku_list
+
+
 def get_cart_all_in_order(user_id):
     """
     Return all key value pairs in current shopping cart and the order

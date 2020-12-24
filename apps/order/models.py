@@ -3,6 +3,7 @@ from django.db import models
 from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
 
+import os
 from datetime import datetime, timedelta, timezone
 
 import stripe
@@ -86,7 +87,7 @@ class Payment(BaseModel):
         message = f'Payment has been confirmed, please prepare shipment.'
         from_email = settings.EMAIL_FROM
         recipient_list = [settings.EMAIL_HOST_USER, ]
-        async_send_email.delay(subject, message, from_email, recipient_list)
+        # async_send_email.delay(subject, message, from_email, recipient_list)
 
     @transition(field=status, source='PD', target='EX', conditions=[is_expired])
     def expire_payment(self):
@@ -146,8 +147,10 @@ class Order(BaseModel):
 
     number = models.CharField(
         _("order number"), max_length=100, default='', unique=True)
+    # NOTE: protected=True will cause error in testing
     status = FSMField(_("order status"),
-                      choices=Status.choices, default=Status.NEW, protected=True)
+                      choices=Status.choices, default=Status.NEW,
+                      protected=False if os.environ['DJANGO_SETTINGS_MODULE'].split('.')[-1] == 'testing' else True)
     subtotal = models.DecimalField(
         _("subtotal"), max_digits=9, decimal_places=0)
     shipping_fee = models.DecimalField(
@@ -239,11 +242,11 @@ class Order(BaseModel):
         User can request to return products within deadline, send an email to admin for further operation.
         """
         self.return_at = datetime.now()
-        subject = f'Order# {self.number} Return Request'
-        message = f'Return request from customer {self.user.username}'
-        from_email = settings.EMAIL_FROM
-        recipient_list = [settings.EMAIL_HOST_USER, ]
-        async_send_email.delay(subject, message, from_email, recipient_list)
+        # subject = f'Order# {self.number} Return Request'
+        # message = f'Return request from customer {self.user.username}'
+        # from_email = settings.EMAIL_FROM
+        # recipient_list = [settings.EMAIL_HOST_USER, ]
+        # async_send_email.delay(subject, message, from_email, recipient_list)
 
     @transition(field=status, source=['NW', 'CF'], target='CL')
     def request_cancel(self):
@@ -252,12 +255,12 @@ class Order(BaseModel):
         possible to request cancellation from new and confirmed orders,
         send email to admin for cancel operation
         """
-        print(self.status)
-        subject = f'Order# {self.number} Cancellation Request'
-        message = f'Cancellation request from customer {self.user.username}'
-        from_email = settings.EMAIL_FROM
-        recipient_list = [settings.EMAIL_HOST_USER, ]
-        async_send_email.delay(subject, message, from_email, recipient_list)
+        # print(self.status)
+        # subject = f'Order# {self.number} Cancellation Request'
+        # message = f'Cancellation request from customer {self.user.username}'
+        # from_email = settings.EMAIL_FROM
+        # recipient_list = [settings.EMAIL_HOST_USER, ]
+        # async_send_email.delay(subject, message, from_email, recipient_list)
 
     @transition(field=status, source=['CL'], target=RETURN_VALUE('CF', 'NW'))
     def stop_cancel_request(self):

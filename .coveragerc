@@ -1,4 +1,10 @@
-[coverage:run]
+[run]
+source = .
 omit =
    */node_modules/*
    manage.py
+
+[report]
+fail_under = 100
+show_missing = True
+skip_covered = True

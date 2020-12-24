@@ -11,6 +11,8 @@ if DEBUG:
         'SHOW_TOOLBAR_CALLBACK': lambda _request: DEBUG
     }
 
+# CELERY_RESULT_BACKEND = 'memory'
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.getenv('EMAIL_HOST')
 EMAIL_PORT = os.getenv('EMAIL_PORT')
