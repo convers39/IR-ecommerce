@@ -17,7 +17,8 @@ from .models import Order, OrderProduct
 class OrderProcessCheckMixin:
     # TODO: validate guest form data
     def get_post_data(self):
-        return json.loads(self.request.body.decode())
+        data = json.loads(self.request.body.decode())
+        return data
 
     def get_user_and_address(self):
         data = self.get_post_data()
@@ -93,10 +94,19 @@ class OrderProcessCheckMixin:
             if not form_fields.issubset(data_set):
                 return JsonResponse({'res': 0, 'errmsg': 'Address data is incomplete'})
 
+            # check if the submitted email has an account
+            guest_email = data['email']
+            user = User.objects.filter(email=guest_email).first()
+            if user:
+                return JsonResponse({
+                    'res': 0,
+                    'errmsg': 'This email has registered an account, please login or reset password'
+                })
+
         return super().dispatch(request, *args, **kwargs)
 
 
-class OrderManagementMixin(LoginRequiredMixin):
+class OrderManagementMixin:
     """
     NOTE: if a request comes from a guest, must recheck email and order number
     email and order are sent from frontend, retrieved from url queryparams in order search page,
@@ -107,7 +117,7 @@ class OrderManagementMixin(LoginRequiredMixin):
         try:
             data = json.loads(request.body.decode())
         except:
-            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid data'})
 
         order_id = data.get('order_id')
         try:
@@ -139,11 +149,15 @@ class OrderManagementMixin(LoginRequiredMixin):
 
 
 class OrderReviewDataMixin(LoginRequiredMixin):
+    """
+    Only registered users are allowed to review an item
+    """
+
     def dispatch(self, request, *args, **kwargs):
         try:
             data = json.loads(request.body.decode())
         except:
-            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid data'})
 
         op_id = data.get('op_id')
         star = data.get('star')

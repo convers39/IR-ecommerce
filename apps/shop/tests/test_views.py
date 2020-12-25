@@ -41,11 +41,11 @@ class TestShopListView(TestCase):
             dummy.category = cls.category
             dummy.save()
 
-    def test_view_url_reverse(self):
-        self.assertEqual(self.url, '/shop/')
-        self.assertEqual(reverse('shop:category-list', kwargs={
-                         'category_slug': self.category.slug}), f'/shop/{self.category.slug}/')
-        self.assertEqual(reverse('shop:index'), '/')
+    # def test_view_url_reverse(self):
+    #     self.assertEqual(self.url, '/shop/')
+    #     self.assertEqual(reverse('shop:category-list', kwargs={
+    #                      'category_slug': self.category.slug}), f'/shop/{self.category.slug}/')
+    #     self.assertEqual(reverse('shop:index'), '/')
 
     # @override_settings(MEDIA_ROOT=tempfile.gettempdir())
     def test_shop_list_view_show_items(self):

@@ -256,7 +256,7 @@ class PaymentRenewView(LoginRequiredMixin, View):
         try:
             data = json.loads(request.body.decode())
         except:
-            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid data'})
         print(data)
 
         order_id = data.get('order_id')

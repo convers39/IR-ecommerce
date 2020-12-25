@@ -4,7 +4,7 @@
 {% endblock extra_head %}
 <!-- TAGS -->
 {% load mptt_tags %}{% load humanize %}
-
+{% load static %}
 
 <!-- HERO SECTION-->
 {% block hero %}
@@ -175,20 +175,23 @@
             <div class="row ">
               <div class="col-lg-12 form-group">
                 <label class="text-small text-uppercase" for="currentPassword">Current Password</label>
-                <input class="form-control form-control-lg" type="password" name="currentPassword" id="currentPassword"
-                  required>
+                {{ pw_form.current }}
+                <!-- <input class="form-control form-control-lg" type="password" name="currentPassword" id="currentPassword"
+                  required> -->
               </div>
               <div class="col-lg-6 form-group">
                 <label class="text-small text-uppercase" for="newPassword">New Password</label>
-                <input class="form-control form-control-lg" type="password" name="newPassword" id="newPassword" required
+                {{ pw_form.new }}
+                <!-- <input class="form-control form-control-lg" type="password" name="newPassword" id="newPassword" required
                   pattern="(?=.*\d)(?=.*[a-z]).{6,}"
-                  title="Must contain at least one number and one lowercase letter, and 6 or more characters">
+                  title="Must contain at least one number and one lowercase letter, and 6 or more characters"> -->
               </div>
               <div class="col-lg-6 form-group">
                 <label class="text-small text-uppercase" for="confirmNewPassword">Confirm New Password</label>
-                <input class="form-control form-control-lg" type="password" name="confirmNewPassword"
+                {{ pw_form.new_confirm }}
+                <!-- <input class="form-control form-control-lg" type="password" name="confirmNewPassword"
                   id="confirmNewPassword" required pattern="(?=.*\d)(?=.*[a-z]).{6,}"
-                  title="Must match your new password">
+                  title="Must match your new password"> -->
               </div>
               <div class="col-lg-12 form-group text-right" id="passwordButtons">
                 <button class="btn btn-dark" type="submit" id="resetButton">Reset Password</button>
@@ -248,89 +251,5 @@
 
 <!-- BOTTOM -->
 {% block bottom %}
-<script>
-  $(function () {
-    const csrftoken = Cookies.get('csrftoken');
-    let inputAreas = $('#userInfo').find('input')
-    inputAreas.each(function () {
-      $(this).prop('readonly', true);
-    })
-
-    $('#change').click(function (event) {
-      event.preventDefault();
-      //$('#changeButton').prop('hidden', true);
-      $('#changeButton').toggle();
-      $('#saveButton').toggle();
-      inputAreas.each(function () {
-        $(this).removeAttr('readonly')
-      })
-    })
-
-    $('#cancel').click(function (event) {
-      event.preventDefault();
-      $('#changeButton').toggle();
-      $('#saveButton').toggle();
-      inputAreas.each(function () {
-        $(this).prop('readonly', true);
-      })
-    })
-
-    $('#userInfo').submit(async function (event) {
-      event.preventDefault();
-      const formData = new FormData(event.currentTarget);
-      const plainData = Object.fromEntries(formData.entries());
-      const res = await fetch('/account/', {
-        method: 'POST',
-        headers: {
-          "X-CSRFToken": csrftoken,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(plainData),
-      })
-      const data = await res.json();
-      if (data.res == '1') {
-        console.log(data)
-        $('#changeButton').toggle();
-        $('#saveButton').toggle();
-        inputAreas.each(function () {
-          $(this).prop('readonly', true);
-        })
-        showMsg(data.msg, 1)
-      } else {
-        console.log(data);
-        showMsg(data.errmsg, 0)
-      }
-    })
-
-
-    $('#passwordForm').submit(async function (event) {
-      event.preventDefault();
-      const formData = new FormData(event.currentTarget);
-      const plainData = Object.fromEntries(formData.entries());
-      //let current = $('#currentPassword').val();
-      //let newPassword = $('#newPassword').val();
-      //let confirmNewPassword = $('#confirmNewPassword').val();
-
-      const res = await fetch('/account/passwordreset/', {
-        method: 'POST',
-        headers: {
-          "X-CSRFToken": csrftoken,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(plainData),
-      })
-      const data = await res.json();
-      if (data.res == '1') {
-        console.log(data)
-        $('#resetPassword').click();
-        $('#passwordForm')[0].reset();
-        showMsg(data.msg, 1)
-      } else {
-        console.log(data);
-        showMsg(data.errmsg, 0)
-      }
-    })
-  })
-
-</script>
+<script src="{% static 'js/account-info.js' %}" defer> </script>
 {% endblock bottom%}

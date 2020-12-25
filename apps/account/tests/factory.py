@@ -10,6 +10,9 @@ class UserFactory(DjangoModelFactory):
 
     username = factory.Sequence(lambda n: 'awesomeuser %d' % n)
     email = factory.Faker('email')
+    last_name = factory.Faker('last_name')
+    first_name = factory.Faker('first_name')
+    phone_no = '+88 123456789'
     is_active = True
 
 

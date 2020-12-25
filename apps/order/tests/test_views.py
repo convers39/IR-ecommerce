@@ -1,7 +1,7 @@
 from datetime import datetime
-from django.test import TestCase, Client, override_settings, TransactionTestCase
+from django.test import TestCase, Client
 from django.test.client import FakePayload
-from django.urls import resolve, reverse
+from django.urls import reverse
 from django.contrib.messages import get_messages
 from django.db.models.signals import post_save
 
@@ -70,6 +70,9 @@ class TestOrderProcessView(TestCase):
 
     #     self.assertEqual(res_data['res'], 0)
     #     self.assertEqual(res_data['errmsg'], 'Please login')
+    # guest user only
+    # def test_address_data_not_complete(self):
+    #     pass
 
     def test_invalid_payload(self):
         payload = {'addr_id': self.address.id,
@@ -164,10 +167,6 @@ class TestOrderProcessView(TestCase):
         self.assertRedirects(res, '/cart/checkout/', 302, 200)
         self.assertEqual(
             str(msg[0]), f'Item {understock_sku.name} understocked')
-
-    # guest user only
-    def test_address_data_not_complete(self):
-        pass
 
 
 class TestPaymentSuccessView(TestCase):
@@ -329,7 +328,7 @@ class TestOrderCancelView(TestCase):
             res.json(), {'res': '1', 'msg': 'Order deleted'})
         self.assertTrue(order.is_deleted)
 
-    # TODO:
+    # TODO: test for guest
 
 
 class TestOrderSearchView(TestCase):
@@ -439,5 +438,5 @@ class TestOrderCommentView(TestCase):
 
         self.assertEqual(res.status_code, 200)
         self.assertEqual(
-            res.json(), {'res': '0', 'errmsg': 'Invalid Data'})
+            res.json(), {'res': '0', 'errmsg': 'Invalid data'})
         self.assertEqual(Review.objects.count(), 0)

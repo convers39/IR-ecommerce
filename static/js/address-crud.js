@@ -1,5 +1,7 @@
 $(function () {
   const csrftoken = Cookies.get("csrftoken");
+
+  // match country input and return country code for post data
   const searchCountry = async (inputCountry) => {
     const res = await fetch("/static/js/countries.json");
     const countries = await res.json();
@@ -14,6 +16,7 @@ $(function () {
       return fits[0].code;
     }
   };
+
   // update address
   $(".updateForm").submit(async function (event) {
     event.preventDefault();
@@ -46,6 +49,7 @@ $(function () {
       showMsg(data.errmsg, 0);
     }
   });
+
   // create new address
   $("#createForm").submit(async function (event) {
     event.preventDefault();

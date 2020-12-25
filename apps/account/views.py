@@ -22,52 +22,52 @@ from cart.cart import get_watch_history_products
 from order.models import Order
 from shop.models import ProductSKU
 
-from .forms import RegisterForm, UserInfoForm, AddressForm, create_address_formset
+from .forms import RegisterForm, UserInfoForm, AddressForm, PasswordResetForm
 from .models import User, Address
-from .mixins import AddressManagementMixin
+from .mixins import AddressManagementMixin, AccountInfoCheckMixin
 from .tasks import send_activation_email
 
 
-class AccountCenterView(LoginRequiredMixin, FormMixin, View):
+class AccountCenterView(AccountInfoCheckMixin, FormMixin, View):
     model = User
     form_class = UserInfoForm
     template_name = 'account/account.html'
 
     def get(self, request, *args, **kwargs):
         user = request.user
-        form = UserInfoForm(instance=user)
+        form = UserInfoForm(instance=user, request_user=user)
+        pw_form = PasswordResetForm()
         # get recent watch history
         recent_products = get_watch_history_products(user.id)
 
         context = {
             'user': user,
             'form': form,
+            'pw_form': pw_form,
             'recent_products': recent_products
         }
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
         user = request.user
-        try:
-            data = json.loads(request.body.decode())
-        except:
-            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
-        print(data)
-
+        data = json.loads(request.body.decode())
         msg = 'Data updated'
+        print('data', data)
+
         if data['email'] != user.email:
             # send activate email
             new_email = data['email']
             send_activation_email.delay(new_email, user.username, user.id)
             data['email'] = user.email
             msg = 'Email address will be updated after your verification'
-        form = UserInfoForm(data, instance=user)
+        form = UserInfoForm(data, instance=user, request_user=user)
 
         if form.is_valid():
             form.save()
             return JsonResponse({'res': '1', 'msg': msg})
-
-        return JsonResponse({'res': '0', 'errmsg': 'Invalid form data'})
+        else:
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid form data'})
+            # return JsonResponse({'res': '0', 'errmsg': form.errors.as_json()})
 
 
 class PasswordResetView(LoginRequiredMixin, View):
@@ -77,12 +77,11 @@ class PasswordResetView(LoginRequiredMixin, View):
         try:
             data = json.loads(request.body.decode())
         except:
-            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
-        print(data)
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid data'})
 
-        current = data.get('currentPassword')
-        new = data.get('newPassword')
-        confirm = data.get('confirmNewPassword')
+        current = data.get('current')
+        new = data.get('new')
+        confirm = data.get('new_confirm')
 
         if new != confirm:
             return JsonResponse({'res': '0', 'errmsg': 'Passwords does not match'})
@@ -109,7 +108,6 @@ class OrderListView(LoginRequiredMixin, ListView):
         queryset = super().get_queryset().filter(Q(user=self.request.user), is_deleted=False)\
             .select_related(*['address', 'payment'])\
             .prefetch_related(*['order_products__product', 'order_products__review'])
-
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -128,7 +126,6 @@ class AddressView(AddressManagementMixin, FormMixin, View):
         addresses = user.addresses.all()
         # formset = create_address_formset(user)
         context = {
-            'user': user,
             'addresses': addresses,
             'form': self.form_class,
             # 'formset': formset
@@ -186,22 +183,16 @@ class WishlistView(LoginRequiredMixin, ListView):
             'tags').filter(id__in=wishlisted)
         return queryset
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # context[""] =
-        return context
-
     def post(self, request, *args, **kwargs):
         user = request.user
         try:
             data = json.loads(request.body.decode())
             sku_id = data['sku_id']
         except:
-            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
-        print(data)
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid data'})
 
         try:
-            ProductSKU.objects.filter(id=sku_id)
+            ProductSKU.objects.get(id=sku_id)
         except ProductSKU.DoesNotExist:
             return JsonResponse({'res': '0', 'errmsg': 'Item does not exist'})
 
@@ -231,7 +222,6 @@ class LoginView(SuccessMessageMixin, View):
 
     def get(self, request, *args, **kwargs):
         # TODO: check cookie setting logic
-        print('login view user', request.user)
         if 'email' in request.COOKIES:
             email = request.COOKIES.get('email')
             remember = 'on'
@@ -315,7 +305,6 @@ class ActivateView(View):
 
         try:
             param = serializer.loads(token)
-            print(param)
             user_id = param['activate_user']
             email = param['email']
             user = User.objects.get(id=user_id)
