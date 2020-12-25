@@ -2,55 +2,17 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
-<<<<<<< HEAD
-=======
 from django.db.models.query_utils import Q
->>>>>>> guestcheckout
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from django.urls.base import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-<<<<<<< HEAD
-from django.views.generic import View, TemplateView
-=======
 from django.views.generic import View, TemplateView, ListView
->>>>>>> guestcheckout
 
 import json
 import logging
 from datetime import datetime, timedelta, timezone
-<<<<<<< HEAD
-
-from django_redis import get_redis_connection
-
-from account.models import Address
-from shop.models import ProductSKU
-from cart.cart import cal_total_count_subtotal, cal_shipping_fee, cal_cart_count
-
-from .models import Order, Payment, OrderProduct
-from .mixins import OrderDataCheckMixin
-
-
-stripe.api_key = settings.STRIPE_SECRET_KEY
-
-
-class CheckoutView(LoginRequiredMixin, View):
-    """
-    Retrieve data from redis and render a checkout confirmation page
-    """
-
-    def get(self, request):
-        user = request.user
-
-        cart_count = cal_cart_count(user.id)
-        if cart_count == 0:
-            messages.error(request, 'Cart is empty')
-            return redirect(reverse('cart:info'))
-
-        products, total_count, subtotal = cal_total_count_subtotal(user.id)
-=======
->>>>>>> guestcheckout
 
 import stripe
 from django_redis import get_redis_connection

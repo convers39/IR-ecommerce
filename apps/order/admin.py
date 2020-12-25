@@ -31,15 +31,9 @@ class OrderProductInline(admin.TabularInline):
 
 
 @admin.register(Order)
-<<<<<<< HEAD
-class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'number', 'status',
-                    'user', 'payment', 'created_at')
-=======
 class OrderAdmin(AjaxAdmin):
     list_display = ('id', 'number', 'status',
                     'user', 'payment', 'created_at', 'updated_at',)
->>>>>>> guestcheckout
     search_fields = ('status', 'user', 'number')
     list_filter = ('status', 'user', 'created_at')
     list_select_related = ('payment', 'user', 'address',)
@@ -182,11 +176,6 @@ class OrderAdmin(AjaxAdmin):
                 send_refund_email.delay(
                     order.user.email, order.user.username, order.number, refund_amount)
 
-<<<<<<< HEAD
-@admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'number', 'status', 'created_at',)
-=======
         return JsonResponse(data={
             'status': 'success',
             'msg': 'Selected orders are cancelled'
@@ -237,7 +226,6 @@ class PaymentAdmin(admin.ModelAdmin):
 @ admin.register(Payment)
 class PaymentAdmin(AjaxAdmin):
     list_display = ('id', 'number', 'status', 'created_at', 'updated_at',)
->>>>>>> guestcheckout
     search_fields = ('status', 'number',)
     list_filter = ('status', 'user', 'created_at')
     list_select_related = ('user',)

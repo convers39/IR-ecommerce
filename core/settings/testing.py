@@ -11,8 +11,6 @@ if DEBUG:
         'SHOW_TOOLBAR_CALLBACK': lambda _request: DEBUG
     }
 
-<<<<<<< HEAD
-=======
 # CELERY_RESULT_BACKEND = 'memory'
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -24,7 +22,6 @@ EMAIL_FROM = os.getenv('EMAIL_FROM')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
 
->>>>>>> guestcheckout
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",

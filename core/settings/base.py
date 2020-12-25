@@ -3,13 +3,8 @@
 from pathlib import Path
 import sys
 import os
-<<<<<<< HEAD
-
-from django.conf.global_settings import EMAIL_HOST_PASSWORD, MEDIA_ROOT, STATIC_ROOT
-=======
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
->>>>>>> guestcheckout
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
@@ -20,11 +15,7 @@ sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-<<<<<<< HEAD
-SECRET_KEY = os.environ.get('SECRET_KEY')
-=======
 SECRET_KEY = os.getenv('SECRET_KEY')
->>>>>>> guestcheckout
 
 ALLOWED_HOSTS = ['*']
 
@@ -98,34 +89,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-<<<<<<< HEAD
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = os.environ.get('EMAIL_HOST')
-EMAIL_PORT = os.environ.get('EMAIL_PORT')
-EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS')
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
-EMAIL_FROM = os.environ.get('EMAIL_FROM')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
-
-=======
->>>>>>> guestcheckout
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-<<<<<<< HEAD
-        'NAME': os.environ.get('DB_NAME'),
-        'USER': os.environ.get('DB_USER'),
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),
-        'PORT': os.environ.get('DB_PORT'),
-=======
         'NAME': os.getenv('DB_NAME'),
         'USER': os.getenv('DB_USER'),
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
->>>>>>> guestcheckout
     }
 }
 
@@ -228,17 +200,6 @@ LOGIN_REDIRECT_URL = '/account/'
 TAGGIT_CASE_INSENSITIVE = True
 
 # AWS setting
-<<<<<<< HEAD
-AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
-
-
-AWS_S3_REGION_NAME = os.environ.get(
-    'AWS_S3_REGION_NAME')  # change to your region
-AWS_S3_SIGNATURE_VERSION = os.environ.get('AWS_S3_SIGNATURE_VERSION')
-AWS_S3_FILE_OVERWRITE = True
-=======
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
@@ -247,7 +208,6 @@ AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
 AWS_S3_SIGNATURE_VERSION = os.getenv('AWS_S3_SIGNATURE_VERSION')
 AWS_S3_FILE_OVERWRITE = True
 
->>>>>>> guestcheckout
 
 # CKEDITOR
 CKEDITOR_CONFIGS = {
@@ -265,11 +225,6 @@ CKEDITOR_CONFIGS = {
 }
 
 # stripe key
-<<<<<<< HEAD
-STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
-STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY')
-WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET')
-=======
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY')
 WEBHOOK_SECRET = os.getenv('WEBHOOK_SECRET')
@@ -305,4 +260,3 @@ sentry_sdk.init(
     # django.contrib.auth) you may enable sending PII data.
     send_default_pii=True
 )
->>>>>>> guestcheckout

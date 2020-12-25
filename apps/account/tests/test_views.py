@@ -13,10 +13,7 @@ from django_redis import get_redis_connection
 from account.models import User, Address
 from shop.tests.factory import SkuFactory
 from order.tests.factory import OrderFactory
-<<<<<<< HEAD
-=======
 from account.views import OrderListView, AddressView, WishlistView
->>>>>>> guestcheckout
 from .factory import UserFactory, AddressFactory
 
 
@@ -45,11 +42,6 @@ class TestLoginLogoutView(TestCase):
         cls.index_url = reverse('shop:index')
         cls.login_url = reverse('account:login')
         cls.logout_url = reverse('account:logout')
-<<<<<<< HEAD
-        cls.register_url = reverse('account:register')
-        cls.account_center_url = reverse('account:center')
-=======
->>>>>>> guestcheckout
 
     def test_login_GET(self):
         res = self.client.get(self.login_url)
@@ -508,145 +500,6 @@ class TestWishlistView(TestCase):
                                content_type=self.content_type)
 
         self.assertEqual(res.status_code, 200)
-<<<<<<< HEAD
-        self.assertTemplateUsed(res, 'account/account.html')
-
-    def test_account_center_without_login(self):
-        res = self.client.get(self.account_center_url)
-        redirect_url = self.login_url+'?next='+self.account_center_url
-        self.assertRedirects(res, redirect_url, 302, 200)
-
-# TODO: finish account center tests
-
-
-class TestAccountCenterView(TestCase):
-
-    def setUp(self) -> None:
-        self.client = Client()
-
-    @classmethod
-    def setUpTestData(cls) -> None:
-        cls.user = UserFactory()
-        cls.url = reverse('account:center')
-
-    def test_account_center_view_without_login(self):
-        pass
-
-    def test_account_center_view_GET(self):
-        pass
-
-    def test_account_center_view_POST(self):
-        pass
-
-    def test_account_center_post_invalid_data(self):
-        pass
-
-    def test_account_center_post_invalid_form_data(self):
-        pass
-
-
-class TestPasswordResetView(TestCase):
-    def setUp(self) -> None:
-        self.client = Client()
-
-    @classmethod
-    def setUpTestData(cls) -> None:
-        cls.user = UserFactory()
-        cls.url = reverse('account:password-reset')
-
-    def test_invalid_post_data(self):
-        pass
-
-    def test_change_password_succeed(self):
-        pass
-
-    def test_password_does_not_match(self):
-        pass
-
-    def test_current_password_invalid(self):
-        pass
-
-    def test_same_as_current_password(self):
-        pass
-
-
-class TestAccountOrderView(TestCase):
-    def setUp(self) -> None:
-        self.client = Client()
-
-    @classmethod
-    def setUpTestData(cls) -> None:
-        cls.user = UserFactory()
-        cls.order = OrderFactory()
-        cls.list_url = reverse('account:order-list')
-        cls.detail_url = reverse(
-            'account:order-detail', kwargs={'number': cls.order.number})
-
-    def test_order_list_view(self):
-        pass
-
-    def test_order_detail_view_GET(self):
-        pass
-
-    def test_order_detail_view_review_POST(self):
-        pass
-
-    def test_order_detail_review_invalid_data(self):
-        pass
-
-    def test_order_detail_review_item_not_exist(self):
-        pass
-
-
-class TestAddressView(TestCase):
-    def setUp(self) -> None:
-        self.client = Client()
-
-    @classmethod
-    def setUpTestData(cls) -> None:
-        cls.user = UserFactory()
-        cls.address = AddressFactory(user=cls.user)
-        cls.url = reverse('account:address')
-
-    def test_address_view_GET(self):
-        pass
-
-    def test_address_POST_add_new_address(self):
-        pass
-
-    def test_address_POST_delete_address(self):
-        pass
-
-    def test_address_POST_delete_address_not_exist(self):
-        pass
-
-
-class TestWishlistView(TestCase):
-    def setUp(self) -> None:
-        self.client = Client()
-
-    @classmethod
-    def setUpTestData(cls) -> None:
-        cls.user = UserFactory()
-        cls.url = reverse('account:wishlist')
-        cls.conn = get_redis_connection('cart')
-        cls.key = f'wish_{cls.user.id}'
-
-    def test_wishlist_view_GET(self):
-        pass
-
-    def test_wishlist_POST_add_to_wishlist(self):
-        pass
-
-    def test_wishlist_POST_remove_from_wishlist(self):
-        pass
-
-    def test_wishlist_POST_item_not_exist(self):
-        pass
-
-    def test_wishlist_POST_invalid_data(self):
-        pass
-=======
         self.assertEqual(
             res.json(), {'res': '0', 'errmsg': 'Item does not exist'})
 
@@ -659,4 +512,3 @@ class TestWishlistView(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(
             res.json(), {'res': '0', 'errmsg': 'Invalid data'})
->>>>>>> guestcheckout

@@ -65,16 +65,10 @@ class AccountCenterView(AccountInfoCheckMixin, FormMixin, View):
 
         if form.is_valid():
             form.save()
-<<<<<<< HEAD
-            return JsonResponse({'res': '1', 'msg': 'Data updated'})
-
-        return JsonResponse({'res': '0', 'errmsg': 'Invalid form data'})
-=======
             return JsonResponse({'res': '1', 'msg': msg})
         else:
             return JsonResponse({'res': '0', 'errmsg': 'Invalid form data'})
             # return JsonResponse({'res': '0', 'errmsg': form.errors.as_json()})
->>>>>>> guestcheckout
 
 
 class PasswordResetView(LoginRequiredMixin, View):
@@ -108,37 +102,8 @@ class PasswordResetView(LoginRequiredMixin, View):
 class OrderListView(LoginRequiredMixin, ListView):
     model = Order
     context_object_name = 'orders'
-<<<<<<< HEAD
-    template_name = 'account/order-list.html'
-    paginate_by = 5
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["count"] = Order.objects.filter(user=self.request.user).count()
-        context['stripe_key'] = settings.STRIPE_PUBLIC_KEY
-        # TODO: renew payment session if session expired
-        # user = self.request.user
-        # for order in self.object_list:
-        #     if order.payment.is_expired():
-        #         try:
-        #             order.payment.expire_payment()
-        #             order.payment.save()
-        #         except:
-        #             pass
-
-        #         method = order.payment.method
-        #         name = f'Retry payment for {order.number}'
-        #         amount = order.payment.amount
-        #         session = create_checkout_session(
-        #             user, method, name, amount)
-        #         order.payment.session_id = session.id
-        #         order.payment.number = session.payment_intent
-        #         order.save()
-        return context
-=======
     template_name = 'account/order.html'
     paginate_by = 4
->>>>>>> guestcheckout
 
     def get_queryset(self):
         queryset = super().get_queryset().filter(Q(user=self.request.user), is_deleted=False)\
@@ -151,33 +116,6 @@ class OrderListView(LoginRequiredMixin, ListView):
         context['stripe_key'] = settings.STRIPE_PUBLIC_KEY
         return context
 
-<<<<<<< HEAD
-    def post(self, request, *args, **kwargs):
-        user = request.user
-        try:
-            data = json.loads(request.body.decode())
-        except:
-            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
-        print(data)
-
-        order_product_id = data.get('order_product_id')
-        star = data.get('star')
-        comment = data.get('comment')
-
-        try:
-            order_product = OrderProduct.objects.get(id=order_product_id)
-        except OrderProduct.DoesNotExist:
-            return JsonResponse({'res': '0', 'errmsg': 'Item does not exist'})
-
-        Review.objects.create(
-            order_product=order_product,
-            star=star,
-            comment=comment
-        )
-        return JsonResponse({'res': '1', 'msg': 'Comment submitted'})
-
-=======
->>>>>>> guestcheckout
 
 class AddressView(AddressManagementMixin, FormMixin, View):
     model = Address

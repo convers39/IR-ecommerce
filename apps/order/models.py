@@ -1,27 +1,14 @@
 from django.conf import settings
 from django.db import models
-<<<<<<< HEAD
-from django.shortcuts import reverse
-=======
 from django.db.models import F
->>>>>>> guestcheckout
 from django.utils.translation import ugettext_lazy as _
 
 import os
 from datetime import datetime, timedelta, timezone
 
-<<<<<<< HEAD
-from django_fsm import FSMField, transition
-=======
->>>>>>> guestcheckout
 import stripe
 from django_fsm import FSMField, transition, RETURN_VALUE
 
-<<<<<<< HEAD
-from db.base_model import BaseModel
-from shop.models import ProductSKU
-=======
->>>>>>> guestcheckout
 from account.models import User, Address
 from account.tasks import async_send_email
 from db.base_model import BaseModel

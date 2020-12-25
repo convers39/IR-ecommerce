@@ -86,22 +86,6 @@ class UserAddressTests(TestCase):
         self.assertEqual(str(address), 'superman (recipient: wonderwoman)')
 
     def test_add_address(self):
-<<<<<<< HEAD
-        user = User.objects.create_user(
-            'username', 'user@test.com', 'password')
-        address = AddressFactory(
-            user=user, recipient='recipientname',
-            phone_no='55550000',
-            addr='room 00, 66 building, xx road, yy district',
-            city='Oslo',
-            country='NO',
-            zip_code='777777',
-            is_default=True
-        )
-        self.assertEqual(address.user, user)
-        self.assertEqual(address.recipient, 'recipientname')
-        self.assertEqual(address.phone_no, '55550000')
-=======
         count = Address.objects.all().count()
         address = AddressFactory(
             user=self.user,
@@ -126,7 +110,6 @@ class UserAddressTests(TestCase):
             province='prov',
             country='JP'
         )
->>>>>>> guestcheckout
         self.assertEqual(
             address.full_address, 'road, city City, prov, JP')
 

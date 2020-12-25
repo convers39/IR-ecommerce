@@ -18,12 +18,8 @@ class IndexView(ListView):
     def get_queryset(self):
         try:
             queryset = ProductSKU.objects.get_trending_products().\
-<<<<<<< HEAD
-                order_by('?')[:8]
-=======
                 order_by('?')[:7]
             # logger.info('fetch database for index page')
->>>>>>> guestcheckout
         except ValueError:
             queryset = []
         return queryset
@@ -132,11 +128,6 @@ class ProductDetailView(DetailView):
         context['related_products'] = ProductSKU.objects.get_related_products(
             product)[:4]
 
-<<<<<<< HEAD
-        context['reviews'] = [order_product.review for order_product in product.order_products.all(
-        ) if order_product.is_reviewed]
-=======
         context['reviews'] = [
             op.review for op in product.order_products.all() if op.is_reviewed]
->>>>>>> guestcheckout
         return context

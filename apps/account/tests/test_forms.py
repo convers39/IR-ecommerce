@@ -16,26 +16,22 @@ class TestRegisterForm(TestCase):
         cls.url = reverse('account:register')
         UserFactory(username='username', email='email@email.com',
                     password='password1')
-
-    def test_register_form_data_is_valid(self):
-        data = {
+        cls.payload = {
             'username': 'username3',
             'email': 'email3@email.com',
             'password': 'password3',
             'password_confirm': 'password3',
             'agreement': True,
         }
+
+    def test_register_form_data_is_valid(self):
+        data = self.payload.copy()
         form = self.form(data)
         self.assertTrue(form.is_valid())
 
     def test_register_form_invalid_username(self):
-        data = {
-            'username': 'username',
-            'email': 'email1@email.com',
-            'password': 'password1',
-            'password_confirm': 'password1',
-            'agreement': True,
-        }
+        data = self.payload.copy()
+        data['username'] = 'username'
         form = RegisterForm(data)
         res = self.client.post(self.url, data=data)
         self.assertFalse(form.is_valid())
@@ -43,27 +39,18 @@ class TestRegisterForm(TestCase):
             res, 'form', 'username', 'This username has been used.')
 
     def test_register_form_invalid_email(self):
-        data = {
-            'username': 'username2',
-            'email': 'email@email.com',
-            'password': 'password2',
-            'password_confirm': 'password2',
-            'agreement': True,
-        }
+        data = self.payload.copy()
+        data['email'] = 'email@email.com'
         form = RegisterForm(data)
         res = self.client.post(self.url, data=data)
         self.assertFalse(form.is_valid())
         self.assertFormError(res, 'form', 'email',
                              'This email address is already registered.')
 
-    def test_register_form_invalid_password(self):
-        data = {
-            'username': 'username2',
-            'email': 'email2@email.com',
-            'password': 'password3',
-            'password_confirm': 'password2',
-            'agreement': True,
-        }
+    def test_register_form_password_mismatch(self):
+        data = self.payload.copy()
+        data['password'] = 'password1'
+        data['password_confirm'] = 'password2'
         form = RegisterForm(data)
         res = self.client.post(self.url, data=data)
         self.assertFalse(form.is_valid())
