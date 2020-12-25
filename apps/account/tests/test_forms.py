@@ -1,12 +1,11 @@
 from django.test import TestCase, Client
 from django.urls.base import reverse
-from account.forms import RegisterForm
-from account.models import User
 
 from .factory import UserFactory, AddressFactory
+from account.forms import RegisterForm
 
 
-class TestAccountForms(TestCase):
+class TestRegisterForm(TestCase):
 
     def setUp(self) -> None:
         self.client = Client()

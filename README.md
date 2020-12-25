@@ -12,6 +12,7 @@ If your are tired of writing those helloworld crap, looking for something more c
 
 Since I am exploring the right way to impelement those features, I am pretty sure there are many other better approaches. Please feel free to share your ideas and indicate my mistakes, which would be really really appreciated.
 
+<<<<<<< HEAD
 Sample photos:
 
 - Home:
@@ -39,12 +40,79 @@ Sample photos:
 ![detai](_samples/6-min.png)
 
 
+=======
+### Sample Photos 
+
+- Home - searching, category, trending items
+
+![home](_samples/1-min.png)
+
+- Shop list - list items, sorting, searching, categorizing
+
+![list](_samples/2-min.png)
+
+- Item detail - add shopping cart, add wishlist, check reviews, related products
+
+![detail](_samples/3-min.png)
+
+- Shopping cart - item crud operation 
+
+![cart](_samples/4-min.png)
+
+- Checkout - select payment method, edit or add address 
+
+![checkout-login](_samples/5-min.png)
+
+- Guest checkout - add shipping address on checkout
+
+![checkout-guest](_samples/6-min.png)
+
+- Find order - guest retrieving order data, making payment/return item 
+
+![find-order](_samples/7-min.png)
+
+![find-order-detail](_samples/8-min.png)
+
+- Account center - change profile and password, list watch history in watched order
+
+![account](_samples/9-min.png)
+
+- Account center orders - order status management, pay/refund/return etc, order detail, write review
+
+![account-order](_samples/10-min.png)
+
+![account-order-detail](_samples/11-min.png)
+
+- Account center - shipping address management
+
+![account-address](_samples/12-min.png)
+
+![account-address-add](_samples/13-min.png)
+
+- Account wishlist - list wishlisted items 
+
+![account-wishlist](_samples/14-min.png)
+
+- Account activation email - also use for changing account email and sending order status update to customer
+
+![account-activate-email](_samples/15-min.png)
+
+- Admin page - appearance, actions
+
+![admin-home](_samples/17-min.png)
+
+![admin-order](_samples/16-min.png)
+>>>>>>> guestcheckout
 
 ### Features
 
 - account center
 
+<<<<<<< HEAD
   - account registration with email activation
+=======
+  - account registration with email activation (also used in changing email address)
+>>>>>>> guestcheckout
   - login with email address
   - remember login
   - change profile and password (based on ajax request)
@@ -65,20 +133,43 @@ Sample photos:
 
 - shopping cart
 
+<<<<<<< HEAD
   - add item to shopping cart (require login)
   - CRUD operation on shopping cart page (based on ajax request)
+=======
+  - add item to shopping cart
+  - CRUD operation on shopping cart page (based on ajax request)
+  - guest checkout
+>>>>>>> guestcheckout
 
 - order and payment
 
   - payment with Stripe Checkout
+<<<<<<< HEAD
   - status management ([django-fsm](https://github.com/viewflow/django-fsm))
+=======
+  - status management ([django-fsm](https://github.com/viewflow/django-fsm)) (NOTE: this package is going to be deprecated soon, will transit to [viewflow](https://docs-next.viewflow.io/fsm/index.html) in the future)
+
+- customized admin
+
+  - use modern admin theme([django-simpleui](https://github.com/newpanjing/simpleui))
+  - custom views and actions (shipping, cancel order, refund)
+  - autocomplete search ([easy-select2](https://github.com/asyncee/django-easy-select2))
+>>>>>>> guestcheckout
 
 - others
 
   - testing with [factory_boy](https://github.com/FactoryBoy/factory_boy) and [faker](https://github.com/joke2k/faker)
+<<<<<<< HEAD
   - customized admin theme([django-simpleui](https://github.com/newpanjing/simpleui))
   - rich text editor in admin page ([django-ckeditor](https://github.com/django-ckeditor/django-ckeditor))
 
+=======
+  - customized admin theme
+  - rich text editor in admin page ([django-ckeditor](https://github.com/django-ckeditor/django-ckeditor))
+- use Sentry for monitoring
+  
+>>>>>>> guestcheckout
   
 
 ### Tech Stack 
@@ -89,6 +180,10 @@ Sample photos:
 
 - Redis
 
+<<<<<<< HEAD
+=======
+  - web site caching
+>>>>>>> guestcheckout
   - login session cache database
   - message queue broker
   - shopping cart, watch history, wishlist database
@@ -97,8 +192,18 @@ Sample photos:
 
   - media file storage
 
+<<<<<<< HEAD
 - Celery
 
+=======
+- AWS SES (prod env only)
+
+- Celery
+
+  - async tasks
+  - periodic tasks / cron jobs
+
+>>>>>>> guestcheckout
 - Docker
 
   
@@ -232,7 +337,29 @@ $ docker build .
 $ docker-compose up 
 ```
 
+<<<<<<< HEAD
 To run a test, specify a setting file if necessary
+=======
+Start an empowered interactive shell in django container, use the container name (django in this project)
+
+```bash
+$ docker exec -it <django> bash
+$ python manage.py shell_plus
+```
+
+Access to Postgresl and Redis
+
+```bash
+$ docker exec -it <pgdb> psql -U <username> <password>
+```
+
+```bash
+$ docker exec -it <redis> sh
+# redis-cli
+```
+
+To run a test, specify a setting file (might run to errors with debug toolbar if not using testing settings, which forces to turn off DEBUG)
+>>>>>>> guestcheckout
 
 ```bash
 $ python manage.py test <appname> --settings=core.settings.testing
@@ -246,7 +373,11 @@ Currently on plan:
 
 - filters on shop item list and account center
 - third party Oauth login
+<<<<<<< HEAD
 - guest shopping cart and checkout
+=======
+- ~~guest shopping cart and checkout~~
+>>>>>>> guestcheckout
 - coupon apply on shopping cart page
 - deployment a demo site + deployment setup
 

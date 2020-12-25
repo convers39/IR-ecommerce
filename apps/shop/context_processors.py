@@ -1,22 +1,18 @@
 from django_redis import get_redis_connection
+from cart.cart import get_user_id
 
 from .models import Category
 
 
 def base_template_data_processor(request):
-    user = request.user
+    user_id = get_user_id(request)
     categories = Category.objects.all()
 
-    if not user.is_authenticated:
-        return {
-            'wishlist_count': 0,
-            'cart_count': 0,
-            'categories': categories,
-        }
-
     conn = get_redis_connection('cart')
-    wishlist_count = conn.scard(f'wish_{user.id}')
-    cart_count = conn.hlen(f'cart_{user.id}')
+    cart_count = conn.hlen(f'cart_{user_id}')
+    wishlist_count = 0
+    if request.user.is_authenticated:
+        wishlist_count = conn.scard(f'wish_{user_id}')
 
     return {
         'wishlist_count': wishlist_count,

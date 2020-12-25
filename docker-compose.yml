@@ -27,7 +27,13 @@ services:
     restart: always
     build: .
     container_name: celery
+<<<<<<< HEAD
     command: celery -A core worker -l INFO
+=======
+    entrypoint: /bin/sh
+    command: ./docker.celery.sh
+    # command: celery -A core worker -B -l INFO
+>>>>>>> guestcheckout
     volumes:
       - .:/usr/src/app
     env_file:
@@ -38,6 +44,15 @@ services:
       - django
       - redis
       # - rabbitmq
+<<<<<<< HEAD
+=======
+  # flower:
+  #   image: mher/flower
+  #   command: ["--app core", "--url_prefix=flower", "--broker=redis://redis"]
+  #   ports:
+  #     - 5555:5555
+  #   restart: unless-stopped
+>>>>>>> guestcheckout
   pgdb:
     image: postgres:alpine
     container_name: pgdb

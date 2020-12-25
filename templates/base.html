@@ -37,9 +37,9 @@
       <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script
     ><![endif]-->
   <!-- fontawesome 5 -->
-  <script src="https://kit.fontawesome.com/d9f91064e3.js" crossorigin="anonymous"></script>
+  <script src="https://kit.fontawesome.com/d9f91064e3.js" crossorigin="anonymous" defer></script>
   <!-- js-cookie -->
-  <script src="https://cdn.jsdelivr.net/npm/js-cookie@rc/dist/js.cookie.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/js-cookie@rc/dist/js.cookie.min.js" defer></script>
 
   {% block extra_head %}{% endblock extra_head %}
 </head>
@@ -65,6 +65,11 @@
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'shop:product-list' %}">Shop</a>
               </li>
+              {% if not request.user.is_authenticated %}
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'order:search' %}">Find Order</a>
+              </li>
+              {% endif %}
               <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" id="pagesDropdown" href="#" data-toggle="dropdown"
                   aria-haspopup="true" aria-expanded="false">Category</a>

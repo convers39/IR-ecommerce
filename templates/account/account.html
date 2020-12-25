@@ -4,7 +4,7 @@
 {% endblock extra_head %}
 <!-- TAGS -->
 {% load mptt_tags %}{% load humanize %}
-
+{% load static %}
 
 <!-- HERO SECTION-->
 {% block hero %}
@@ -109,94 +109,97 @@
 <!-- TODO: refine layout -->
 <div class="col-lg-9 order-1 order-lg-2 mb-5 mb-lg-0">
   <div class="row mb-3 align-items-center">
-    <div class="col-lg-6 mb-2 mb-lg-0">
+    <div class="col-lg-6 text-left">
+      <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+        <li class="nav-item" role="presentation">
+          <a class="nav-link active" id="pills-profile-tab" data-toggle="pill" href="#pills-profile" role="tab"
+            aria-controls="pills-profile" aria-selected="true">Profile</a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a class="nav-link" id="pills-security-tab" data-toggle="pill" href="#pills-security" role="tab"
+            aria-controls="pills-security" aria-selected="false">Security</a>
+        </li>
+      </ul>
+    </div>
+    <div class="col-lg-6 mb-2 mb-lg-0 text-right">
       <p class="text-small text-muted mb-0">
         Date Joined: {{user.date_joined|date:"DATE_FORMAT"}}
         <i class="fa fa-check-square px-2" aria-hidden="true"></i>
         Email Activated
-
       </p>
-    </div>
-    <div class="col-lg-6">
-      <ul class="list-inline d-flex align-items-center justify-content-lg-end mb-0">
-        <li class="list-inline-item text-muted mr-3">
-          <a class="reset-anchor p-0" href="#"><i class="fas fa-th-large"></i></a>
-        </li>
-        <li class="list-inline-item text-muted mr-3">
-          <a class="reset-anchor p-0" href="#"><i class="fas fa-th"></i></a>
-        </li>
-      </ul>
     </div>
   </div>
   <div class="row">
-    <!-- PRODUCT-->
     <div class="container">
-      <form action="#" id="userInfo">
-        {% csrf_token %}
-        <div class="row">
-          <div class="col-lg-6 form-group">
-            <label class="text-small text-uppercase" for="username">Username</label>
-            {{form.username}}
-          </div>
-          <div class="col-lg-6 form-group">
-            <label class="text-small text-uppercase" for="email">Email address</label>
-            {{form.email}}
-          </div>
-          <div class="col-lg-6 form-group">
-            <label class="text-small text-uppercase" for="first_name">First name</label>
-            {{form.first_name}}
-          </div>
-          <div class="col-lg-6 form-group">
-            <label class="text-small text-uppercase" for="last_name">Last name</label>
-            {{form.last_name }}
-          </div>
-          <div class="col-lg-6 form-group">
-            <label class="text-small text-uppercase" for="phone_no">Phone number</label>
-            {{form.phone_no }}
-          </div>
+      <div class="tab-content" id="pills-tabContent">
+        <!-- User info form -->
+        <div class="tab-pane fade show active" id="pills-profile" role="tabpanel" aria-labelledby="pills-profile-tab">
+          <form action="#" id="userInfo">
+            {% csrf_token %}
+            <div class="row">
+              <div class="col-lg-6 form-group">
+                <label class="text-small text-uppercase" for="username">Username</label>
+                {{form.username}}
+              </div>
+              <div class="col-lg-6 form-group">
+                <label class="text-small text-uppercase" for="email">Email address</label>
+                {{form.email}}
+              </div>
+              <div class="col-lg-6 form-group">
+                <label class="text-small text-uppercase" for="first_name">First name</label>
+                {{form.first_name}}
+              </div>
+              <div class="col-lg-6 form-group">
+                <label class="text-small text-uppercase" for="last_name">Last name</label>
+                {{form.last_name }}
+              </div>
+              <div class="col-lg-6 form-group">
+                <label class="text-small text-uppercase" for="phone_no">Phone number</label>
+                {{form.phone_no }}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-lg-12 form-group text-right" id="changeButton">
+                <button class="btn btn-dark" type="submit" id="change">Change Profile</button>
+              </div>
+              <div class="col-lg-12 form-group text-right" id="saveButton" style="display:none">
+                <button class="btn btn-dark" type="submit" id="save">Save</button>
+                <button class="btn btn-dark" type="reset" id="cancel">Cancel</button>
+              </div>
+            </div>
+          </form>
         </div>
-        <div class="row">
-          <div class="col-lg-12 form-group text-right" id="changeButton">
-            <button class="btn btn-dark" type="submit" id="change">Change Profile</button>
-          </div>
-          <div class="col-lg-12 form-group text-right" id="saveButton" style="display:none">
-            <button class="btn btn-dark" type="submit" id="save">Save</button>
-            <button class="btn btn-dark" type="reset" id="cancel">Cancel</button>
-          </div>
+        <!-- Password reset form -->
+        <div class="tab-pane fade" id="pills-security" role="tabpanel" aria-labelledby="pills-security-tab">
+          <form action="" id="passwordForm">
+            <div class="row ">
+              <div class="col-lg-12 form-group">
+                <label class="text-small text-uppercase" for="currentPassword">Current Password</label>
+                {{ pw_form.current }}
+                <!-- <input class="form-control form-control-lg" type="password" name="currentPassword" id="currentPassword"
+                  required> -->
+              </div>
+              <div class="col-lg-6 form-group">
+                <label class="text-small text-uppercase" for="newPassword">New Password</label>
+                {{ pw_form.new }}
+                <!-- <input class="form-control form-control-lg" type="password" name="newPassword" id="newPassword" required
+                  pattern="(?=.*\d)(?=.*[a-z]).{6,}"
+                  title="Must contain at least one number and one lowercase letter, and 6 or more characters"> -->
+              </div>
+              <div class="col-lg-6 form-group">
+                <label class="text-small text-uppercase" for="confirmNewPassword">Confirm New Password</label>
+                {{ pw_form.new_confirm }}
+                <!-- <input class="form-control form-control-lg" type="password" name="confirmNewPassword"
+                  id="confirmNewPassword" required pattern="(?=.*\d)(?=.*[a-z]).{6,}"
+                  title="Must match your new password"> -->
+              </div>
+              <div class="col-lg-12 form-group text-right" id="passwordButtons">
+                <button class="btn btn-dark" type="submit" id="resetButton">Reset Password</button>
+              </div>
+            </div>
+          </form>
         </div>
-      </form>
-      <hr>
-      <!-- Password reset form -->
-      <form action="" id="passwordForm">
-        <div class="row">
-          <div class="col-lg-12 form-group text-right" id="resetPassword">
-            <a class="btn btn-dark" data-toggle="collapse" href="#collapsePassword" role="button" aria-expanded="false"
-              aria-controls="collapsePassword" type="submit">Reset
-              Password</a>
-          </div>
-        </div>
-        <div class="row collapse" id="collapsePassword">
-          <div class="col-lg-12 form-group">
-            <label class="text-small text-uppercase" for="currentPassword">Current Password</label>
-            <input class="form-control form-control-lg" type="password" name="currentPassword" id="currentPassword"
-              required>
-          </div>
-          <div class="col-lg-6 form-group">
-            <label class="text-small text-uppercase" for="newPassword">New Password</label>
-            <input class="form-control form-control-lg" type="password" name="newPassword" id="newPassword" required
-              pattern="(?=.*\d)(?=.*[a-z]).{6,}"
-              title="Must contain at least one number and one lowercase letter, and 6 or more characters">
-          </div>
-          <div class="col-lg-6 form-group">
-            <label class="text-small text-uppercase" for="confirmNewPassword">Confirm New Password</label>
-            <input class="form-control form-control-lg" type="password" name="confirmNewPassword"
-              id="confirmNewPassword" required pattern="(?=.*\d)(?=.*[a-z]).{6,}" title="Must match your new password">
-          </div>
-          <div class="col-lg-12 form-group text-right" id="passwordButtons">
-            <button class="btn btn-dark" type="submit" id="resetButton">Reset</button>
-          </div>
-        </div>
-      </form>
+      </div>
     </div>
   </div>
   <hr>
@@ -236,6 +239,10 @@
         </p>
       </div>
     </div>
+    {% empty %}
+    <div class="col">
+      <strong class="text-muted">You do not have watch history</strong>
+    </div>
     {% endfor %}
   </div>
 </div>
@@ -244,89 +251,5 @@
 
 <!-- BOTTOM -->
 {% block bottom %}
-<script>
-  $(function () {
-    const csrftoken = Cookies.get('csrftoken');
-    let inputAreas = $('#userInfo').find('input')
-    inputAreas.each(function () {
-      $(this).prop('readonly', true);
-    })
-
-    $('#change').click(function (event) {
-      event.preventDefault();
-      //$('#changeButton').prop('hidden', true);
-      $('#changeButton').toggle();
-      $('#saveButton').toggle();
-      inputAreas.each(function () {
-        $(this).removeAttr('readonly')
-      })
-    })
-
-    $('#cancel').click(function (event) {
-      event.preventDefault();
-      $('#changeButton').toggle();
-      $('#saveButton').toggle();
-      inputAreas.each(function () {
-        $(this).prop('readonly', true);
-      })
-    })
-
-    $('#userInfo').submit(async function (event) {
-      event.preventDefault();
-      const formData = new FormData(event.currentTarget);
-      const plainData = Object.fromEntries(formData.entries());
-      const res = await fetch('/account/', {
-        method: 'POST',
-        headers: {
-          "X-CSRFToken": csrftoken,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(plainData),
-      })
-      const data = await res.json();
-      if (data.res == '1') {
-        console.log(data)
-        $('#changeButton').toggle();
-        $('#saveButton').toggle();
-        inputAreas.each(function () {
-          $(this).prop('readonly', true);
-        })
-        showMsg(data.msg, 1)
-      } else {
-        console.log(data);
-        showMsg(data.errmsg, 0)
-      }
-    })
-
-
-    $('#passwordForm').submit(async function (event) {
-      event.preventDefault();
-      const formData = new FormData(event.currentTarget);
-      const plainData = Object.fromEntries(formData.entries());
-      //let current = $('#currentPassword').val();
-      //let newPassword = $('#newPassword').val();
-      //let confirmNewPassword = $('#confirmNewPassword').val();
-
-      const res = await fetch('/account/passwordreset/', {
-        method: 'POST',
-        headers: {
-          "X-CSRFToken": csrftoken,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(plainData),
-      })
-      const data = await res.json();
-      if (data.res == '1') {
-        console.log(data)
-        $('#resetPassword').click();
-        $('#passwordForm')[0].reset();
-        showMsg(data.msg, 1)
-      } else {
-        console.log(data);
-        showMsg(data.errmsg, 0)
-      }
-    })
-  })
-
-</script>
+<script src="{% static 'js/account-info.js' %}" defer> </script>
 {% endblock bottom%}

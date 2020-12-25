@@ -8,7 +8,6 @@ from django.utils.translation import gettext_lazy as _
 from django_countries.fields import CountryField
 
 from db.base_model import BaseModel
-
 from .managers import AccountManager, AddressManager
 
 
@@ -18,7 +17,7 @@ class User(PermissionsMixin, AbstractBaseUser):
 
     username = models.CharField(_("user name"), max_length=50, validators=[
         username_validator], help_text=_('Required. 50 characters or fewer. Letters, digits and @/./+/-/_ only.'))
-    email = models.EmailField(_("email"), unique=True, max_length=254)
+    email = models.EmailField(_("email"),  max_length=254, unique=True)
     first_name = models.CharField(_("first name"), max_length=50, blank=True)
     last_name = models.CharField(_("last name"), max_length=50, blank=True)
     phone_no = models.CharField(_("phone no."), max_length=50, blank=True, help_text=(
@@ -37,10 +36,17 @@ class User(PermissionsMixin, AbstractBaseUser):
     def __str__(self):
         return self.username
 
+    @classmethod
+    def _guest_prefix(cls):
+        return 'guest_'
+
+    @property
+    def is_guest(self):
+        length = len(self._guest_prefix())
+        return self.username[:length] == self._guest_prefix()
+
 
 class Address(BaseModel):
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='addresses')
     recipient = models.CharField(_("recipient"), max_length=50)
     phone_no = models.CharField(_("phone number"), max_length=50)
     addr = models.CharField(_("address"), max_length=250)
@@ -51,6 +57,9 @@ class Address(BaseModel):
                                 validators=[RegexValidator(r'^[0-9]+')])
     is_default = models.BooleanField(_("default address"), default=False)
 
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='addresses', null=True)
+
     objects = AddressManager()
 
     def __str__(self):
@@ -59,6 +68,18 @@ class Address(BaseModel):
     class Meta:
         verbose_name_plural = 'addresses'
 
-    def get_full_address(self):
-        return f'Recipient: {self.recipient}   Contact: {self.phone_no}\n\
-               Address: {self.addr}, {self.city}, {self.country} {self.zip_code}'
+    @property
+    def recipient_with_contact(self):
+        return f'Recipient: {self.recipient} - Contact: {self.phone_no}'
+
+    @property
+    def full_address(self):
+        return f'{self.addr}, {self.city} City, {self.province}, {self.country}'
+
+    def set_default_address(self, user):
+        if not self.is_default:
+            current = Address.objects.get_default_address(user)
+            current.is_default = False
+            current.save()
+            self.is_default = True
+            self.save()

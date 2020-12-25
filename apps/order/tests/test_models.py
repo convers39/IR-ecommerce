@@ -1,6 +1,9 @@
+from core.settings.base import DATABASES
+from django import utils
 from django.test import TestCase
 from datetime import datetime, timezone, timedelta
 from django.db.models.signals import post_save
+from django.test.utils import override_settings
 
 import factory
 
@@ -8,6 +11,7 @@ from shop.tests.factory import SkuFactory
 from order.models import Order, Payment, OrderProduct, Review
 from account.tests.factory import UserFactory
 
+from ..utils import generate_order_number
 from .factory import OrderFactory, OrderProductFactory, PaymentFactory, ReviewFactory
 
 
@@ -16,38 +20,33 @@ class TestOrderModel(TestCase):
     @classmethod
     def setUpTestData(cls) -> None:
         cls.order = OrderFactory()
-        skus = []
+        cls.skus = []
         with factory.django.mute_signals(post_save):
             for _ in range(5):
-                sku = SkuFactory()
-                skus.append(sku)
-
-    def test_create_order(self):
-        count = Order.objects.count()
-        new_order = OrderFactory()
-        self.assertIsInstance(new_order, Order)
-        self.assertEqual(count+1, Order.objects.count())
+                sku = SkuFactory(stock=5, sales=1)
+                cls.skus.append(sku)
 
     def test_str_representation(self):
+        order = OrderFactory()
         self.assertEqual(
-            str(self.order), f'Order {self.order.number} for {self.order.user}')
+            str(order), f'Order {order.number} for {order.user}')
 
-    def test_get_absolute_url(self):
-        url = self.order.get_absolute_url()
-        # self.order.number = '12345'
-        self.assertEqual(url, f'/account/order/{self.order.slug}/')
-
-    def test_create_number_and_slug_on_save(self):
+    def test_create_number_on_save(self):
         start = datetime.now().strftime('%Y%m%d%H%M')
+        generator = generate_order_number()
         new_order = OrderFactory()
         self.assertEqual(new_order.number[:12], start)
-        self.assertEqual(new_order.number, new_order.slug)
+        self.assertEqual(len(new_order.number), len(new_order.number))
+        self.assertEqual(start, generator[:12])
 
     def test_total_amount(self):
         self.order.subtotal = 2000
         self.order.shipping_fee = 500
         self.assertEqual(self.order.total_amount, 2500)
 
+    @override_settings(CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
+                       CELERY_ALWAYS_EAGER=True,
+                       BROKER_BACKEND='memory')
     def test_is_confirmed_and_confirm_payment(self):
         self.assertEqual(self.order.status, 'NW')
         self.assertFalse(self.order.is_confirmed())
@@ -55,8 +54,41 @@ class TestOrderModel(TestCase):
         self.order.payment = PaymentFactory(status='SC')
         self.assertTrue(self.order.is_confirmed())
 
-        self.order.confirm_payment()
+        self.order.confirm()
         self.assertEqual(self.order.status, 'CF')
+
+    def test_is_refundable(self):
+        order = OrderFactory(status='CL')
+        self.assertTrue(order.is_refundable())
+        self.assertFalse(self.order.is_refundable())
+
+    def test_is_completed_and_return_deadline(self):
+        created = datetime(2020, 10, 10, tzinfo=timezone.utc)
+        order1 = OrderFactory(status='SP')
+        order1.created_at = created
+        order1.save()
+        order2 = OrderFactory(
+            status='RT', return_at=datetime.now(tz=timezone.utc))
+        order3 = OrderFactory(status='SP')
+
+        self.assertTrue(order1.is_completed())
+        self.assertFalse(order1.in_return_deadline())
+        self.assertFalse(order2.is_completed())
+        self.assertTrue(order3.in_return_deadline())
+        self.assertFalse(self.order.is_completed())
+
+    def test_cancel_restore_product_stock(self):
+        order = OrderFactory(status='CL')
+        sku = self.skus[0]
+        op = OrderProductFactory(product=sku)
+        op.order = order
+        op.save()
+        order.confirm_cancel()
+        order.restore_product_stock()
+        sku.refresh_from_db()
+        self.assertEqual(order.status, 'CX')
+        self.assertEqual(sku.stock, 6)
+        self.assertEqual(sku.sales, 0)
 
 
 class TestPaymentModel(TestCase):
@@ -137,7 +169,7 @@ class TestReviewModel(TestCase):
     def test_str_representation(self):
         self.review.order_product = OrderProductFactory(
             product=SkuFactory(name='awesome item'),
-            order=OrderFactory(user=UserFactory(username='awesomeguy'))
         )
+        self.review.user = UserFactory(username='awesomeguy')
         self.assertEqual(str(self.review),
                          'review for awesome item by awesomeguy')

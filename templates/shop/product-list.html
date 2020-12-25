@@ -194,10 +194,10 @@
           <div class="row mb-3 align-items-center">
             <div class="col-lg-6 mb-2 mb-lg-0">
               <p class="text-small text-muted mb-0">
-                {% if count == 0 %} No results found.
-                {% elif count == 1 %} Showing 1 result. {% else %} Showing
-                {{page_obj.start_index}}–{{page_obj.end_index}} of {{count}}
-                results {% endif %}
+                {% if products.count == 0 %} No results found.
+                {% elif products.count == 1 %} Showing 1 result.
+                {% else %} Showing {{page_obj.start_index}}–{{page_obj.end_index}} of {{paginator.count}} results
+                {% endif %}
               </p>
             </div>
             <div class="col-lg-6">

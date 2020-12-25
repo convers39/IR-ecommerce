@@ -1,6 +1,10 @@
 from django.contrib import admin
-from .models import ProductSPU, ProductSKU, Origin, HomeBanner, Category, Image
+from easy_select2 import select2_modelform
+
 from mptt.admin import DraggableMPTTAdmin, TreeRelatedFieldListFilter
+from .models import ProductSPU, ProductSKU, Origin, HomeBanner, Category, Image
+
+SKUForm = select2_modelform(ProductSKU, attrs={'width': '50%'})
 
 
 class ImageInline(admin.TabularInline):
@@ -11,12 +15,20 @@ class ImageInline(admin.TabularInline):
 
 @admin.register(ProductSKU)
 class SKUAdmin(admin.ModelAdmin):
+    form = SKUForm
+    model = ProductSKU
     ordering = ('name', 'category',)
     list_display = ('id', 'name', 'spu', 'category',
                     'origin', 'stock', 'price', 'sales')
     search_fields = ('id', 'name', 'summary', 'detail',)
-    list_filter = ('id', 'status', 'spu', 'category', 'origin',)
-
+    list_filter = ('status', 'spu', 'origin',
+                   ('category_id', TreeRelatedFieldListFilter),)
+    autocomplete_fields = ('spu_id', 'category_id', 'origin_id')
+    list_editable = ('stock', 'price', )
+    list_select_related = ('category', 'spu', 'origin',)
+    list_per_page = 10
+    list_max_show_all = 50
+    save_as = True
     fieldsets = (
         ('Basic Information', {
             "fields": (
@@ -42,8 +54,10 @@ class CategoryAdmin(DraggableMPTTAdmin):
     mptt_indent_field = "name"
     list_display = ('id', 'tree_actions', 'indented_title',
                     'related_products_count', 'related_products_cumulative_count')
-    list_display_links = ('indented_title',)
-    # list_filter = (('Category', TreeRelatedFieldListFilter),)
+    list_display_links = ('indented_title', )
+    list_display = ('indented_title', 'name', )
+    list_editable = ('name',)
+    search_fields = ('name',)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -74,13 +88,25 @@ class HomeBannerAdmin(admin.ModelAdmin):
 @admin.register(ProductSPU)
 class SPUAdmin(admin.ModelAdmin):
     readonly_fields = ('is_deleted',)
+    search_fields = ('name',)
+    # list_editable = ('name',)
+    list_display = ('name',)
+    list_display_links = ('name',)
 
 
 @admin.register(Image)
 class ImageAdmin(admin.ModelAdmin):
     readonly_fields = ('is_deleted',)
+    list_editable = ('name',)
+    list_display = ('name', 'image')
+    list_display_links = None
+    list_select_related = ('sku',)
 
 
 @admin.register(Origin)
 class OriginAdmin(admin.ModelAdmin):
     readonly_fields = ('is_deleted',)
+    search_fields = ('name',)
+    list_editable = ('name',)
+    list_display = ('name',)
+    list_display_links = None

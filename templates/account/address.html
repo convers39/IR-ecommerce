@@ -1,6 +1,8 @@
 {% extends 'account/account-base.html' %}
+{% load static %}
 {% block extra_head %}
 <!-- EXTRA HEAD -->
+<script></script>
 {% endblock extra_head %}
 <!-- TAGS -->
 {% load mptt_tags %}
@@ -19,12 +21,102 @@
 {% block extra_sidebar %}
 
 {% endblock extra_sidebar %}
-
+<!-- <div class="col-lg-6 form-group">
+                          <label class="text-small text-uppercase" for="country">Country</label>
+                          <div class="dropdown bootstrap-select country fit-width"><select class="selectpicker country"
+                              id="country-{{addr.id}}" data-width="fit" data-style="form-control form-control-lg"
+                              data-title="Select your country" tabindex="-98">
+                              <option class="bs-title-option" value="{{addr.country.name}}"></option>
+                            </select>
+                            <button type="button" class="btn dropdown-toggle form-control form-control-lg bs-placeholder"
+                              data-toggle="dropdown" role="combobox" aria-owns="bs-select-1" aria-haspopup="listbox"
+                              aria-expanded="false" data-id="country" title="Select your country">
+                              <div class="filter-option">
+                                <div class="filter-option-inner">
+                                  <div class="filter-option-inner-inner">Select your country</div>
+                                </div>
+                              </div>
+                            </button>
+                            <div class="dropdown-menu" style="max-height: 610.6px; overflow: hidden; min-height: 0px;">
+                              <div class="inner show" role="listbox" id="bs-select-1" tabindex="-1"
+                                style="max-height: 610.6px; overflow-y: auto; min-height: 0px;">
+                                <ul class="dropdown-menu inner show" role="presentation"></ul>
+                              </div>
+                            </div>
+                          </div>
+                        </div> -->
 <!-- ADDRESS -->
 {% block detail %}
 <div class="col-lg-9 order-1 order-lg-2 mb-5 mb-lg-0">
   <div class="container">
-    <!-- TODO: use input form instead to edit existed address, add radio to choose default -->
+    <div class="row">
+      <!-- Add New Address Modal -->
+      <div class="modal fade" id="newAddrModal" tabindex="-1" aria-labelledby="newAddrModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="newAddrModalLabel">Add New Address</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <form action="#" id="createForm"> {% csrf_token %}
+              <div class="modal-body">
+                <div class="row">
+                  <div class="col-lg-6 form-group">
+                    <label class="text-small text-uppercase" for="recipient">recipient</label>
+                    {{form.recipient}}
+                  </div>
+                  <div class="col-lg-6 form-group">
+                    <label class="text-small text-uppercase" for="phone_no">Phone</label>
+                    {{form.phone_no}}
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-lg-12 form-group">
+                    <label class="text-small text-uppercase" for="addr">Address</label>
+                    {{form.addr}}
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-lg-6 form-group">
+                    <label class="text-small text-uppercase" for="city">City</label>
+                    {{form.city }}
+                  </div>
+                  <div class="col-lg-6 form-group">
+                    <label class="text-small text-uppercase" for="province">State/Province</label>
+                    {{form.province }}
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-lg-6 form-group">
+                    <label class="text-small text-uppercase" for="country">Country</label>
+                    {{form.country }}
+                  </div>
+                  <div class="col-lg-6 form-group">
+                    <label class="text-small text-uppercase" for="zip_code">Zip code</label>
+                    {{form.zip_code }}
+                  </div>
+                </div>
+                <div class="form-group row">
+                  <div class="custom-control">
+                    <div class="custom-control custom-checkbox">
+                      <input class="custom-control-input" id="setDefault-{{addr.id}}" name='setDefault' type="checkbox">
+                      <label class="custom-control-label" for="setDefault-{{addr.id}}"> <span class=" text-muted">
+                          Set as default shipping address</span></label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary close-modal" data-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-primary" id="save">Create</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- TABLE -->
     <div class="row text-center">
       <div class="table-responsive mb-4">
@@ -32,42 +124,122 @@
           <thead class="bg-light">
             <tr>
               <th class="border-0" scope="col"> <strong class="text-small text-uppercase">Recipient</strong></th>
-              <th class="border-0" scope="col"> <strong class="text-small text-uppercase">Phone#</strong></th>
+              <th class="border-0" scope="col"> <strong class="text-small text-uppercase">Phone</strong></th>
               <th class="border-0" scope="col"> <strong class="text-small text-uppercase">Address</strong></th>
-              <th class="border-0" scope="col"> <strong class="text-small text-uppercase">city</strong></th>
-              <th class="border-0" scope="col"> <strong class="text-small text-uppercase">province</strong></th>
-              <th class="border-0" scope="col"> <strong class="text-small text-uppercase">country</strong></th>
               <th class="border-0" scope="col"> <strong class="text-small text-uppercase">zip code</strong></th>
-              <th class="border-0" scope="col"> </th>
+              <th class="border-0" scope="col" colspan='2' style="background-color:lightgray">
+                <a class="reset-anchor" href="#" type="button" data-toggle="modal" data-target="#newAddrModal"><strong
+                    class="text-small text-uppercase"> <i class="fa fa-plus" aria-hidden="true"></i> NEW</strong> </i>
+                </a>
+              </th>
             </tr>
           </thead>
           <tbody id="addr-body">
             {% for addr in addresses %}
             <tr {% if addr.is_default %} class="text-primary" {% endif %}>
               <th class="pl-0 border-0" scope="row">
-                <strong class="h6"><a class="reset-anchor animsition-link" href="#">{{addr.recipient}}</a></strong>
+                <strong class="h6">{{addr.recipient}}</strong>
               </th>
               <td class="align-middle border-0">
                 <p class="mb-0 small">{{addr.phone_no}}</p>
               </td>
               <td class="align-middle border-0">
-                <p class="mb-0 small">{{addr.addr}}</p>
-              </td>
-              <td class="align-middle border-0">
-                <p class="mb-0 small">{{addr.city}}</p>
-              </td>
-              <td class="align-middle border-0">
-                <p class="mb-0 small">{{addr.province}}</p>
-              </td>
-              <td class="align-middle border-0">
-                <p class="mb-0 small">{{addr.country}}</p>
+                <p class="mb-0 small">{{addr.full_address}} </p>
               </td>
               <td class="align-middle border-0">
                 <p class="mb-0 small">{{addr.zip_code}}</p>
               </td>
+              <td class="align-middle border-0">
+                <button type="button"
+                  class="btn btn-sm {% if addr.is_default %}btn-outline-primary{% else %}btn-outline-dark{% endif %}"
+                  data-toggle="modal" data-target="#addrModal-{{addr.id}}"><small>EDIT</small></button>
+              </td>
               <td class="align-middle border-0"><a class="reset-anchor addr-del" href="#" addr-id={{addr.id}}><i
                     class="fas fa-trash-alt small text-muted"></i></a></td>
             </tr>
+            <!-- Modal -->
+            <div class="modal fade" id="addrModal-{{addr.id}}" tabindex="-1"
+              aria-labelledby="addrModal-{{addr.id}}-label" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="addrModal-{{addr.id}}-label">Edit Address</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <form action="#" class="updateForm" id="address-{{addr.id}}-update" addrId="{{addr.id}}">
+                    <div class="modal-body">
+                      {% csrf_token %}
+                      <div class="row text-left">
+                        <div class="col-lg-6 form-group">
+                          <label class="text-small text-uppercase" for="recipient">recipient</label>
+                          <input class="form-control form-control-lg" id="recipient-{{addr.id}}" name="recipient"
+                            type="text" value="{{addr.recipient}}">
+                        </div>
+                        <div class="col-lg-6 form-group">
+                          <label class="text-small text-uppercase" for="phone">phone </label>
+                          <input class="form-control form-control-lg" id="phone-{{addr.id}}" name="phone_no" type="text"
+                            value="{{addr.phone_no}}">
+                        </div>
+                        <div class="col-lg-12 form-group">
+                          <label class="text-small text-uppercase" for="addr">Address</label>
+                          <input class="form-control form-control-lg" id="addr-{{addr.id}}" name="addr" type="text"
+                            value="{{addr.addr}}">
+                        </div>
+                        <div class="col-lg-6 form-group">
+                          <label class="text-small text-uppercase" for="city">city</label>
+                          <input class="form-control form-control-lg" id="city-{{addr.id}}" name="city" type="text"
+                            value="{{addr.city}}">
+                        </div>
+                        <div class="col-lg-6 form-group">
+                          <label class="text-small text-uppercase" for="province">Province</label>
+                          <input class="form-control form-control-lg" id="province-{{addr.id}}" name="province"
+                            type="text" value="{{addr.province}}">
+                        </div>
+                        <div class="col-lg-6 form-group">
+                          <label class="text-small text-uppercase" for="country">Country</label>
+                          <div class="autocomplete">
+                            <input id="country-{{addr.id}}" class="country-input form-control form-control-lg"
+                              type="text" name="country" value="{{addr.country.name}}">
+                          </div>
+                        </div>
+                        <div class="col-lg-6 form-group">
+                          <label class="text-small text-uppercase" for="zip_code">Zip Code</label>
+                          <input class="form-control form-control-lg" id="zipcode-{{addr.id}}" name="zip_code"
+                            type="text" value="{{addr.zip_code}}">
+                        </div>
+                      </div>
+                      <hr>
+                      {% if addr.is_default %}
+                      <div class="form-group row">
+                        <div class="custom-control">
+                          <i class="far fa-check-circle text-muted pr-1"></i> <span class="text-muted">
+                            This address is default shipping address
+                          </span>
+                        </div>
+                      </div>
+                      {% else %}
+                      <div class="form-group row">
+                        <div class="custom-control">
+                          <div class="custom-control custom-checkbox">
+                            <input class="custom-control-input" id="setDefault-{{addr.id}}" name='setDefault'
+                              type="checkbox">
+                            <label class="custom-control-label" for="setDefault-{{addr.id}}"> <span class=" text-muted">
+                                Set as default shipping address</span></label>
+                          </div>
+                        </div>
+                      </div>
+                      {% endif %}
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary close-modal" data-dismiss="modal">Close</button>
+                      <button type="submit" class="btn btn-primary" id="save-{{addr.id}}">Save changes</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
             {% endfor %}
           </tbody>
           <tfoot class="text-left">
@@ -78,154 +250,23 @@
         </table>
       </div>
     </div>
-    <hr>
-    <div class="row">
-      <div class="form-group text-left col-lg-12" id="newAddr">
-        <a class="btn btn-dark" data-toggle="collapse" href="#collapseForm" role="button" aria-expanded="false"
-          aria-controls="collapseForm" id="newAddrButton">New Address</a>
-      </div>
-      <div class="collapse col-lg-12" id="collapseForm">
-        <form action="#" id="addrForm"> {% csrf_token %}
-          <div class="row">
-            <div class="col-lg-6 form-group">
-              <label class="text-small text-uppercase" for="recipient">recipient</label>
-              {{form.recipient}}
-            </div>
-            <div class="col-lg-6 form-group">
-              <label class="text-small text-uppercase" for="phone_no">Phone#</label>
-              {{form.phone_no}}
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-lg-12 form-group">
-              <label class="text-small text-uppercase" for="addr">Address</label>
-              {{form.addr}}
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-lg-6 form-group">
-              <label class="text-small text-uppercase" for="city">City</label>
-              {{form.city }}
-            </div>
-            <div class="col-lg-6 form-group">
-              <label class="text-small text-uppercase" for="province">State/Province</label>
-              {{form.province }}
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-lg-6 form-group">
-              <label class="text-small text-uppercase" for="country">Country</label>
-              {{form.country }}
-            </div>
-            <div class="col-lg-6 form-group">
-              <label class="text-small text-uppercase" for="zip_code">Zip code</label>
-              {{form.zip_code }}
-            </div>
-          </div>
-          <div class="col-lg-12 form-group text-right" id="saveButton">
-            <button class="btn btn-dark" type="submit" id="save">Save</button>
-            <button class="btn btn-dark" type="reset" id="cancel">Cancel</button>
-          </div>
-      </div>
-      </form>
-    </div>
   </div>
+  <!-- alternative solution with formset -->
+  <!-- <div>
+    {% for form in formset %}
+    <form action="">
+      {{ form.as_p }}
+      <button type="submit">Save change</button>
+    </form>
+    {% endfor %}
+  </div> -->
+
 </div>
+
 {% endblock detail %}
 
 <!-- BOTTOM -->
 {% block bottom %}
-<script>
-  //TODO: set default address
-  $(function () {
-    const csrftoken = Cookies.get('csrftoken');
-
-    $('#addrForm').submit(async function (event) {
-      event.preventDefault();
-      const formData = new FormData(event.currentTarget);
-      const plainData = Object.fromEntries(formData.entries());
-
-      const res = await fetch('/account/address/', {
-        method: 'POST',
-        headers: {
-          "X-CSRFToken": csrftoken,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(plainData),
-      })
-      const data = await res.json();
-      if (data.res == '1') {
-        console.log(data)
-        $('#newAddrButton').click()
-        $(this)[0].reset();
-        showMsg(data.msg, 1)
-        addToTable(plainData, data.new_id)
-      } else {
-        console.log(data);
-        showMsg(data.errmsg, 0)
-      }
-    })
-
-    // function to add one record to address table
-    function addToTable(newAddr, newId) {
-      let newAddrRow = `
-      <tr><th class="pl-0 border-0" scope="row">
-        <strong class="h6"><a class="reset-anchor animsition-link" href="#">${newAddr.recipient}</a></strong>
-      </th>
-      <td class="align-middle border-0">
-        <p class="mb-0 small">${newAddr.phone_no}</p>
-      </td>
-      <td class="align-middle border-0">
-        <p class="mb-0 small">${newAddr.addr}</p>
-      </td>
-      <td class="align-middle border-0">
-        <p class="mb-0 small">${newAddr.city}</p>
-      </td>
-      <td class="align-middle border-0">
-        <p class="mb-0 small">${newAddr.province}</p>
-      </td>
-      <td class="align-middle border-0">
-        <p class="mb-0 small">${newAddr.country}</p>
-      </td>
-      <td class="align-middle border-0">
-        <p class="mb-0 small">${newAddr.zip_code}</p>
-      </td>
-      <td class="align-middle border-0"><a class="reset-anchor addr-del" href="#" addr-id="${newId}">
-        <i class="fas fa-trash-alt small text-muted"></i></a></td>
-      </tr>
-      `
-      $('#addrTable').find('tbody:last').append(newAddrRow);
-    }
-
-    // notice delegation here for dynamicly added address
-    $('#addr-body').on('click', 'a', async function (event) {
-      event.preventDefault();
-      let addrId = $(this).attr('addr-id');
-      const res = await fetch(
-        '/account/address/', {
-          method: 'POST',
-          headers: {
-            "X-CSRFToken": csrftoken,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            operation: 'delete',
-            addr_id: addrId
-          }),
-        }
-      )
-      const data = await res.json();
-      if (data.res == '1') {
-        console.log(data)
-        $(this).parents('tr').remove();
-        showMsg(data.msg, 1)
-      } else {
-        console.log(data);
-        showMsg(data.errmsg, 0)
-      }
-    });
-
-  })
-
-</script>
+<script src="{% static 'js/country-autocomplete.js' %}" defer></script>
+<script src="{% static 'js/address-crud.js' %}" defer></script>
 {% endblock bottom%}

@@ -1,41 +1,83 @@
-from datetime import datetime, timedelta, timezone
-from django.db import models
-from django.db.models import Q
 from django.contrib.postgres.aggregates import StringAgg
 from django.contrib.postgres.search import (
     SearchQuery, SearchRank, SearchVector, TrigramSimilarity,
 )
-from django.db.models import Avg
+from django.db.models import Manager, Q, Avg
+from django.db.models.expressions import ExpressionWrapper
+from django.db.models.fields import BooleanField
+
+from datetime import datetime, timedelta, timezone
+
+from django_redis import get_redis_connection
 
 
-class SKUManager(models.Manager):
+class SKUManager(Manager):
     def get_queryset(self):
         """
-        Only return products on the shelf, prefetch all images to avoid duplicate query.
+        Only return products on the shelf, prefetch all images,to avoid duplicate queries.
+        TODO: find a better way to deal with avg sales
         """
-        return super().get_queryset().filter(status='ON').prefetch_related('images')
+        return super().get_queryset().filter(status='ON')\
+            .prefetch_related('images')
 
-    def get_same_category_products(self, obj):
+    def get_related_products(self, obj):
         """
-        Return a queryset containing most popular and recent products 
+        Return a queryset containing most popular and recent products
         in the same category, exluding current product.
         """
         category = obj.category
         current = obj.id
-        return self.get_queryset().filter(category=category).\
-            exclude(id=current).order_by('sales', '-created_at')
+        queryset = self.get_queryset().filter(category=category)\
+            .exclude(id=current).order_by('sales', '-created_at')
+        return queryset
+
+    def filter_category_products(self, category, queryset):
+        """
+        Filter a queryset with a category, if the category has descendants,
+        all of the items in descendant catogories will be return.
+        NOTE: in this project a parent category will not have direct items,
+        therefore the second Q condition is not necessary
+        """
+        if category.get_descendant_count() > 0:
+            queryset = queryset.filter(
+                Q(category__in=category.get_descendants()) | Q(category=category))
+        else:
+            queryset = queryset.filter(category=category)
+        return queryset
+
+    def filter_wishlisted_products(self, user_id, queryset):
+        """
+        Filter a queryset and dynamically add a boolean property 'wishlist' to
+        all items.
+        """
+        conn = get_redis_connection('cart')
+        wishlisted = conn.smembers(f'wish_{user_id}')
+        wishlisted = [int(i) for i in wishlisted]
+
+        queryset = queryset.annotate(wishlist=ExpressionWrapper(
+            Q(id__in=wishlisted),
+            output_field=BooleanField(),
+        ),)
+        return queryset
+
+        # NOTE: alternative solution:
+        # queryset = queryset.annotate(wishlist=Case(
+        #     When(id__in=wishlisted, then=Value(True)),
+        #     default=Value(False),
+        #     output_field=BooleanField(),
+        # ))
 
     def get_products_with_review(self):
         """
         Return a LIST of products sku which has a customer review.
         """
-        products = self.get_queryset()
+        products = self.get_queryset()\
+            .prefetch_related(* ['order_products', 'order_products__review'])
         order_products = []
         for product in products:
             order_products = order_products.extend(
                 list(product.order_products.all()))
         return [i for i in order_products if i.is_reviewed]
-        # return self.get_queryset().filter()
 
     def get_trending_products(self):
         """

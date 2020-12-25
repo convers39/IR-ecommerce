@@ -1,7 +1,8 @@
 from django.test import SimpleTestCase
 from django.urls import reverse, resolve
 
-from cart.views import CartInfoView, CartAddView, CartUpdateView, CartDeleteView
+from cart.views import (CartInfoView, CartAddView,
+                        CartUpdateView, CartDeleteView, CheckoutView)
 
 
 class TestCartUrls(SimpleTestCase):
@@ -29,3 +30,9 @@ class TestCartUrls(SimpleTestCase):
         self.assertEqual(url, '/cart/delete/')
         self.assertEqual(resolve(url).func.__name__,
                          CartDeleteView.as_view().__name__)
+
+    def test_checkout_url(self):
+        url = reverse('cart:checkout')
+        self.assertEqual(url, '/cart/checkout/')
+        self.assertEqual(resolve(url).func.__name__,
+                         CheckoutView.as_view().__name__)

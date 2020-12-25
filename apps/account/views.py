@@ -3,71 +3,78 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.http.response import JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy, reverse
 from django.views.generic import View, CreateView
-from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormMixin
 from django.views.generic.list import ListView
 
 import json
-from django_redis import get_redis_connection
 
+from django_redis import get_redis_connection
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from itsdangerous import SignatureExpired, BadData
-import stripe
 
-from order.models import Order, OrderProduct, Review
+from cart.cart import get_watch_history_products
+from order.models import Order
 from shop.models import ProductSKU
 from order.views import create_checkout_session
 
-from .forms import RegisterForm, UserInfoForm, AddressForm
+from .forms import RegisterForm, UserInfoForm, AddressForm, PasswordResetForm
 from .models import User, Address
+from .mixins import AddressManagementMixin, AccountInfoCheckMixin
 from .tasks import send_activation_email
 
 
-class AccountCenterView(LoginRequiredMixin, FormMixin, View):
+class AccountCenterView(AccountInfoCheckMixin, FormMixin, View):
     model = User
     form_class = UserInfoForm
     template_name = 'account/account.html'
 
     def get(self, request, *args, **kwargs):
         user = request.user
-        form = UserInfoForm(instance=user)
+        form = UserInfoForm(instance=user, request_user=user)
+        pw_form = PasswordResetForm()
         # get recent watch history
-        conn = get_redis_connection('cart')
-        sku_ids = conn.lrange(f'history_{user.id}', 0, 7)
-
-        # NOTE: use filter will break the order of recent products
-        # recent_products = ProductSKU.objects.filter(id__in=sku_ids)
-        recent_products = []
-        for sku_id in sku_ids:
-            sku = ProductSKU.objects.get(id=sku_id)
-            recent_products.append(sku)
+        recent_products = get_watch_history_products(user.id)
 
         context = {
             'user': user,
             'form': form,
+            'pw_form': pw_form,
             'recent_products': recent_products
         }
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
         user = request.user
-        try:
-            data = json.loads(request.body.decode())
-        except:
-            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
-        print(data)
+        data = json.loads(request.body.decode())
+        msg = 'Data updated'
+        print('data', data)
 
-        form = UserInfoForm(data, instance=user)
+        if data['email'] != user.email:
+            # send activate email
+            new_email = data['email']
+            send_activation_email.delay(new_email, user.username, user.id)
+            data['email'] = user.email
+            msg = 'Email address will be updated after your verification'
+        form = UserInfoForm(data, instance=user, request_user=user)
+
         if form.is_valid():
             form.save()
+<<<<<<< HEAD
             return JsonResponse({'res': '1', 'msg': 'Data updated'})
 
         return JsonResponse({'res': '0', 'errmsg': 'Invalid form data'})
+=======
+            return JsonResponse({'res': '1', 'msg': msg})
+        else:
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid form data'})
+            # return JsonResponse({'res': '0', 'errmsg': form.errors.as_json()})
+>>>>>>> guestcheckout
 
 
 class PasswordResetView(LoginRequiredMixin, View):
@@ -77,12 +84,11 @@ class PasswordResetView(LoginRequiredMixin, View):
         try:
             data = json.loads(request.body.decode())
         except:
-            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
-        print(data)
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid data'})
 
-        current = data.get('currentPassword')
-        new = data.get('newPassword')
-        confirm = data.get('confirmNewPassword')
+        current = data.get('current')
+        new = data.get('new')
+        confirm = data.get('new_confirm')
 
         if new != confirm:
             return JsonResponse({'res': '0', 'errmsg': 'Passwords does not match'})
@@ -102,6 +108,7 @@ class PasswordResetView(LoginRequiredMixin, View):
 class OrderListView(LoginRequiredMixin, ListView):
     model = Order
     context_object_name = 'orders'
+<<<<<<< HEAD
     template_name = 'account/order-list.html'
     paginate_by = 5
 
@@ -128,31 +135,23 @@ class OrderListView(LoginRequiredMixin, ListView):
         #         order.payment.number = session.payment_intent
         #         order.save()
         return context
+=======
+    template_name = 'account/order.html'
+    paginate_by = 4
+>>>>>>> guestcheckout
 
     def get_queryset(self):
-        return super().get_queryset()
-
-
-class OrderDetailView(LoginRequiredMixin, DetailView):
-    model = Order
-    context_object_name = 'order'
-    template_name = 'account/order-detail.html'
-    slug_url_kwarg = 'number'
+        queryset = super().get_queryset().filter(Q(user=self.request.user), is_deleted=False)\
+            .select_related(*['address', 'payment'])\
+            .prefetch_related(*['order_products__product', 'order_products__review'])
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["order_products"] = self.object.order_products.all(
-        ).select_related('product')
-        payment = self.object.payment
-        payment_intent = stripe.PaymentIntent.retrieve(
-            payment.number)
         context['stripe_key'] = settings.STRIPE_PUBLIC_KEY
-        if payment.status != 'SC':
-            context['payment_detail'] = None
-        else:
-            context['payment_detail'] = payment_intent.charges.data[0].payment_method_details
         return context
 
+<<<<<<< HEAD
     def post(self, request, *args, **kwargs):
         user = request.user
         try:
@@ -177,8 +176,10 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
         )
         return JsonResponse({'res': '1', 'msg': 'Comment submitted'})
 
+=======
+>>>>>>> guestcheckout
 
-class AddressView(LoginRequiredMixin, FormMixin, View):
+class AddressView(AddressManagementMixin, FormMixin, View):
     model = Address
     form_class = AddressForm
     template_name = 'account/address.html'
@@ -186,53 +187,49 @@ class AddressView(LoginRequiredMixin, FormMixin, View):
     def get(self, request, *args, **kwargs):
         user = request.user
         addresses = user.addresses.all()
+        # formset = create_address_formset(user)
         context = {
-            'user': user,
             'addresses': addresses,
-            'form': self.form_class
+            'form': self.form_class,
+            # 'formset': formset
         }
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
         user = request.user
-        try:
-            data = json.loads(request.body.decode())
-        except:
-            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
-        print(data)
+        data = json.loads(request.body.decode())
 
-        # delete existed address
-        if data.get('operation') == 'delete':
-            try:
-                Address.objects.filter(id=data['addr_id']).delete()
-                return JsonResponse({'res': '1', 'msg': 'Address deleted'})
-            except Address.DoesNotExist:
-                return JsonResponse({'res': '0', 'errmsg': 'Address does not exist'})
-
-        # save new address
         form = AddressForm(data)
         if form.is_valid():
             new_addr = form.save(commit=False)
             new_addr.user = user
             new_addr.save()
+            if data.get('setDefault') == 'on':
+                new_addr.set_default_address(request.user)
             new_id = new_addr.id
             return JsonResponse({'res': '1', 'msg': 'New address added', 'new_id': new_id})
+        else:
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid form data'})
 
-        return JsonResponse({'res': '0', 'errmsg': 'Error!'})
+    def put(self, request, *args, **kwargs):
+        data = json.loads(request.body.decode())
+        address = Address.objects.get(id=data.pop('addr_id'))
 
-        # TODO: update existed address
-        # addr_id = data.pop('addr_id')
-        # if addr_id:
-        #     try:
-        #         addr = Address.objects.get(id=addr_id)
-        #     except Address.DoesNotExist:
-        #         return JsonResponse({'res': '0', 'errmsg': 'Address does not exist'})
+        form = AddressForm(instance=address, data=data)
+        if form.is_valid():
+            updated_addr = form.save()
+            updated_id = updated_addr.id
+            if data.get('setDefault') == 'on':
+                updated_addr.set_default_address(request.user)
+            return JsonResponse({'res': '1', 'msg': 'Address updated', 'updated_id': updated_id})
+        else:
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid form data'})
 
-        #     if addr.user != user:
-        #         return JsonResponse({'res': '0', 'errmsg': 'Unauthorized user'})
+    def delete(self, request, *args, **kwargs):
+        data = json.loads(request.body.decode())
 
-        #     form = AddressForm(data, instance=addr)
-        # else:
+        Address.objects.filter(id=data['addr_id']).delete()
+        return JsonResponse({'res': '1', 'msg': 'Address deleted'})
 
 
 class WishlistView(LoginRequiredMixin, ListView):
@@ -245,13 +242,9 @@ class WishlistView(LoginRequiredMixin, ListView):
         user = self.request.user
         conn = get_redis_connection('cart')
         wishlisted = conn.smembers(f'wish_{user.id}')
-        queryset = ProductSKU.objects.filter(id__in=wishlisted)
+        queryset = ProductSKU.objects.prefetch_related(
+            'tags').filter(id__in=wishlisted)
         return queryset
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # context[""] =
-        return context
 
     def post(self, request, *args, **kwargs):
         user = request.user
@@ -259,11 +252,10 @@ class WishlistView(LoginRequiredMixin, ListView):
             data = json.loads(request.body.decode())
             sku_id = data['sku_id']
         except:
-            return JsonResponse({'res': '0', 'errmsg': 'Invalid Data'})
-        print(data)
+            return JsonResponse({'res': '0', 'errmsg': 'Invalid data'})
 
         try:
-            ProductSKU.objects.filter(id=sku_id)
+            ProductSKU.objects.get(id=sku_id)
         except ProductSKU.DoesNotExist:
             return JsonResponse({'res': '0', 'errmsg': 'Item does not exist'})
 
@@ -339,6 +331,10 @@ class LogoutView(View):
 
 
 class RegisterView(SuccessMessageMixin, CreateView):
+    """
+    If new created user has ordered with the same email address as guest,
+    transfer guest account data to new created user.
+    """
     form_class = RegisterForm
     template_name = 'account/register.html'
     success_url = reverse_lazy('shop:index')
@@ -348,15 +344,18 @@ class RegisterView(SuccessMessageMixin, CreateView):
         username = form.cleaned_data['username']
         email = form.cleaned_data['email']
         password = form.cleaned_data['password']
-
         user = User.objects.create_user(username, email, password)
 
-        serializer = Serializer(settings.SECRET_KEY, 3600*24)
-        info = {'activate_user': user.id}
-        token = serializer.dumps(info)  # bytes
-        token = token.decode()
+        # NOTE: merge guest account
+        guest_email = 'guest_'+email
+        guest_user = User.objects.filter(email=guest_email).first()
+        if guest_user:
+            user.payments.set(guest_user.payments.all())
+            user.orders.set(guest_user.orders.all())
+            user.addresses.set(guest_user.addresses.all())
+            guest_user.delete()
 
-        send_activation_email.delay(email, username, token)
+        send_activation_email.delay(email, username, user.id)
         messages.success(
             self.request, f'{self.success_message}')
 
@@ -370,10 +369,20 @@ class ActivateView(View):
         try:
             param = serializer.loads(token)
             user_id = param['activate_user']
+            email = param['email']
             user = User.objects.get(id=user_id)
-            user.is_active = 1
-            user.save()
-            messages.success(request, 'Your account has been activated!')
+            if user.is_active:
+                # change email for user
+                user.email = email
+                user.save()
+                logout(request)
+                messages.success(
+                    request, 'Your email address has been changed!')
+            else:
+                user.is_active = 1
+                user.save()
+                messages.success(request, 'Your account has been activated!')
+
             return redirect(reverse('account:login'))
 
         except SignatureExpired:

@@ -4,14 +4,15 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Avg
 from django.urls import reverse
+from django.utils.functional import cached_property
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
 from datetime import datetime, timedelta, timezone
 
-from taggit.managers import TaggableManager
 from ckeditor.fields import RichTextField
 from mptt.models import MPTTModel, TreeForeignKey
+from taggit.managers import TaggableManager
 
 from db.base_model import BaseModel
 from .managers import SKUManager
@@ -145,6 +146,11 @@ class ProductSKU(BaseModel):
         tax_in_price = self.price * (1+tax_rate)
         return float('{0:.2f}'.format(tax_in_price))
 
+    @property
+    def review_count(self):
+        order_products = self.order_products.all()
+        count = sum(op.is_reviewed for op in order_products)
+        return count
     # @property
     # def sku_number(self):
     #     """
@@ -161,15 +167,21 @@ class ProductSKU(BaseModel):
     #     """
     #     pass
 
+    # TODO: find a better way to calculate average salse to avoid duplicate queries
+    @cached_property
+    def avg_sales(self):
+        avg_sales = ProductSKU.objects.aggregate(Avg('sales'))
+        return avg_sales['sales__avg']
+
     def get_product_label(self):
         """
         Return a label from SALE, SOLD, NEW, HOT, or empty
         """
         label = ''
-        avg_sales = ProductSKU.objects.aggregate(Avg('sales'))
+
         if datetime.now(timezone.utc) - self.created_at < timedelta(days=14):
             label = 'new'
-        if self.sales >= avg_sales['sales__avg']:
+        if self.sales >= 1:
             label = 'hot'
         if self.stock == 0:
             label = 'sold'
