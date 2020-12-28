@@ -8,7 +8,7 @@ services:
       dockerfile: ./dockerfile.prod
     container_name: django
     image: 543353045438.dkr.ecr.ap-northeast-1.amazonaws.com/django-ec2:django
-    command: gunicorn --workers=2 --bind=0.0.0.0:8000 --env DJANGO_SETTINGS_MODULE=core.settings.prod core.wsgi:application
+    command: gunicorn --workers=2 --bind=0.0.0.0:8000 core.wsgi:application
     volumes:
       # - .:/usr/src/app
       - static_volume:/home/app/web/static
@@ -19,8 +19,9 @@ services:
     expose:
       - 8000
     env_file:
-      - ./core/env/env.prod
+      - ./core/env/env.staging
     depends_on:
+      # - pgdb
       - redis
   celery:
     restart: always
@@ -35,7 +36,7 @@ services:
       - static_volume:/home/app/web/static
       - media_volume:/home/app/web/media
     env_file:
-      - ./core/env/env.prod
+      - ./core/env/env.staging
     depends_on:
       - django
       - redis
@@ -84,7 +85,7 @@ services:
   nginx-proxy-letsencrypt:
     image: jrcs/letsencrypt-nginx-proxy-companion
     env_file:
-      - ./core/env/env.prod.proxy-companion
+      - ./core/env/env.staging.proxy-companion
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - certs:/etc/nginx/certs

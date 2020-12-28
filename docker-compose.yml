@@ -3,7 +3,9 @@ version: "3.8"
 services:
   django:
     restart: always
-    build: .
+    build:
+      context: .
+      dockerfile: dockerfile
     container_name: django
     command: python manage.py runserver 0.0.0.0:8080
     volumes:

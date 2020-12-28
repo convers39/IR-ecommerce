@@ -1,7 +1,7 @@
 from .base import *
 
-DJANGO_SETTINGS_MODULE = 'core.settings.prod'
 DEBUG = False
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'irec.xyz', 'www.irec.xyz']
 # be careful on the order of middlewares
 MIDDLEWARE.insert(2, 'django.middleware.cache.UpdateCacheMiddleware')
 MIDDLEWARE.insert(4, 'django.middleware.cache.FetchFromCacheMiddleware')
@@ -12,6 +12,26 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 CACHE_MIDDLEWARE_SECONDS = 1200
 CACHE_MIDDLEWARE_ALIAS = 'default'
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+    },
+}
 
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True

@@ -4,6 +4,8 @@ from django.utils.translation import gettext_lazy as _
 
 from django_countries.widgets import CountrySelectWidget
 from django_countries.fields import CountryField
+from captcha.fields import ReCaptchaField
+from captcha.widgets import ReCaptchaV2Checkbox
 
 from .models import User, Address
 
@@ -21,6 +23,15 @@ class RegisterForm(forms.ModelForm):
         'id': 'agreement',
         'checked': False
     }))
+    # captcha = ReCaptchaField(
+    #     widget=ReCaptchaV2Checkbox(
+    #         attrs={
+    #             'class': 'form-control',
+    #             'data-theme': 'dark',
+    #             'data-size': 'compact',
+    #         }
+    #     )
+    # )
 
     class Meta:
         model = User
@@ -257,6 +268,15 @@ class GuestAddressForm(forms.Form):
         'title': _('Postal code must be Alpha-Numeric and no more than 30 characters.'),
         'placeholder': _('e.g. 555000')
     }))
+    captcha = ReCaptchaField(
+        widget=ReCaptchaV2Checkbox(
+            attrs={
+                'class': 'form-control',
+                'data-theme': 'dark',
+                'data-size': 'compact',
+            }
+        )
+    )
 
 
 class AddressForm(forms.ModelForm):

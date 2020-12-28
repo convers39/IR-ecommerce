@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'django_ses',
     'import_export',
     'easy_select2',
+    'captcha',
 ]
 
 # add UpdateCacheMiddleware and FetchFromCacheMiddleware to cache site page with default cache backend
@@ -127,26 +128,6 @@ SESSION_CACHE_ALIAS = "default"
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER', 'redis://redis:6379/0')
 CELERY_RESULT_BACKEND = os.getenv('CELERY_BROKER', 'redis://redis:6379/0')
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
-            'propagate': False,
-        },
-    },
-}
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
@@ -249,6 +230,9 @@ SIMPLEUI_ICON = {
     'SES Stats': 'fas fa-mail-bulk',
 }
 
+# recaptcha key v2 checkbox
+RECAPTCHA_PUBLIC_KEY = os.getenv('RECAPTCHA_PUBLIC_KEY')
+RECAPTCHA_PRIVATE_KEY = os.getenv('RECAPTCHA_PRIVATE_KEY')
 
 # sentry setting
 sentry_sdk.init(

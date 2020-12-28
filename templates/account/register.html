@@ -7,6 +7,7 @@
     list-style-type: none;
     list-style: none;
   }
+
 </style>
 
 {% endblock extra_head %} {% block content %}
@@ -19,27 +20,19 @@
         <fieldset>
           <!-- <legend>Legend</legend> -->
           <div class="form-group row">
-            <label class="col-sm-2 col-form-label" for="username"
-              >Username</label
-            >
+            <label class="col-sm-2 col-form-label" for="username">Username</label>
             <div class="col-sm-10">{{ form.username}}</div>
           </div>
           <div class="form-group row">
-            <label class="col-sm-2 col-form-label" for="email"
-              >Email address</label
-            >
+            <label class="col-sm-2 col-form-label" for="email">Email address</label>
             <div class="col-sm-10">{{ form.email }}</div>
           </div>
           <div class="form-group row">
-            <label class="col-sm-2 col-form-label" for="password"
-              >Password</label
-            >
+            <label class="col-sm-2 col-form-label" for="password">Password</label>
             <div class="col-sm-10">{{ form.password }}</div>
           </div>
           <div class="form-group row">
-            <label class="col-sm-2 col-form-label" for="password_confirm"
-              >Password</label
-            >
+            <label class="col-sm-2 col-form-label" for="password_confirm">Password</label>
             <div class="col-sm-10">{{ form.password_confirm }}</div>
           </div>
           <div class="form-group row">
@@ -51,7 +44,9 @@
               </div>
             </div>
           </div>
-
+          <!-- <div class="form-group row">
+            {{ form.captcha}}
+          </div> -->
           <input class="btn btn-primary" type="submit" value="Register" />
         </fieldset>
       </form>
