@@ -1,6 +1,8 @@
 from .base import *
 
 DEBUG = True
+DOMAIN = '127.0.0.1'
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static'), ]
 
 # for debug tool:
 DEBUG_TOOLBAR_PATCH_SETTINGS = False

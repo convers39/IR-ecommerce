@@ -4,7 +4,8 @@ import os
 from celery import Celery
 from celery.schedules import crontab
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings.local')
+os.environ["DJANGO_SETTINGS_MODULE"] = os.getenv('DJANGO_SETTINGS_MODULE')
+# os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings.prod')
 
 app = Celery('core')
 
@@ -34,7 +35,3 @@ app.conf.beat_schedule = {
 }
 # or every 30mins? crontab(minute='*/30')
 app.conf.timezone = 'UTC'
-
-# @app.task(bind=True)
-# def debug_task(self):
-#     print(f'Request: {self.request!r}')

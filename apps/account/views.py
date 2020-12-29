@@ -8,6 +8,7 @@ from django.http import HttpResponseRedirect
 from django.http.response import JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy, reverse
+from django.utils.decorators import method_decorator
 from django.views.generic import View, CreateView
 from django.views.generic.edit import FormMixin
 from django.views.generic.list import ListView
@@ -17,13 +18,13 @@ import json
 from django_redis import get_redis_connection
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from itsdangerous import SignatureExpired, BadData
+from ratelimit.decorators import ratelimit
 
 from cart.cart import get_watch_history_products
 from order.models import Order
 from shop.models import ProductSKU
-from order.views import create_checkout_session
 
-from .forms import RegisterForm, UserInfoForm, AddressForm, PasswordResetForm
+from .forms import RegisterForm, UserInfoForm, AddressForm, PasswordResetForm, LoginForm
 from .models import User, Address
 from .mixins import AddressManagementMixin, AccountInfoCheckMixin
 from .tasks import send_activation_email
@@ -222,18 +223,25 @@ class LoginView(SuccessMessageMixin, View):
     success_url = reverse_lazy('shop:index')
 
     def get(self, request, *args, **kwargs):
-        # TODO: check cookie setting logic
         if 'email' in request.COOKIES:
             email = request.COOKIES.get('email')
-            remember = 'on'
+            remember = True
         else:
             email = ''
-            remember = ''
-        return render(request, self.template_name, {'email': email, 'remember': remember})
+            remember = False
+        form = LoginForm(request, email=email, remember=remember)
 
+        return render(request, self.template_name, {'email': email, 'form': form, 'remember': remember})
+
+    @method_decorator(ratelimit(key='ip', rate='10/m', method='POST'))
     def post(self, request, *args, **kwargs):
-        email = request.POST.get('email')
+        email = request.POST.get('username')
         password = request.POST.get('password')
+        recaptcha = request.POST.get('g-recaptcha-response')
+        if not recaptcha:
+            messages.error(request, 'Verification check required')
+            return redirect(reverse('account:login'))
+
         user = authenticate(email=email, password=password)
 
         if not user:
@@ -268,6 +276,7 @@ class LogoutView(View):
         return redirect(reverse('shop:index'))
 
 
+@method_decorator(ratelimit(key='ip', rate='5/m', method='POST'), name='post')
 class RegisterView(SuccessMessageMixin, CreateView):
     """
     If new created user has ordered with the same email address as guest,
@@ -277,6 +286,13 @@ class RegisterView(SuccessMessageMixin, CreateView):
     template_name = 'account/register.html'
     success_url = reverse_lazy('shop:index')
     success_message = 'Your account has been created! Check your email for activation.'
+
+    def post(self, request, *args: str, **kwargs):
+        recaptcha = request.POST.get('g-recaptcha-response')
+        if not recaptcha:
+            messages.error(request, 'Verification check required')
+            return redirect(reverse('account:login'))
+        return super().post(request, *args, **kwargs)
 
     def form_valid(self, form):
         username = form.cleaned_data['username']

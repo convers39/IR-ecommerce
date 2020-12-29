@@ -10,7 +10,7 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from core.celery import app
 from account.models import User
 # app = Celery('apps.account.tasks', broker=settings.CELERY_BROKER_URL)
-domain = 'http://127.0.0.1:8080'
+domain = settings.DOMAIN
 
 logger = logging.getLogger(__name__)
 

@@ -87,7 +87,7 @@ class Payment(BaseModel):
         message = f'Payment has been confirmed, please prepare shipment.'
         from_email = settings.EMAIL_FROM
         recipient_list = [settings.EMAIL_HOST_USER, ]
-        # async_send_email.delay(subject, message, from_email, recipient_list)
+        async_send_email.delay(subject, message, from_email, recipient_list)
 
     @transition(field=status, source='PD', target='EX', conditions=[is_expired])
     def expire_payment(self):
@@ -242,11 +242,11 @@ class Order(BaseModel):
         User can request to return products within deadline, send an email to admin for further operation.
         """
         self.return_at = datetime.now()
-        # subject = f'Order# {self.number} Return Request'
-        # message = f'Return request from customer {self.user.username}'
-        # from_email = settings.EMAIL_FROM
-        # recipient_list = [settings.EMAIL_HOST_USER, ]
-        # async_send_email.delay(subject, message, from_email, recipient_list)
+        subject = f'Order# {self.number} Return Request'
+        message = f'Return request from customer {self.user.username}'
+        from_email = settings.EMAIL_FROM
+        recipient_list = [settings.EMAIL_HOST_USER, ]
+        async_send_email.delay(subject, message, from_email, recipient_list)
 
     @transition(field=status, source=['NW', 'CF'], target='CL')
     def request_cancel(self):
@@ -255,12 +255,11 @@ class Order(BaseModel):
         possible to request cancellation from new and confirmed orders,
         send email to admin for cancel operation
         """
-        # print(self.status)
-        # subject = f'Order# {self.number} Cancellation Request'
-        # message = f'Cancellation request from customer {self.user.username}'
-        # from_email = settings.EMAIL_FROM
-        # recipient_list = [settings.EMAIL_HOST_USER, ]
-        # async_send_email.delay(subject, message, from_email, recipient_list)
+        subject = f'Order# {self.number} Cancellation Request'
+        message = f'Cancellation request from customer {self.user.username}'
+        from_email = settings.EMAIL_FROM
+        recipient_list = [settings.EMAIL_HOST_USER, ]
+        async_send_email.delay(subject, message, from_email, recipient_list)
 
     @transition(field=status, source=['CL'], target=RETURN_VALUE('CF', 'NW'))
     def stop_cancel_request(self):

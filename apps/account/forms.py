@@ -1,4 +1,6 @@
 from django import forms
+from django.contrib.auth import views
+from django.contrib.auth.forms import AuthenticationForm
 from django.utils.translation import gettext_lazy as _
 # from django.forms import ValidationError, modelformset_factory
 
@@ -9,29 +11,51 @@ from captcha.widgets import ReCaptchaV2Checkbox
 
 from .models import User, Address
 
+views.LoginView
+
+
+class LoginForm(AuthenticationForm):
+    def __init__(self, request, email, remember, *args, **kwargs) -> None:
+        super(LoginForm, self).__init__(request=request, *args, **kwargs)
+        self.fields['username'].widget.attrs.update({'value': email})
+        self.fields['remember'].widget.attrs.update({'checked': remember})
+
+    username = forms.EmailField(widget=forms.EmailInput(attrs={
+        'class': 'form-control',
+        'placeholder': _('Enter email'),
+        'id': 'email',
+    }))
+    password = forms.CharField(widget=forms.PasswordInput(attrs={
+        'class': 'form-control',
+        'placeholder': 'Your password',
+        'id': 'password',
+    }))
+    remember = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={
+        'class': 'custom-control-input',
+        'id': 'remember',
+        # 'checked': False
+    }))
+    # TODO: clean data captcha
+    captcha = ReCaptchaField(widget=ReCaptchaV2Checkbox(
+        attrs={'class': 'form-control', },))
+
 
 class RegisterForm(forms.ModelForm):
     password_confirm = forms.CharField(widget=forms.PasswordInput(attrs={
         'class': 'form-control',
         'placeholder': 'Confirm your password',
         'id': 'password_confirm',
-        'pattern': '(?=.*\d)(?=.*[a-z]).{6,}',
+        'pattern': '(?=.*\d)(?=.*[a-z]).{6,20}',
         'title': _('Passwords must be the same')
     }))
-    agreement = forms.BooleanField(widget=forms.CheckboxInput(attrs={
-        'class': 'custom-control-input',
-        'id': 'agreement',
-        'checked': False
-    }))
-    # captcha = ReCaptchaField(
-    #     widget=ReCaptchaV2Checkbox(
-    #         attrs={
-    #             'class': 'form-control',
-    #             'data-theme': 'dark',
-    #             'data-size': 'compact',
-    #         }
-    #     )
-    # )
+    # agreement = forms.BooleanField(widget=forms.CheckboxInput(attrs={
+    #     'class': 'custom-control-input',
+    #     'id': 'agreement',
+    #     'checked': False
+    # }))
+    # TODO: clean data captcha
+    captcha = ReCaptchaField(widget=ReCaptchaV2Checkbox(
+        attrs={'class': 'form-control', }))
 
     class Meta:
         model = User
@@ -39,11 +63,18 @@ class RegisterForm(forms.ModelForm):
         widgets = {
             'username': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': _('Enter username'),
-                'id': 'username'
+                'id': 'username',
+                'pattern': '^[a-zA-Z][a-zA-Z0-9-_\.]{1,30}$',
+                'title': _('Enter a valid username in 30 characters. This value may contain only letters,\
+                     numbers, and ./-/_ characters.'),
+                'placeholder': _('Enter your username')
             }),
-            'email': forms.EmailInput(
-                attrs={'class': 'form-control', 'placeholder': _('Enter email'), 'id': 'email'}),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': _('Enter email'),
+                'id': 'email',
+                'title': _('Enter a valid email address.'),
+            }),
             'password': forms.PasswordInput(attrs={
                 'class': 'form-control',
                 'placeholder': _('Enter password'),
@@ -52,7 +83,6 @@ class RegisterForm(forms.ModelForm):
                 'title': _('Must contain at least one number and one lowercase letter, and 6 to 20 characters')}),
         }
 
-    # TODO: consider to move password validation to the frontend.
     def clean(self):
         super(RegisterForm, self).clean()
         password = self.cleaned_data.get('password')

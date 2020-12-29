@@ -145,7 +145,7 @@ class OrderProcessView(OrderProcessCheckMixin, View):
 
 
 def create_checkout_session(user, payment_method, item_name, amount):
-    domain = 'http://127.0.0.1:8080'
+    domain = settings.DOMAIN
     cancel_url = domain + reverse('shop:index')
     success_url = domain + reverse('order:success') + \
         '?session_id={CHECKOUT_SESSION_ID}'

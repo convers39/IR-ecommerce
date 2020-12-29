@@ -7,17 +7,13 @@ services:
       context: .
       dockerfile: ./dockerfile.prod
     container_name: django
-    image: 543353045438.dkr.ecr.ap-northeast-1.amazonaws.com/django-ec2:django
     command: gunicorn --workers=2 --bind=0.0.0.0:8000 --env DJANGO_SETTINGS_MODULE=core.settings.prod core.wsgi:application
     volumes:
-      # - .:/usr/src/app
-      - static_volume:/home/app/web/static
-      - media_volume:/home/app/web/media
-      # - ./nginx/certs/:/etc/certs
-    # ports:
-    #   - "8000:8000"
-    expose:
-      - 8000
+      - .:/usr/src/app
+      - static_volume:/usr/src/app/static
+      - media_volume:/usr/src/app/media
+    ports:
+      - "8000:8000"
     env_file:
       - ./core/env/env.prod
     depends_on:
@@ -31,50 +27,30 @@ services:
     entrypoint: /bin/sh
     command: ./docker.celery.sh
     volumes:
-      # - .:/usr/src/app
-      - static_volume:/home/app/web/static
-      - media_volume:/home/app/web/media
+      - .:/usr/src/app
+      - static_volume:/usr/src/app/static
+      - media_volume:/usr/src/app/media
     env_file:
       - ./core/env/env.prod
     depends_on:
       - django
       - redis
-  # pgdb:
-  #   image: postgres:alpine
-  #   container_name: pgdb
-  #   env_file: core/env/env.prod.db
-  #   volumes:
-  #     - pgdata:/var/lib/postgresql/data/
   redis:
     restart: always
     image: redis:alpine
     container_name: redis
     volumes:
       - redisdata:/data
-  # nginx:
-  #   restart: always
-  #   image: nginx:latest
-  #   container_name: nginx
-  #   ports:
-  #     - "443:443"
-  #     - "80:80"
-  #   volumes:
-  #     - ./static:/www/static
-  #     - ./nginx/:/etc/nginx/conf.d
-  #     - ./nginx/certs/:/etc/certs
-  #   depends_on:
-  #     - django
   nginx-proxy:
     container_name: nginx-proxy
     build: ./nginx
-    image: 543353045438.dkr.ecr.ap-northeast-1.amazonaws.com/django-ec2:nginx
     restart: always
     ports:
       - 443:443
       - 80:80
     volumes:
-      - static_volume:/home/app/web/static
-      - media_volume:/home/app/web/media
+      - static_volume:/usr/src/app/static
+      - media_volume:/usr/src/app/media
       - certs:/etc/nginx/certs
       - html:/usr/share/nginx/html
       - vhost:/etc/nginx/vhost.d
@@ -83,6 +59,7 @@ services:
       - django
   nginx-proxy-letsencrypt:
     image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: letsencrypt
     env_file:
       - ./core/env/env.prod.proxy-companion
     volumes:
@@ -93,7 +70,6 @@ services:
     depends_on:
       - nginx-proxy
 volumes:
-  # pgdata:
   redisdata:
   static_volume:
   media_volume:
