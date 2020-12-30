@@ -1,10 +1,20 @@
 from django.contrib import admin
-from easy_select2 import select2_modelform
+from django import forms
+from easy_select2.utils import apply_select2
 
 from mptt.admin import DraggableMPTTAdmin, TreeRelatedFieldListFilter
 from .models import ProductSPU, ProductSKU, Origin, HomeBanner, Category, Image
 
-SKUForm = select2_modelform(ProductSKU, attrs={'width': '50%'})
+# SKUForm = select2_modelform(ProductSKU, attrs={'width': '50%'})
+
+
+class SKUForm(forms.ModelForm):
+    class Meta:
+        widgets = {
+            'spu': apply_select2(forms.Select),
+            'category': apply_select2(forms.Select),
+            'origin': apply_select2(forms.Select),
+        }
 
 
 class ImageInline(admin.TabularInline):

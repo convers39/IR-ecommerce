@@ -1,14 +1,22 @@
 # IR-ecommerce
 
 
+### Demo Website: [IREC](https://irec.xyz/shop/)
+Demo account (only view permission in admin page):
 
+email: demo@email.com
+password: demo123456
+
+**NOTE**: 
+USE TEST CREDIT CARD TO MAKE PAYMENT
+4242 4242 4242 4242
+
+Check [here](https://stripe.com/docs/testing) for more info.
 ### About This Project
 
-This is an ecommerce project build mainly by Django Framework + few Javascript/jquery. Using Bootstrap 4 template.
+This is a simple ecommerce project built mainly by Django Framework + few Javascript/jquery, using Bootstrap 4 template with Django template language.
 
-I am a newbie to web development and this is a hands-on project for myself.
-
-If your are tired of writing those helloworld crap, looking for something more challenging to make use of your Django skills, hope this project could be helpful as your reference.
+As a hands-on project for a newbee developer (myself), if your are tired of writing those helloworld crap, looking for something more challenging to make use of your Django and overall web development skills, hope this project could be helpful as your reference.
 
 Since I am exploring the right way to impelement those features, I am pretty sure there are many other better approaches. Please feel free to share your ideas and indicate my mistakes, which would be really really appreciated.
 
@@ -76,7 +84,7 @@ Since I am exploring the right way to impelement those features, I am pretty sur
 
 ### Features
 
-- account center
+- **account center**
 
   - account registration with email activation (also used in changing email address)
   - login with email address
@@ -85,41 +93,42 @@ Since I am exploring the right way to impelement those features, I am pretty sur
   - manage recipient addresses (based on ajax request)
   - order management
   - write review and rate stars for ordered items
+  - google recaptcha for login and register ([django-recaptcha](https://github.com/praekelt/django-recaptcha))
 
-- shop
+- **shop**
 
   - list and detail view for items
   - add/remove item to/from wishlist
   - save watch history
   - show related item on detail page
   - fulltext search (postgresql)
-  - item list view sorting
+  - item list view filter by sorting, category and tags
   - item tags ([django-taggit](https://github.com/jazzband/django-taggit))
   - recursive category ([django-mptt](https://github.com/django-mptt/django-mptt))
 
-- shopping cart
+- **shopping cart**
 
   - add item to shopping cart
   - CRUD operation on shopping cart page (based on ajax request)
   - guest checkout
 
-- order and payment
+- **order and payment**
 
-  - payment with Stripe Checkout
+  - payment with [Stripe Checkout](https://stripe.com/docs/payments/checkout)
   - status management ([django-fsm](https://github.com/viewflow/django-fsm)) (NOTE: this package is going to be deprecated soon, will transit to [viewflow](https://docs-next.viewflow.io/fsm/index.html) in the future)
 
-- customized admin
+- **customized admin**
 
   - use modern admin theme([django-simpleui](https://github.com/newpanjing/simpleui))
   - custom views and actions (shipping, cancel order, refund)
   - autocomplete search ([easy-select2](https://github.com/asyncee/django-easy-select2))
 
-- others
+- **others**
 
   - testing with [factory_boy](https://github.com/FactoryBoy/factory_boy) and [faker](https://github.com/joke2k/faker)
-  - customized admin theme
   - rich text editor in admin page ([django-ckeditor](https://github.com/django-ckeditor/django-ckeditor))
-- use Sentry for monitoring
+  - use [Sentry](https://docs.sentry.io/platforms/python/guides/django/) for monitoring
+  - deployment on EC2
   
   
 
@@ -132,7 +141,7 @@ Since I am exploring the right way to impelement those features, I am pretty sur
 - Redis
 
   - web site caching
-  - login session cache database
+  - login session cache
   - message queue broker
   - shopping cart, watch history, wishlist database
 
@@ -149,9 +158,41 @@ Since I am exploring the right way to impelement those features, I am pretty sur
 
 - Docker
 
-  
+### Architect
 
-### How To Start
+![architect](_samples/architect.jpg) 
+
+The project is deployed in an EC2 instance, and makes use of other AWS services such as S3 bucket for media file storage, RDS for postgres database, and SES for email sending.
+
+For details on deployment please refer to this tutorial:
+
+[TestDriven.io](https://testdriven.io/blog/django-docker-https-aws/)
+
+### DB Design
+
+![db-models](_samples/db-models.jpg) 
+
+**NOTE**
+All (except Category and User) models inherit from a base model which has 3 fields: 
+created_at, updated_up, is_deleted
+
+The relationship between Order and Payment could be 1to1 which is easier to manage, while on some EC sites there is an option to pay multiple orders together, here just leave as it is.
+
+Other models such as Invoice, CancelRecord, RefundRecord are not implemented as those could be acheived on the Stripe dashboard. 
+
+### Order State Management
+
+![checkout](_samples/checkout-flow.jpg) 
+
+The states of order is quite complecated, and varies depending on projects and developer. It was really a headache for me.
+
+This chart is created based on some references and my trials and errors, might work for a small project, but definately could be improved and better.
+
+The core idea is that the status of order and status of payment should be seperated as 2 fields (instead of 1 status field in the Order model, which did not work well), meanwhile intertwined with each other (dot line arrows), since the state of payment or order could be the signal or criteria to make actions to change either order or payment's state. To acheive those transitions between different states, works could be done by a user, an admin, or the system.
+
+It is not necessary to add every ongoing state or every perfect tense state (which confused me a lot at the beginning), instead it should be decided based on a simple question: Do I need an action to make the transition here? In other words, if you found that you need 2 steps to acheive the next state, that probably means there should be one more state in the middle.
+
+### How To Start (Local Env)
 
 First clone the repository:
 
@@ -161,20 +202,18 @@ $ git clone https://github.com/convers39/IR-ecommerce.git
 
 Setup your local env file, in my example, the project folder tree looks as below, the env file located in core folder. The default location recognized by docker-compose file is the same directory with docker-compose (in this case the root dir), make sure you set the right file path for env file.
 
-```shel
+```shell
 .
 ├── LICENSE
 ├── README.md
 ├── _samples
 ├── apps
 │   ├── __init__.py
-│   ├── __pycache__
 │   ├── account
 │   ├── cart
 │   ├── order
 │   └── shop
 │       ├── __init__.py
-│       ├── __pycache__
 │       ├── admin.py
 │       ├── apps.py
 │       ├── context_processors.py
@@ -186,7 +225,6 @@ Setup your local env file, in my example, the project folder tree looks as below
 │       ├── templatetags
 │       ├── tests
 │       │   ├── __init__.py
-│       │   ├── __pycache__
 │       │   ├── factory.py
 │       │   ├── test_models.py
 │       │   ├── test_urls.py
@@ -195,14 +233,16 @@ Setup your local env file, in my example, the project folder tree looks as below
 │       └── views.py
 ├── core
 │   ├── __init__.py
-│   ├── __pycache__
 │   ├── asgi.py
 │   ├── celery.py
 │   ├── env
-│   │   ├── env
+│   │   ├── env.local
+│   │   ├── env.prod
+│   │   ├── env.prod.proxy-companion
+│   │   ├── env.staging
+│   │   ├── env.staging.proxy-companion
 │   ├── settings
 │   │   ├── __init__.py
-│   │   ├── __pycache__
 │   │   ├── base.py
 │   │   ├── local.py
 │   │   ├── prod.py
@@ -211,7 +251,6 @@ Setup your local env file, in my example, the project folder tree looks as below
 │   └── wsgi.py
 ├── db
 │   ├── __init__.py
-│   ├── __pycache__
 │   └── base_model.py
 ├── docker-compose.yml
 ├── dockerfile
@@ -233,7 +272,7 @@ Setup your local env file, in my example, the project folder tree looks as below
     └── shop
 ```
 
-Then you will need to write down credentials of database, mail server, AWS s3 bucket and Stripe API keys in your env file, and in your settings you can obtain those values:
+Then you will need to write down credentials of database, mail server, AWS s3 bucket and Stripe API keys in your env file, and in your settings you can obtain those values, for instance: 
 
 ```python
 # core/settings/base.py
@@ -277,17 +316,17 @@ Now build the image and compose up the containers, add `--build` flag to compose
 
 ```bash
 $ docker build .
-$ docker-compose up 
+$ docker-compose -f docker-compose.yml up 
 ```
 
-Start an empowered interactive shell in django container, use the container name (django in this project)
+Start an empowered interactive shell in django container (provided by [django-extensions](https://github.com/django-extensions/django-extensions)), use the container name (django in this project)
 
 ```bash
 $ docker exec -it <django> bash
 $ python manage.py shell_plus
 ```
 
-Access to Postgresl and Redis
+Access to Postgresql and Redis (Postgresql container is removed in prod setup as using AWS RDS for DB)
 
 ```bash
 $ docker exec -it <pgdb> psql -U <username> <password>
@@ -295,7 +334,7 @@ $ docker exec -it <pgdb> psql -U <username> <password>
 
 ```bash
 $ docker exec -it <redis> sh
-# redis-cli
+$ redis-cli
 ```
 
 To run a test, specify a setting file (might run to errors with debug toolbar if not using testing settings, which forces to turn off DEBUG)
@@ -304,17 +343,17 @@ To run a test, specify a setting file (might run to errors with debug toolbar if
 $ python manage.py test <appname> --settings=core.settings.testing
 ```
 
-
-
 ### Future Updates
 
 Currently on plan:
 
-- filters on shop item list and account center
-- third party Oauth login
-- ~~guest shopping cart and checkout~~
-- coupon apply on shopping cart page
-- deployment a demo site + deployment setup
+- [x] guest shopping cart and checkout 
+- [x] deployment a demo site + deployment setup
+- [ ] image resize on upload
+- [ ] language support for Chinese and Japanese
+- [ ] filters on shop item list and account center
+- [ ] third party Oauth login
+- [ ] coupon apply on shopping cart page
 
 
 

@@ -103,6 +103,9 @@
         <div class="row m-sm-0">
           <div class="col-sm-2 p-sm-0 order-2 order-sm-1 mt-2 mt-sm-0">
             <div class="owl-thumbs d-flex flex-row flex-sm-column" data-slider-id="1">
+              <div class="owl-thumb-item flex-fill mb-2 mr-2 mr-sm-0">
+                <img class="w-100" src="{{ product.cover_img.url }}" alt="{{ product.name }}" />
+              </div>
               {% for image in images %}
               <div class="owl-thumb-item flex-fill mb-2 mr-2 mr-sm-0">
                 <img class="w-100" src="{{ image.image.url }}" alt="{{ image.name }}" />
@@ -112,6 +115,9 @@
           </div>
           <div class="col-sm-10 order-1 order-sm-2">
             <div class="owl-carousel product-slider" data-slider-id="1">
+              <a class="d-block" href="{{ product.cover_img.url }}" data-lightbox="product"
+                title="{{ image.name }}"><img class="img-fluid" src="{{ product.cover_img.url }}"
+                  alt="{{ product.cover_img.name }}" /></a>
               {% for image in images %}
               <a class="d-block" href="{{ image.image.url }}" data-lightbox="product" title="{{ image.name }}"><img
                   class="img-fluid" src="{{ image.image.url }}" alt="{{ image.name }}" /></a>

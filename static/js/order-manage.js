@@ -28,7 +28,9 @@ $(function () {
 
   const csrftoken = Cookies.get("csrftoken");
   // redirect to checkout
-  var stripe = Stripe("{{ stripe_key }}");
+  var stripe = Stripe(
+    "pk_test_51HLl4uEz7XMShQN5LjtSFkPTvXN8he7BvOmEGtt8esL4xq467e1Ba0nnwFh85BRupY2JprjatnprxOtQTmqqTxQ800HluM3qNp"
+  );
   $(".payment").click(async function (event) {
     event.preventDefault();
     let sessionId = $(this).attr("session");

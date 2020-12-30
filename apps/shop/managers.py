@@ -86,7 +86,7 @@ class SKUManager(Manager):
         avg_sales = self.aggregate(Avg('sales'))
         date_range = (datetime.now(tz=timezone.utc)-timedelta(days=14))
         return self.get_queryset().filter(
-            Q(created_at__lt=date_range) |
+            Q(created_at__gt=date_range) |
             Q(sales__gt=avg_sales['sales__avg'])
         )
 

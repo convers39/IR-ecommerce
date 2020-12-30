@@ -12,6 +12,7 @@ from account.models import User
 # app = Celery('apps.account.tasks', broker=settings.CELERY_BROKER_URL)
 domain = settings.DOMAIN
 
+# TODO: cover sensitive user infor in logger
 logger = logging.getLogger(__name__)
 
 
