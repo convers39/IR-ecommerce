@@ -4,14 +4,14 @@ DEBUG = False
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'irec.xyz', 'www.irec.xyz']
 DOMAIN = 'https://irec.xyz'
 # be careful on the order of middlewares
-MIDDLEWARE.insert(2, 'django.middleware.cache.UpdateCacheMiddleware')
-MIDDLEWARE.insert(4, 'django.middleware.cache.FetchFromCacheMiddleware')
+# MIDDLEWARE.insert(2, 'django.middleware.cache.UpdateCacheMiddleware')
+# MIDDLEWARE.insert(4, 'django.middleware.cache.FetchFromCacheMiddleware')
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 # set website cache time and use redis default backend for caching
-CACHE_MIDDLEWARE_SECONDS = 1200
-CACHE_MIDDLEWARE_ALIAS = 'default'
+# CACHE_MIDDLEWARE_SECONDS = 600
+# CACHE_MIDDLEWARE_ALIAS = 'default'
 
 LOGGING = {
     'version': 1,
