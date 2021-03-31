@@ -34,11 +34,11 @@ logger = logging.getLogger(__name__)
 class OrderProcessView(OrderProcessCheckMixin, View):
     """
     Customer click place order to send an ajax request,
-    recieve address and payment method only from request data,
+    receive address and payment method only from request data,
     retrieve shopping cart data from redis and calculate price,
     add lock when retrieve product data from DB (using pessimistic lock here),
     create a stripe checkout session, response a json containing sessionId,
-    and in the fronend use the sessionId to redirect customer to stripe checkout
+    and in the frontend use the sessionId to redirect customer to stripe checkout
     """
 
     @transaction.atomic
@@ -47,7 +47,6 @@ class OrderProcessView(OrderProcessCheckMixin, View):
         data = json.loads(request.body.decode())
         payment_method = data.get('payment_method')
         user, address = self.get_user_and_address()
-
         # make transaction savepoint before changing any data in database
         save_id = transaction.savepoint()
         try:
@@ -147,12 +146,13 @@ class OrderProcessView(OrderProcessCheckMixin, View):
 def create_checkout_session(user, payment_method, item_name, amount):
     domain = settings.DOMAIN
     cancel_url = domain + reverse('shop:index')
-    success_url = domain + reverse('order:success') + \
-        '?session_id={CHECKOUT_SESSION_ID}'
-    if user.is_authenticated:
-        cancel_url = domain + reverse('account:order')
+    success_url = domain + reverse('order:success')
 
+    if user.is_active:
+        cancel_url = domain + reverse('account:order')
+    print('create session', user.is_active, success_url, cancel_url)
     try:
+        print('try session', payment_method, user.email, item_name, amount)
         session = stripe.checkout.Session.create(
             payment_method_types=[payment_method],
             customer_email=user.email,
@@ -167,9 +167,10 @@ def create_checkout_session(user, payment_method, item_name, amount):
                 'quantity': 1,
             }],
             mode='payment',
-            success_url=success_url,
+            success_url=success_url+'?session_id={CHECKOUT_SESSION_ID}',
             cancel_url=cancel_url,
         )
+        print('session', session)
         return session
     except:
         raise Exception('Error on creating payment session')

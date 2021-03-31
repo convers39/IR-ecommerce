@@ -28,12 +28,16 @@ class OrderProcessCheckMixin:
             user = User.objects.get(id=self.request.user.id)
         else:
             user_id = get_user_id(self.request)
-            password = User.objects.make_random_password()
-            user = User.objects.create(
-                username=f'guest_{user_id}',
-                email=data['email'],
-                password=password
-            )
+            # check if guest user has record
+            try:
+                user = User.objects.get(username=f'guest_{user_id}')
+            except User.DoesNotExist:
+                password = User.objects.make_random_password()
+                user = User.objects.create(
+                    username=f'guest_{user_id}',
+                    email=data['email'],
+                    password=password
+                )
             recipient = data['first_name'] + ' ' + data['last_name']
             address = Address.objects.create(
                 recipient=recipient,
@@ -50,7 +54,7 @@ class OrderProcessCheckMixin:
 
     def dispatch(self, request, *args, **kwargs):
         try:
-            data = json.loads(self.request.body.decode())
+            data = json.loads(request.body.decode())
         except:
             return JsonResponse({'res': 0, 'errmsg': 'Invalid data'})
 
@@ -58,45 +62,47 @@ class OrderProcessCheckMixin:
         if payment_method not in ['card', 'alipay']:
             return JsonResponse({'res': 0, 'errmsg': 'Invalid payment method'})
 
-        user_id = get_user_id(self.request)
+        user_id = get_user_id(request)
         if is_first_time_guest(request) or cal_cart_count(user_id) == 0:
             return JsonResponse({'res': 0, 'errmsg': 'Cart is empty'})
 
         sku_list, count_list, ordering = get_cart_all_in_order(user_id)
         qs = ProductSKU.objects.filter(id__in=sku_list).order_by(ordering)
+
         if len(sku_list) > qs.count():
             # in case before user checkout, item deleted from db,
             # refresh the page will filter out non-existent item
-            messages.warning(self.request, 'Item does not exist')
+            messages.warning(request, 'Item does not exist')
             return redirect(reverse('cart:checkout'))
 
         for sku, count in zip(qs, count_list):
             if sku.stock < count:
-                messages.warning(self.request, f'Item {sku.name} understocked')
+                messages.warning(request, f'Item {sku.name} understocked')
                 return redirect(reverse('cart:checkout'))
 
-        try:
-            User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return JsonResponse({'res': 0, 'errmsg': 'User does not exist'})
-
-        if self.request.user.is_authenticated:
+        if request.user.is_authenticated:
+            try:
+                User.objects.get(id=user_id)
+            except User.DoesNotExist:
+                return JsonResponse({'res': 0, 'errmsg': 'User does not exist'})
             addr_id = data.get('addr_id')
             try:
                 Address.objects.get(id=addr_id)
             except Address.DoesNotExist:
-                messages.error(self.request, 'Address does not exist')
+                messages.error(request, 'Address does not exist')
                 return JsonResponse({'res': 0, 'errmsg': 'Address does not exist'})
         else:
             # if is guest, check address form data integrity
             form_fields = set(GuestAddressForm().fields.keys())
+            form_fields.remove('captcha')
             data_set = set(key for key in data.keys() if data[key].strip())
             if not form_fields.issubset(data_set):
                 return JsonResponse({'res': 0, 'errmsg': 'Address data is incomplete'})
 
             # check if the submitted email has an account
             guest_email = data['email']
-            user = User.objects.filter(email=guest_email).first()
+            user = User.objects.filter(Q(email=guest_email) & ~Q(
+                username__startswith='guest')).first()
             if user:
                 return JsonResponse({
                     'res': 0,

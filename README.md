@@ -1,7 +1,7 @@
 # IR-ecommerce
 
 
-### Demo Website: [IREC](https://irec.xyz/shop/)
+### Demo Website: [IREC](https://irec.xyz/)
 Demo account (only view permission in admin page):
 
 email: demo@email.com

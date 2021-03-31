@@ -1,7 +1,7 @@
 from .base import *
 
 DEBUG = True
-DOMAIN = '127.0.0.1'
+DOMAIN = 'http://127.0.0.1:8080'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static'), ]
 
 # for debug tool:

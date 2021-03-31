@@ -70,7 +70,7 @@ class CartInfoView(View):
             'subtotal': subtotal,
             'products': products,
         }
-        print(context)
+        # print(context)
         return render(request, 'cart/cart.html', context)
 
 
