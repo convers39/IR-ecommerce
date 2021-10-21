@@ -1,5 +1,6 @@
 # IR-ecommerce
 
+## NOTICE: THIS SITE IS DEAD DUE TO AWS INVOICE. RIP🙏.
 
 ### Demo Website: [IREC](https://irec.xyz/)
 Demo account (only view permission in admin page):
